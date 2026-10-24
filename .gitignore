@@ -1,0 +1,18 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# Secrets: real keys live only in .env on each machine
+.env
+
+# Generated data: rebuilt with `python seed.py` and `python ingest.py`
+school.db
+db/
+
+# Model files are huge; they live in Ollama, not in git
+*.gguf
+Modelfile*
+
+# macOS
+.DS_Store
