@@ -1,11 +1,28 @@
 /* Javid school demo, Vuexy-style admin theme.
-   Tailwind utilities (lib/tailwind.browser.js) do the page grids and spacing inside the templates;
-   this file holds the design tokens and the reusable components (card, btn, sidebar, ...).
-   The layer order is declared first so Tailwind's reset never overrides our components. */
-@layer theme, base, components, utilities;
+   Tailwind utilities do the page grids and spacing inside the .vue templates;
+   this file holds the design tokens and the reusable components (card, btn, sidebar, ...). */
+@import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
 
-@font-face { font-family: Vazirmatn; src: url(fonts/Vazirmatn-Regular.ttf); font-weight: 400; }
-@font-face { font-family: Vazirmatn; src: url(fonts/Vazirmatn-Bold.ttf); font-weight: 700; }
+/* Tailwind colors point at the tokens below, so bg-primary, text-ink... follow light/dark */
+@theme inline {
+  --font-sans: Vazirmatn, Tahoma, sans-serif;
+  --color-primary: var(--primary);
+  --color-success: var(--success);
+  --color-info: var(--info);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
+  --color-secondary: var(--secondary);
+  --color-ink: var(--ink);
+  --color-body: var(--text);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-panel: var(--panel);
+  --color-page: var(--bg);
+}
+
+@font-face { font-family: Vazirmatn; src: url(/fonts/Vazirmatn-Regular.ttf); font-weight: 400; }
+@font-face { font-family: Vazirmatn; src: url(/fonts/Vazirmatn-Bold.ttf); font-weight: 700; }
 
 /* ---------- tokens: every color in the app comes from here ---------- */
 :root {

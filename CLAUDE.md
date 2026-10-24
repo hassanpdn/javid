@@ -20,6 +20,12 @@ python seed.py                # wipes and rebuilds school.db with demo data
 python ingest.py              # chunks docs/ into the Chroma vector db (./db)
 uvicorn app:app --reload      # http://localhost:8000
 ```
+Frontend (Node 20+), only needed when changing the UI:
+```
+cd frontend && npm install
+npm run dev                   # http://localhost:5173, hot reload, API calls proxied to :8000
+npm run build                 # writes the finished site into ../static (committed, so the demo needs no Node)
+```
 Models run in Ollama on the Mac: `qwen3-14b` (chat) and `bge-m3` (embeddings), both through the OpenAI-compatible API. Python 3.15 breaks chromadb builds; use 3.12. Demo users all have password `1234` (modir, edari, moalem, karimi, moshaver, vali, daneshamooz, plus teacher{id} and parent{student_id}).
 
 ## Layout
@@ -29,7 +35,8 @@ Models run in Ollama on the Mac: `qwen3-14b` (chat) and `bge-m3` (embeddings), b
 - `db.py` SQLite schema and helpers (`notify`, `users_with`, `stamp`), `seed.py` demo data with planted scenarios.
 - Role routers: `manager.py`, `staff.py` (letter agent), `counselor.py`, `parent.py`, `parent_chat.py` (parent asks about own child), `notifications.py`.
 - `students.py` per-student facts and signal rules, `stats.py`, `jalali.py` date conversion.
-- `static/app.js` Vue 3 global build, no build step. Vuexy-style layout (`AppLayout`: sidebar, navbar, dark mode); animation through GSAP helpers (`v-reveal`, `v-pop`, `v-drawer`, `CountUp`, `TypeText`). `static/style.css` design tokens (light/dark) and components; Tailwind (`lib/tailwind.browser.js`, compiled in the browser) for grids and spacing in templates. All libs are vendored in `static/lib`, no CDN. Font Vazirmatn.
+- `frontend/`: Vue 3 + Vite + Tailwind 4 + GSAP. `src/pages/` one panel per role, `src/components/` shared pieces (`AppLayout` sidebar/navbar/dark mode, `ChatBox`, `NotificationBell`, charts), `src/lib/` (`api.js` session and fetch, `motion.js` GSAP directives `v-reveal`/`v-pop`/`v-drawer`, `theme.js`, `icons.js`, `constants.js`), `src/styles/main.css` design tokens (light/dark) and components. Tailwind utilities for grids and spacing in templates. Font Vazirmatn in `public/fonts`.
+- `static/`: build output of `frontend/`, served by FastAPI. Never edit by hand; run `npm run build` and commit it. API routes the dev proxy forwards are listed in `frontend/vite.config.js`; add new route prefixes there.
 
 ## Rules that must not break
 

@@ -117,5 +117,5 @@ app.include_router(counselor.router)
 app.include_router(parent.router)
 app.include_router(parent_chat.router)
 
-# Serve the chat page at http://localhost:8000 (must come after the API routes)
+# Serve the built frontend (frontend/ -> npm run build -> static/) at http://localhost:8000. Must come after the API routes
 app.mount("/", StaticFiles(directory="static", html=True), name="static")

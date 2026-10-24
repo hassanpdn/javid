@@ -16,3 +16,6 @@ Modelfile*
 
 # macOS
 .DS_Store
+
+# Frontend dependencies (npm install recreates them)
+frontend/node_modules/
