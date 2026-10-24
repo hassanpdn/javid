@@ -4,7 +4,33 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>دستیار هوشمند دبستان جاوید</title>
+<script>
+  // Apply the saved light/dark theme before anything paints, so the page never flashes
+  try { if (localStorage.getItem("theme") === "dark") document.documentElement.classList.add("dark") } catch {}
+</script>
 <link rel="stylesheet" href="style.css">
+<!-- Tailwind compiles the utility classes in the browser, so there is still no build step -->
+<script src="lib/tailwind.browser.js"></script>
+<style type="text/tailwindcss">
+  @custom-variant dark (&:where(.dark, .dark *));
+  /* Tailwind colors point at the tokens in style.css, so bg-primary, text-ink... follow light/dark */
+  @theme inline {
+    --font-sans: Vazirmatn, Tahoma, sans-serif;
+    --color-primary: var(--primary);
+    --color-success: var(--success);
+    --color-info: var(--info);
+    --color-warning: var(--warning);
+    --color-danger: var(--danger);
+    --color-secondary: var(--secondary);
+    --color-ink: var(--ink);
+    --color-body: var(--text);
+    --color-muted: var(--muted);
+    --color-line: var(--line);
+    --color-panel: var(--panel);
+    --color-page: var(--bg);
+  }
+</style>
+<script src="lib/gsap.min.js"></script>
 <script src="lib/vue.global.prod.js"></script>
 </head>
 <body>

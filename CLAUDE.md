@@ -29,7 +29,7 @@ Models run in Ollama on the Mac: `qwen3-14b` (chat) and `bge-m3` (embeddings), b
 - `db.py` SQLite schema and helpers (`notify`, `users_with`, `stamp`), `seed.py` demo data with planted scenarios.
 - Role routers: `manager.py`, `staff.py` (letter agent), `counselor.py`, `parent.py`, `parent_chat.py` (parent asks about own child), `notifications.py`.
 - `students.py` per-student facts and signal rules, `stats.py`, `jalali.py` date conversion.
-- `static/app.js` Vue 3 global build, no build step. `static/style.css` design tokens and components. Font Vazirmatn.
+- `static/app.js` Vue 3 global build, no build step. Vuexy-style layout (`AppLayout`: sidebar, navbar, dark mode); animation through GSAP helpers (`v-reveal`, `v-pop`, `v-drawer`, `CountUp`, `TypeText`). `static/style.css` design tokens (light/dark) and components; Tailwind (`lib/tailwind.browser.js`, compiled in the browser) for grids and spacing in templates. All libs are vendored in `static/lib`, no CDN. Font Vazirmatn.
 
 ## Rules that must not break
 
