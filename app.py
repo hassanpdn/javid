@@ -1,6 +1,7 @@
-import os, re, json
-from fastapi import FastAPI, Depends, HTTPException
+import os, re, json, time
+from fastapi import FastAPI, Depends, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from common import normalize, embed, collection
@@ -17,8 +18,23 @@ THRESHOLD = float(os.getenv("SIMILARITY_THRESHOLD", "0.60"))
 NOT_FOUND = "جواب این سؤال رو توی اسناد مدرسه پیدا نکردم. می‌تونید سؤال رو دقیق‌تر بپرسید یا با دفتر مدرسه تماس بگیرید."
 UNCLEAR = "متوجه سؤالتون نشدم. لطفا سؤال رو کامل و واضح بنویسید، مثلا «ساعت کاری کارکنان اداری چقدره؟»"
 
-app = FastAPI()
-app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
+# The API docs at /docs list every endpoint; they are only on when SHOW_DOCS=1 (handy while developing)
+docs = os.getenv("SHOW_DOCS") == "1"
+app = FastAPI(docs_url="/docs" if docs else None, redoc_url=None, openapi_url="/openapi.json" if docs else None)
+# The frontend is served from the same address, so no other site needs to call the API.
+# To allow one (e.g. a separate dev server), list it in ALLOWED_ORIGINS, comma separated.
+origins = [o.strip() for o in os.getenv("ALLOWED_ORIGINS", "").split(",") if o.strip()]
+if origins:
+    app.add_middleware(CORSMiddleware, allow_origins=origins, allow_methods=["*"], allow_headers=["*"])
+app.add_middleware(GZipMiddleware, minimum_size=1000)   # compresses the JS/CSS bundle and big JSON replies
+
+@app.middleware("http")
+async def cache_assets(request: Request, call_next):
+    # Files in /assets have a content hash in their name, so the browser can keep them forever
+    response = await call_next(request)
+    if request.url.path.startswith("/assets/"):
+        response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+    return response
 
 db.init()
 
@@ -29,11 +45,21 @@ class LoginRequest(BaseModel):
     username: str
     password: str
 
+# Failed logins per username in the last 5 minutes. After 5 failures, that username has to wait.
+_failed = {}
+MAX_FAILS, FAIL_WINDOW = 5, 300
+
 @app.post("/login")
 def login(req: LoginRequest):
-    result = db.login(req.username.strip(), req.password)
+    name, now = req.username.strip(), time.time()
+    recent = [t for t in _failed.get(name, []) if now - t < FAIL_WINDOW]
+    if len(recent) >= MAX_FAILS:
+        raise HTTPException(status_code=429, detail="تلاش‌های ناموفق زیاد بود. چند دقیقه دیگر دوباره امتحان کنید.")
+    result = db.login(name, req.password)
     if not result:
+        _failed[name] = recent + [now]
         raise HTTPException(status_code=401, detail="نام کاربری یا رمز عبور اشتباه است")
+    _failed.pop(name, None)
     token, user = result
     return {"token": token, "user": db.public_user(user)}
 
@@ -86,7 +112,10 @@ SYSTEM = """تو دستیار پرسنل مدرسه جاوید هستی.
 
 @app.post("/chat")
 def chat(req: ChatRequest, user: dict = Depends(current_user)):
-    result = answer_question(normalize(req.question), user["role"])
+    try:
+        result = answer_question(normalize(req.question), user["role"])
+    except Exception:
+        raise HTTPException(status_code=503, detail="دستیار در دسترس نیست")
     db.log_chat(user, req.question, result["answer"], json.dumps(result["sources"], ensure_ascii=False))
     return result
 

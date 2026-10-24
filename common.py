@@ -21,5 +21,5 @@ def embed(texts):
     return [d.embedding for d in r.data]
 
 def collection():
-    db = chromadb.PersistentClient(path="./db")
+    db = chromadb.PersistentClient(path=os.getenv("CHROMA_PATH", "./db"))
     return db.get_or_create_collection("docs", metadata={"hnsw:space": "cosine"})

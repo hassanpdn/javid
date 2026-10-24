@@ -11,7 +11,7 @@ import re
 from datetime import date, timedelta
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
-import db
+import db, checks
 from auth import require_role
 from common import normalize
 from llm import ask_llm, ask_json
@@ -22,7 +22,17 @@ from db import LEVELS
 router = APIRouter(prefix="/parent")
 parent_only = require_role("parent")
 
-TERM_START = date(2026, 9, 23)  # 1 Mehr 1405
+def term_start(t):
+    """1 Mehr of the current school year (the school year starts in Mehr, month 7)."""
+    y, m, _ = to_jalali(t)
+    return to_gregorian(y if m >= 7 else y - 1, 7, 1)
+
+def title(gender):
+    return "خانم" if gender == "f" else "آقای"
+
+def counselor_name(c):
+    r = c.execute("SELECT full_name FROM users WHERE role = 'counselor' LIMIT 1").fetchone()
+    return r["full_name"] if r else "مشاور مدرسه"
 FA_DIGITS = str.maketrans("۰۱۲۳۴۵۶۷۸۹٠١٢٣٤٥٦٧٨٩", "01234567890123456789")
 WORD_NUMS = {"یک": 1, "یه": 1, "دو": 2, "سه": 3, "چهار": 4, "پنج": 5, "شش": 6, "هفت": 7, "هشت": 8, "نه": 9, "ده": 10}
 SUBJECT_ALIASES = {  # what parents say -> subject name in the database
@@ -37,7 +47,7 @@ OTHER_STUDENT = "من فقط می‌تونم درباره فرزند خودتو�
 COMPARE = ("مدرسه پیشرفت هر بچه رو با خودش می‌سنجه، نه با همکلاسی‌هاش. "
            "می‌تونم بگم فرزندتون توی هر درس نسبت به اول سال چه تغییری کرده.")
 SENSITIVE = ("این سؤال نیاز به بررسی تخصصی داره و من نمی‌تونم درباره‌ش نظر بدم. "
-             "پیشنهاد می‌کنم با خانم کاظمی، مشاور مدرسه، صحبت کنید. می‌تونید از دفتر مدرسه وقت بگیرید.")
+             "پیشنهاد می‌کنم با {counselor}، مشاور مدرسه، صحبت کنید. می‌تونید از دفتر مدرسه وقت بگیرید.")
 UNCLEAR = ("متوجه سؤالتون نشدم. می‌تونید درباره نمره‌ها، درس‌ها، غیبت و تأخیر، فرم‌های سلامت، "
            "پیام‌های مشاور یا مقررات مدرسه بپرسید.")
 
@@ -74,7 +84,7 @@ def find_period(q, t):
         y, m, _ = to_jalali(t)
         return to_gregorian(y, m, 1), f"از اول {MONTHS[m - 1]} تا امروز"
     if re.search(r"امسال|ترم|از اول سال|از مهر|کل سال", q):
-        return TERM_START, "از اول مهر تا امروز"
+        return term_start(t), "از اول مهر تا امروز"
     if "این هفته" in q:
         return t - timedelta(days=6), "در هفت روز اخیر"
     m = re.search(r"(?<![\w‌])(\d+|" + "|".join(WORD_NUMS) + r")\s*(روز|هفته|ماه)", q)
@@ -86,17 +96,19 @@ def find_period(q, t):
         return t - timedelta(days=6), "در هفت روز اخیر"
     return t - timedelta(days=29), "در ۳۰ روز اخیر"
 
-RULES = [  # (intent, pattern). Order matters.
+RULES = [  # (intent, pattern). Order matters: school rules come before sensitive topics,
+           # so "how do I report a sick day?" is a rules question, not a medical one.
     ("compare", r"مقایسه|رتبه|نفر اول|بقیه بچه|همکلاسی|میانگین کلاس|از بقیه"),
+    ("rules", r"قانون|مقررات|آیین|مجاز|ممنوع|اجازه|ساعت (شروع|کلاس|تعطیل)|چطور موجه|موجه (میشه|می‌شود|کنم)|"
+              r"تا (کی|چه زمانی|چند روز) باید|اطلاع (بدم|بدیم|داد|بدهیم)|گواهی|موبایل|تلفن همراه|پوشش|لباس|جلسه (اولیا|اولیاء)"),
     ("sensitive", r"افسرد|اضطراب|بیش ?فعال|اوتیس|روانی|بیماری|اختلال|روانشناس|دارو"),
-    ("rules", r"قانون|مقررات|آیین|مجاز|ممنوع|اجازه|ساعت (شروع|کلاس|تعطیل)|چطور موجه|موجه میشه|موبایل|تلفن همراه|پوشش|لباس|جلسه (اولیا|اولیاء)"),
     ("attendance", r"غیبت|غایب|نیومده|نیامده|تاخیر|تأخیر|دیر (اومده|آمده|رسیده)|حضور|حاضر"),
     ("suggestions", r"مشاور (چی )?گفته|پیشنهاد|توصیه|پیام مشاور"),
     ("forms", r"فرم"),
     ("teacher", r"معلم|آموزگار|مشاورش کیه|مدیر کیه"),
     ("weakest", r"ضعیف|ضعف|مشکل داره|کجا(ش)? مشکل|تقویت|عقب|کمک (لازم|نیاز)"),
     ("strongest", r"قوی|بهترین درس|خوبه|استعداد|عالیه"),
-    ("grades", r"نمره|کارنامه|وضعیت درسی|درس(ش|ها)|پیشرفت|ارزشیابی|چطوره"),
+    ("grades", r"نمره|کارنامه|وضعیت(ش| درسی)|اوضاع(ش| درسی)|درس(ش|ها)|پیشرفت|ارزشیابی"),
 ]
 
 def classify(q):
@@ -204,19 +216,19 @@ def build_facts(c, sid, intent, subject, q, t):
         return facts, plain, ("ارزشیابی", "همه درس‌ها")
 
     if intent == "teacher" and subject:
-        r = c.execute("""SELECT t.full_name FROM assessments a JOIN teachers t ON t.id = a.teacher_id
+        r = c.execute("""SELECT t.full_name, t.gender FROM assessments a JOIN teachers t ON t.id = a.teacher_id
                          WHERE a.student_id = ? AND a.subject = ? LIMIT 1""", (sid, subject)).fetchone()
         if r:
-            return None, f"آموزگار {subject} {name}، خانم {r['full_name']} است.", ("اطلاعات کلاس", subject)
+            return None, f"آموزگار {subject} {name}، {title(r['gender'])} {r['full_name']} است.", ("اطلاعات کلاس", subject)
     if intent == "teacher":
-        home = c.execute("""SELECT t.full_name, cl.name FROM students s JOIN classes cl ON cl.id = s.class_id
+        home = c.execute("""SELECT t.full_name, t.gender, cl.name FROM students s JOIN classes cl ON cl.id = s.class_id
                             JOIN teachers t ON t.id = cl.homeroom_teacher_id WHERE s.id = ?""", (sid,)).fetchone()
         others = c.execute("""SELECT DISTINCT a.subject, t.full_name FROM assessments a JOIN teachers t ON t.id = a.teacher_id
                               WHERE a.student_id = ? AND t.full_name != ?""", (sid, home["full_name"])).fetchall()
         facts = (f"کلاس {home['name']}، آموزگار اصلی: {home['full_name']}\n"
-                 + "\n".join(f"{r['subject']}: {r['full_name']}" for r in others) + "\nمشاور مدرسه: مریم کاظمی")
-        plain = (f"آموزگار کلاس {home['name']} خانم {home['full_name']} است. "
-                 + "، ".join(f"{r['subject']}: {r['full_name']}" for r in others) + ". مشاور مدرسه خانم مریم کاظمی است.")
+                 + "\n".join(f"{r['subject']}: {r['full_name']}" for r in others) + f"\nمشاور مدرسه: {counselor_name(c)}")
+        plain = (f"آموزگار کلاس {home['name']} {title(home['gender'])} {home['full_name']} است. "
+                 + "، ".join(f"{r['subject']}: {r['full_name']}" for r in others) + f". مشاور مدرسه {counselor_name(c)} است.")
         return facts, plain, ("اطلاعات کلاس", home["name"])
 
     if intent == "suggestions":
@@ -240,8 +252,21 @@ def build_facts(c, sid, intent, subject, q, t):
 
 # ---------- 3. writing and checking ----------
 
-def numbers_in(text):
-    return set(re.findall(r"\d+", text.translate(FA_DIGITS)))
+def expected_counts(facts):
+    """Absence and late counts written in the attendance facts, so the answer can be checked label by label."""
+    m = re.search(r"تعداد غیبت: (\d+) \(غیرموجه: (\d+)\)", facts)
+    late = re.search(r"تعداد تأخیر: (\d+)", facts)
+    return {"غیبت": int(m.group(1)), "غیبت غیرموجه": int(m.group(2)), "تأخیر": int(late.group(1))} if m and late else {}
+
+def other_students(c, sid):
+    return [r[0] for r in c.execute("SELECT first_name || ' ' || last_name FROM students WHERE id != ?", (sid,))]
+
+def acceptable(draft, facts, others):
+    """The model's answer is shown only if every number comes from the facts, attendance counts sit next to
+    the right label, and it has no diagnosis, comparison, private notes or other children's names."""
+    return (bool(draft) and checks.only_known_numbers(draft, facts)
+            and checks.labeled_counts_ok(draft, expected_counts(facts))
+            and not checks.unsafe_for_parent(draft, others))
 
 def write(first_name, question, facts):
     return ask_llm(
@@ -278,7 +303,8 @@ def ask(req: AskRequest, user: dict = Depends(parent_only)):
                     result = {"answer": "الان به اسناد مدرسه دسترسی ندارم. چند لحظه بعد دوباره امتحان کنید.", "sources": []}
                 result["intent"] = "rules"
             elif intent in ("compare", "sensitive", "unclear"):
-                result = {"answer": {"compare": COMPARE, "sensitive": SENSITIVE, "unclear": UNCLEAR}[intent],
+                fixed = {"compare": COMPARE, "sensitive": SENSITIVE.format(counselor=counselor_name(c)), "unclear": UNCLEAR}
+                result = {"answer": fixed[intent],
                           "sources": [], "intent": intent}
             else:
                 facts, plain, source = build_facts(c, sid, intent, subject, q, t)
@@ -286,8 +312,7 @@ def ask(req: AskRequest, user: dict = Depends(parent_only)):
                 if facts:
                     try:
                         draft = write(first_name, q, facts)
-                        # every number the model wrote must exist in the facts, otherwise use the code's answer
-                        if draft and numbers_in(draft) <= numbers_in(facts):
+                        if acceptable(draft, facts, other_students(c, sid)):
                             answer = draft
                     except Exception:
                         pass
