@@ -86,14 +86,14 @@ onMounted(async () => {
       </div>
 
       <label class="field"><span>یادداشت برای گیرندگان <span class="muted">(اختیاری)</span></span>
-        <textarea v-model="note" rows="2" placeholder="مثلا: لطفا تا ۳ دی دو دانش‌آموز معرفی کنید."></textarea></label>
+        <textarea v-model="note" rows="2" placeholder="مثلا: لطفا تا پایان هفته دو دانش‌آموز معرفی کنید."></textarea></label>
 
       <div v-if="hasParents" class="parent-box">
         <div class="row-between"><b class="small text-ink">پیام برای اولیا</b>
           <button type="button" class="link small" @click="draftParent" :disabled="parent.loading">{{ parent.loading ? 'در حال نوشتن...' : 'نوشتن دوباره با دستیار' }}</button></div>
         <p class="muted small">اولیا متن اداری نامه را نمی‌بینند؛ فقط این پیام ساده را دریافت می‌کنند.</p>
         <div v-if="parent.loading && !parent.text" class="shimmer"><span></span><span></span><span style="width:60%"></span></div>
-        <textarea v-else v-model="parent.text" rows="5"></textarea>
+        <textarea v-else v-model="parent.text" rows="5" class="ai-draft" aria-label="پیام برای اولیا"></textarea>
       </div>
 
       <label class="ack-row"><input type="checkbox" v-model="needsAck"> گیرندگان باید «رؤیت شد» را بزنند</label>

@@ -2,9 +2,8 @@
 // Counselor: students who need attention, with their file in a drawer
 import { ref, computed, watch, onMounted, onUnmounted } from "vue"
 import { api, fa, lockScroll } from "../lib/api.js"
-import { groupSignals } from "../lib/constants.js"
+import { groupSignals, DOCS_CHAT } from "../lib/constants.js"
 import AppLayout from "../components/AppLayout.vue"
-import ChatBox from "../components/ChatBox.vue"
 import StudentProfile from "../components/StudentProfile.vue"
 import Icon from "../components/Icon.vue"
 import Avatar from "../components/Avatar.vue"
@@ -18,8 +17,6 @@ const withSignal = (type) => list.value.filter((s) => s.signals.some((g) => g.ty
 const nav = computed(() => [
   { header: "دانش‌آموزان" },
   { key: "students", label: "دانش‌آموزان", icon: "users", badge: flagged.value.length },
-  { header: "دستیار" },
-  { key: "chat", label: "پرسش از اسناد", icon: "message" },
 ])
 const stats = computed(() => [
   { label: "نیاز به توجه", value: flagged.value.length, sub: `از ${fa(list.value.length)} دانش‌آموز`, icon: "alert", tone: "warning" },
@@ -34,8 +31,8 @@ onUnmounted(() => lockScroll(false))
 </script>
 
 <template>
-  <AppLayout title="پنل مشاور" subtitle="دانش‌آموزانی که این روزها به توجه شما نیاز دارند" :nav="nav" v-model="page">
-    <div v-show="page === 'students'" class="flex flex-col gap-6">
+  <AppLayout :chat="DOCS_CHAT" title="پنل مشاور" subtitle="دانش‌آموزانی که این روزها به توجه شما نیاز دارند" :nav="nav" v-model="page">
+    <div class="flex flex-col gap-6">
       <div class="grid grid-cols-2 xl:grid-cols-4 gap-6">
         <div v-for="s in stats" :key="s.label" v-reveal class="card stat" :style="{ '--c': 'var(--' + s.tone + ')' }">
           <div class="stat-top"><span :class="['tint', 't-' + s.tone]"><Icon :name="s.icon" :size="22" /></span><div class="stat-num"><CountUp :value="s.value" /></div></div>
@@ -69,10 +66,6 @@ onUnmounted(() => lockScroll(false))
           </button>
         </div>
       </section>
-    </div>
-
-    <div v-show="page === 'chat'">
-      <ChatBox class="card chat-card" title="دستیار اسناد" subtitle="پاسخ فقط از روی آیین‌نامه‌ها و دستورالعمل‌های مدرسه" />
     </div>
 
     <StudentProfile v-if="openId" :sid="openId" @close="openId = null" @changed="load" />

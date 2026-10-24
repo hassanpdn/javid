@@ -1,6 +1,7 @@
 <script setup>
 // Vuexy vertical layout: sidebar on the right, navbar on top, page content in the slot.
 // nav: [{ header }] or [{ key, label, icon, badge }]. v-model is the key of the open page.
+// chat: settings for the floating assistant in the bottom-right corner (endpoint, title, examples, ...).
 import { ref, computed, watch, onMounted, onUnmounted } from "vue"
 import { api, fa, session, clearSession, lockScroll } from "../lib/api.js"
 import { theme } from "../lib/theme.js"
@@ -8,8 +9,9 @@ import { gsap, motion } from "../lib/motion.js"
 import Icon from "./Icon.vue"
 import Avatar from "./Avatar.vue"
 import NotificationBell from "./NotificationBell.vue"
+import FloatingChat from "./FloatingChat.vue"
 
-defineProps({ title: String, subtitle: String, nav: Array })
+defineProps({ title: String, subtitle: String, nav: Array, chat: { type: Object, default: () => ({}) } })
 const page = defineModel()
 const user = computed(() => session.user)
 const menuOpen = ref(false), userOpen = ref(false), wrap = ref(null), side = ref(null), themeIcon = ref(null)
@@ -59,7 +61,7 @@ onUnmounted(() => { document.removeEventListener("click", outside); lockScroll(f
       <header class="navbar">
         <div class="navbar-inner">
           <button class="icon-btn menu-btn" @click="menuOpen = true" aria-label="منو"><Icon name="menu" :size="22" /></button>
-          <div class="nav-title"><b>{{ title }}</b><small v-if="subtitle">{{ subtitle }}</small></div>
+          <div class="nav-title"><h1>{{ title }}</h1><small v-if="subtitle">{{ subtitle }}</small></div>
           <div class="nav-actions">
             <button class="icon-btn" @click="toggleTheme" :aria-label="theme.dark ? 'حالت روشن' : 'حالت تیره'">
               <span ref="themeIcon"><Icon :name="theme.dark ? 'sun' : 'moon'" :size="21" /></span>
@@ -79,5 +81,6 @@ onUnmounted(() => { document.removeEventListener("click", outside); lockScroll(f
       <main class="main-body"><slot /></main>
       <footer class="footer">نسخه آزمایشی دستیار هوشمند دبستان غیرانتفاعی جاوید · همه داده‌ها ساختگی است</footer>
     </div>
+    <FloatingChat v-bind="chat" />
   </div>
 </template>

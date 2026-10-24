@@ -13,7 +13,7 @@ const EXAMPLES = {
 }
 const props = defineProps({
   endpoint: { default: "/chat" }, examples: { default: null }, intro: { default: null },
-  loadingText: { default: "در حال جستجو در اسناد" }, title: { default: "" }, subtitle: { default: "" },
+  loadingText: { default: "در حال جستجو در اسناد" },
 })
 const messages = ref([]), input = ref(""), loading = ref(false), box = ref(null)
 const shownExamples = computed(() => props.examples || EXAMPLES[session.user?.role] || EXAMPLES.default)
@@ -33,13 +33,9 @@ const send = async (text) => {
 
 <template>
   <div class="chatbox">
-    <header v-if="title" class="chat-head">
-      <span class="bot-avatar"><Icon name="sparkles" :size="20" /></span>
-      <div><b>{{ title }}</b><small><span class="online"></span>{{ subtitle }}</small></div>
-    </header>
-    <main class="chat" ref="box">
+    <div class="chat" ref="box" role="log" aria-live="polite">
       <div v-if="messages.length === 0" class="empty">
-        <AiOrb :size="96" />
+        <AiOrb :size="80" />
         <p>{{ intro || 'سؤالتون رو از آیین‌نامه‌ها و دستورالعمل‌ها بپرسید، یا یکی از این‌ها رو امتحان کنید:' }}</p>
         <div class="examples">
           <button v-for="ex in shownExamples" :key="ex" class="example" @click="send(ex)"><Icon name="sparkles" :size="16" />{{ ex }}</button>
@@ -60,9 +56,9 @@ const send = async (text) => {
         <span class="bot-avatar sm"><Icon name="sparkles" :size="15" /></span>
         <div class="msg"><div class="bubble loading">{{ loadingText }}<span class="dots"><i></i><i></i><i></i></span></div></div>
       </div>
-    </main>
+    </div>
     <form class="composer" @submit.prevent="send(input)">
-      <input v-model="input" :disabled="loading" placeholder="سؤالتون رو اینجا بنویسید...">
+      <input v-model="input" :disabled="loading" placeholder="سؤالتون رو اینجا بنویسید..." aria-label="متن سؤال">
       <button class="btn primary" type="submit" :disabled="loading || !input.trim()"><Icon name="send" :size="18" /><span>ارسال</span></button>
     </form>
   </div>
