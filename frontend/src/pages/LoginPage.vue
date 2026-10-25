@@ -8,16 +8,16 @@ import { gsap, motion } from "../lib/motion.js"
 import Icon from "../components/Icon.vue"
 
 const ROLES = [
-  { u: "modir", role: "مدیر", name: "آقای دکتر انوشه‌پور", desc: "خلاصه روز، هشدارها و تصمیم‌ها", icon: "chart", tone: "primary" },
-  { u: "edari", role: "پرسنل اداری", name: "کارمند اداری", desc: "صندوق نامه هوشمند و دستیار پیگیری", icon: "mail", tone: "info" },
-  { u: "moalem", role: "آموزگار", name: "سارا احمدی، پایه چهارم", desc: "کلاس و دانش‌آموزان", icon: "book", tone: "success", soon: true },
-  { u: "karimi", role: "معلم ورزش", name: "نرگس کریمی", desc: "اعلان‌ها و تذکرها", icon: "users", tone: "warning", soon: true },
-  { u: "moshaver", role: "مشاور", name: "مریم کاظمی", desc: "دانش‌آموزان نیازمند توجه و پیام به اولیا", icon: "message", tone: "success" },
-  { u: "vali", role: "ولی", name: "رضا محمدی، پدر آوا", desc: "گزارش هفتگی، پیشرفت و فرم‌های سلامت", icon: "user", tone: "danger" },
-  { u: "daneshamooz", role: "دانش‌آموز", name: "آوا محمدی", desc: "نمره‌ها و پیشرفت من", icon: "school", tone: "secondary", soon: true },
+  { u: "modir", role: "مدیر", desc: "خلاصه روز، هشدارها و تصمیم‌ها", icon: "chart", tone: "primary" },
+  { u: "edari", role: "پرسنل اداری", desc: "صندوق نامه هوشمند و دستیار پیگیری", icon: "mail", tone: "info" },
+  { u: "moalem", role: "آموزگار", desc: "کلاس و دانش‌آموزان", icon: "book", tone: "success", soon: true },
+  { u: "karimi", role: "معلم ورزش", desc: "اعلان‌ها و تذکرها", icon: "users", tone: "warning", soon: true },
+  { u: "moshaver", role: "مشاور", desc: "دانش‌آموزان نیازمند توجه و پیام به اولیا", icon: "message", tone: "success" },
+  { u: "vali", role: "ولی", desc: "گزارش هفتگی، پیشرفت و فرم‌های سلامت", icon: "user", tone: "danger" },
+  { u: "daneshamooz", role: "دانش‌آموز", desc: "نمره‌ها و پیشرفت من", icon: "school", tone: "secondary", soon: true },
 ]
 // role cards: what each role does, with the person's name for the school this demo is set up for
-const demo = computed(() => ROLES.map((d) => ({ ...d, name: schoolInfo.names[d.u] || d.name })))
+const demo = computed(() => ROLES.map((d) => ({ ...d, name: schoolInfo.names[d.u] || "" })))
 const school = computed(() => schoolInfo.school)
 const error = ref(""), busy = ref(false), picked = ref(""), root = ref(null)
 // windows of the two school wings in the illustration; a few are "lit" and blink
@@ -95,7 +95,7 @@ onUnmounted(() => ctx?.revert())
           <button v-for="d in demo" :key="d.u" type="button" class="role-card" :style="{ '--c': 'var(--' + d.tone + ')' }"
                   :disabled="busy" @click="login(d.u, '1234')">
             <span :class="['tint', 't-' + d.tone]"><Icon :name="d.icon" :size="20" /></span>
-            <span class="role-text"><b>{{ d.role }}</b><span>{{ d.name }} · {{ d.desc }}</span></span>
+            <span class="role-text"><b>{{ d.role }}</b><span>{{ d.name ? d.name + ' · ' : '' }}{{ d.desc }}</span></span>
             <span v-if="d.soon" class="soon">فعلا: چت اسناد</span>
             <span v-if="busy && picked === d.u" class="dots go"><i></i><i></i><i></i></span>
             <Icon v-else name="chevron" :size="18" class="go" />

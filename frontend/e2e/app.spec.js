@@ -33,16 +33,25 @@ async function askAssistant(page, question) {
   return win
 }
 
-const SETUP_PASSWORD = "setup-test"   // set by tests/serve.py
 
-test("first visit opens the school setup, prefilled with Javid", async ({ page }) => {
+async function openedSetup(page) {
+  await expect(page.locator(".setup-top h1")).toHaveText("راه‌اندازی دمو برای مدرسه")
+}
+
+test("first visit: empty setup form, no school's name anywhere until «تنظیمات پیش‌فرض»", async ({ page }) => {
   const errors = noPageErrors(page)
   await page.goto("/")
-  await expect(page.locator(".setup-card h1")).toHaveText("راه‌اندازی دمو برای مدرسه")
-  await expect(page.locator(".name-row input").first()).toHaveValue("جاوید")
+  await openedSetup(page)
+  await expect(page.locator(".name-row input")).toHaveValue("")          // no names filled in
+  await expect(page.locator("body")).not.toContainText("جاوید")
+  await page.locator(".step-actions .btn.primary").click()               // "next" with nothing filled
+  await expect(page.locator(".step-panel .error-text")).toHaveCount(2)
   expect(await seriousA11y(page)).toEqual([])
-  await page.locator('input[type="password"]').fill(SETUP_PASSWORD)
-  await page.locator(".setup-card .btn.primary").click()
+  await page.locator(".chip-btn", { hasText: "تنظیمات پیش‌فرض" }).click() // the default school replaces the form
+  await expect(page.locator(".stepper li.done")).toHaveCount(3)
+  await expect(page.locator(".school-card")).toContainText("دبستان جاوید")
+  await page.locator(".step-actions .btn.primary").click()
+  await expect(page.locator(".sc-build")).toBeVisible()
   await expect(page.locator(".role-card")).toHaveCount(7, { timeout: 30_000 })
   await expect(page.locator(".auth-form")).toContainText("دبستان جاوید")
   expect(errors).toEqual([])
@@ -183,16 +192,28 @@ test("an expired session goes back to the login page", async ({ page }) => {
   await expect(page.locator(".role-card").first()).toBeVisible({ timeout: 20_000 })   // the bell polls every 15s
 })
 
-test("a demo for another school: boys' school with its own names everywhere", async ({ page }) => {
+test("a demo for another school, step by step, with the card filling in", async ({ page }) => {
   await page.goto("/")
   await page.locator(".switch-school").click()
-  const form = page.locator(".setup-card")
-  await form.locator(".name-row input").first().fill("نیکان")
-  await form.locator(".segmented button", { hasText: "پسرانه" }).click()
-  await form.locator("label", { hasText: "شهر" }).locator("input").fill("اصفهان")
-  await form.locator(".field", { hasText: "مدیر مدرسه" }).locator("input").fill("علی رستمی")
-  await page.locator('input[type="password"]').fill(SETUP_PASSWORD)
-  await form.locator(".btn.primary").click()
+  await openedSetup(page)
+  const next = page.locator(".step-actions .btn.primary")
+  await page.locator(".name-row input").fill("نیکان")
+  await page.locator(".choice", { hasText: "پسرانه" }).click()
+  await expect(page.locator(".sc-title")).toContainText("دبستان نیکان")   // the card follows the typing
+  await next.click()
+  await page.locator("label", { hasText: "شهر" }).locator("input").fill("اصفهان")
+  await page.locator("label", { hasText: "منطقه" }).locator("input").fill("ناحیه ۲")
+  await next.click()
+  await expect(page.locator(".sc-row.done").first()).toContainText("ناحیه ۲، اصفهان")
+  for (const [i, name] of [[0, "علی رستمی"], [1, "رضا یزدانی"], [2, "سمیرا امینی"]]) {
+    const field = page.locator(".step-panel .field").nth(i)
+    await field.locator(".segmented button").nth(i === 2 ? 1 : 0).click()
+    await field.locator("input").fill(name)
+  }
+  await next.click()
+  await expect(page.locator(".school-card")).toContainText("آقای علی رستمی")
+  await expect(page.locator(".school-card.ready")).toBeVisible()
+  await next.click()
   await expect(page.locator(".auth-form")).toContainText("دبستان نیکان", { timeout: 30_000 })
   await expect(page.locator(".role-card", { hasText: "مدیر" }).first()).toContainText("آقای علی رستمی")
   await loginAs(page, "مدیر")
@@ -201,8 +222,9 @@ test("a demo for another school: boys' school with its own names everywhere", as
   // and back to the default for the next run
   await page.locator(".avatar-btn").click(); await page.locator(".dd-item.danger").click()
   await page.locator(".switch-school").click()
-  await page.locator(".chip-btn", { hasText: "جاوید (پیش‌فرض)" }).click()
-  await page.locator('input[type="password"]').fill(SETUP_PASSWORD)
-  await page.locator(".setup-card .btn.primary").click()
+  await openedSetup(page)
+  await expect(page.locator("body")).not.toContainText("نیکان")          // the previous school isn't listed anywhere
+  await page.locator(".chip-btn", { hasText: "تنظیمات پیش‌فرض" }).click()
+  await page.locator(".step-actions .btn.primary").click()
   await expect(page.locator(".auth-form")).toContainText("دبستان جاوید", { timeout: 30_000 })
 })
