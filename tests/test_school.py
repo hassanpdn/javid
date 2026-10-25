@@ -13,7 +13,7 @@ def setup(school):
 
 def test_nothing_is_given_out_before_setup():
     r = httpx.get(BASE + "/school")
-    assert r.json() == {"set_up": False}
+    assert r.json()["set_up"] is False and "school" not in r.json() and "names" not in r.json()
     assert "جاوید" not in r.text and "انوشه" not in r.text
 
 def test_default_school_for_the_button():

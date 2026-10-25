@@ -335,6 +335,29 @@ body .nav-title h1 { color: var(--ink); font-size: 16px; line-height: 1.5; }
   .name-row { flex-wrap: wrap; }
 }
 
+/* ---------- role switches (runtime feature flags) ---------- */
+.toggles { display: flex; flex-direction: column; gap: 8px; }
+.toggle-row { display: flex; align-items: center; gap: 12px; width: 100%; padding: 10px 12px; text-align: right; border-radius: var(--radius);
+  border: 1px solid var(--line); background: var(--panel); cursor: pointer; transition: border-color .2s; }
+.toggle-row:hover { border-color: var(--primary); }
+.toggle-row:disabled { cursor: wait; }
+.toggle-text { flex: 1; display: flex; flex-direction: column; line-height: 1.6; }
+.toggle-text b { font-size: 14px; color: var(--ink); }
+.toggle-text small { font-size: 12px; color: var(--muted); }
+.switch { flex: none; position: relative; width: 42px; height: 24px; border-radius: 999px; background: var(--line); transition: background .25s; }
+.switch i { position: absolute; top: 3px; right: 3px; width: 18px; height: 18px; border-radius: 50%; background: #fff; box-shadow: var(--shadow-sm);
+  transition: transform .25s cubic-bezier(.3, 1.4, .5, 1); }
+.toggle-row.on .switch { background: var(--success-strong); }
+.toggle-row.on .switch i { transform: translateX(-18px); }
+.toggle-mode { margin: 4px 0 0; display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); }
+.toggle-mode.internal { color: var(--primary-ink); font-weight: 700; }
+.login-tools { display: flex; flex-wrap: wrap; gap: 4px 18px; }
+.roles-panel { margin-top: 10px; padding: 12px; border-radius: var(--radius); background: var(--panel-2); border: 1px solid var(--line); }
+.role-move, .role-enter-active, .role-leave-active { transition: all .4s cubic-bezier(.2, .8, .2, 1); }
+.role-enter-from, .role-leave-to { opacity: 0; transform: translateX(30px) scale(.96); }
+.role-leave-active { position: absolute; width: 100%; }
+.role-list { position: relative; }
+
 /* ---------- welcome card ---------- */
 .welcome { display: flex; align-items: center; gap: 18px; position: relative; overflow: hidden; }
 .welcome::before { content: ""; position: absolute; width: 260px; height: 260px; border-radius: 50%; left: -80px; top: -110px; background: var(--primary-soft); }

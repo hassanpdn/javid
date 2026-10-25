@@ -23,6 +23,11 @@ FIELDS = {  # key: (label, longest allowed length)
 }
 TITLES = ("آقای", "خانم")
 
+# Runtime switches for the roles outside the school staff. With both off the app is an internal
+# CRM for the school's own people. They change at once (no data rebuild) and survive a new setup.
+FEATURES = {"parents": True, "students": True}
+FEATURE_ROLE = {"parents": "parent", "students": "student"}
+
 def _read():
     try:
         with open(PATH, encoding="utf-8") as f:
@@ -33,6 +38,24 @@ def _read():
 def current():
     """The active school's settings (Javid when nothing was set up)."""
     return {**DEFAULT, **_read().get("current", {})}
+
+def _write(data):
+    with open(PATH, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=1)
+
+def features():
+    """Which outside roles are on: {"parents": bool, "students": bool}"""
+    return {**FEATURES, **_read().get("features", {})}
+
+def set_features(changes):
+    data = _read()
+    data["features"] = {k: bool(changes.get(k, v)) for k, v in features().items()}
+    _write(data)
+    return data["features"]
+
+def role_enabled(role):
+    """False for the parent or student role while its switch is off; staff roles are always on."""
+    return all(on or FEATURE_ROLE[k] != role for k, on in features().items())
 
 def is_set_up():
     """False on the very first run: the app then opens on the setup form."""
@@ -59,9 +82,8 @@ def clean(data):
     return out
 
 def save(settings):
-    """Make these settings the active school (the previous school is forgotten)."""
-    with open(PATH, "w", encoding="utf-8") as f:
-        json.dump({"current": settings}, f, ensure_ascii=False, indent=1)
+    """Make these settings the active school (the previous school is forgotten; the role switches stay)."""
+    _write({"current": settings, "features": features()})
 
 # ---------- names used across the app ----------
 
