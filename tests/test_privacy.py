@@ -38,3 +38,11 @@ def test_model_diagnosis_or_comparison_never_reaches_parent():
     for q in ["وضعیت ریاضیش چطوره؟", "این ماه چند روز غیبت داشته؟"]:
         answer = Client("vali").post("/parent/ask", {"question": q}).json()["answer"]
         assert "افسرده" not in answer and "همکلاسی" not in answer, answer
+
+def test_manager_student_file_leaves_out_counselor_notes_and_health_forms():
+    f = Client("modir").get("/manager/students/1").json()
+    assert f["progress"] and "attendance" in f
+    for private in ("notes", "forms", "signals", "suggestions"):
+        assert private not in f
+    for other in ("moshaver", "edari", "vali"):
+        assert Client(other).get("/manager/students/1").status_code == 403

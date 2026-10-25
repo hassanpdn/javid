@@ -80,3 +80,14 @@ def test_manager_sees_an_information_letter_once():
     assert m.post(f"/manager/letters/{lid}/seen").status_code == 404
     info = {l["id"]: l for l in m.get("/manager/letters").json()["info"]}
     assert info[lid]["status"] == "done" and info[lid]["manager_seen_at"]
+
+def test_manager_sees_every_late_teacher_and_todays_absences():
+    m = Client("modir")
+    lates = m.get("/manager/teachers/lates").json()
+    by_count = {t["count"] for t in lates["teachers"]}
+    assert any(c >= lates["limit"] for c in by_count) and any(c < lates["limit"] for c in by_count)   # below the limit too
+    alert = next(a for a in m.get("/manager/overview").json()["alerts"] if a["type"] == "student_absent")
+    absent = m.get("/manager/attendance/today").json()["absent"]
+    # the drawer and the dashboard alert count the same two weeks
+    assert any(s["name"] in alert["title"] and f" {s['recent']} " in alert["title"]
+               for s in absent)

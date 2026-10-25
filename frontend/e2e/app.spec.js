@@ -151,6 +151,24 @@ test("manager opens a letter from the dashboard, decides with a note, and marks 
   expect(errors).toEqual([])
 })
 
+test("manager opens today's attendance and a student's short file, then every late teacher", async ({ page }) => {
+  const errors = noPageErrors(page)
+  await loginAs(page, "مدیر")
+  await page.locator(".stat", { hasText: "غیبت امروز" }).click()
+  await page.locator(".drawer .student-row").first().click()
+  const file = page.locator(".drawer").last()
+  await expect(file.locator(".prog-row").first()).toBeVisible()
+  await expect(file).not.toContainText("یادداشت‌های مشاور")                    // counselor notes stay with the counselor
+  expect(await seriousA11y(page)).toEqual([])
+  await page.keyboard.press("Escape")
+  await page.keyboard.press("Escape")
+  await expect(page.locator(".drawer")).toHaveCount(0)
+  await page.locator(".stat", { hasText: "تأخیر معلمان" }).click()
+  await expect(page.locator(".drawer .late-card")).not.toHaveCount(0)
+  expect(await seriousA11y(page)).toEqual([])
+  expect(errors).toEqual([])
+})
+
 test("counselor sends a message for Ava; Escape closes the drawer", async ({ page }) => {
   await loginAs(page, "مشاور")
   await page.locator(".segmented button").nth(1).click()
