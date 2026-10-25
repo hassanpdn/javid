@@ -17,6 +17,8 @@ import httpx
     ("edari", "/staff/letters/99999/complete", {}, 404),
     ("modir", "/manager/warnings", {"teacher_id": 3, "text": "   "}, 400),
     ("modir", "/manager/warnings", {"teacher_id": 99999, "text": "تذکر"}, 404),
+    ("modir", "/manager/letters/99999/seen", {}, 404),
+    ("modir", "/manager/letters/99999/decide", {"approve": True}, 404),
     ("moshaver", "/counselor/suggestions/99999/approve", {"for_parent": "x"}, 404),
     ("moshaver", "/counselor/students/99999/notes", {"note": "x"}, 404),
     ("moshaver", "/counselor/students/1/notes", {"note": "  "}, 400),

@@ -10,20 +10,28 @@ import Icon from "../components/Icon.vue"
 import CountUp from "../components/CountUp.vue"
 import TypeText from "../components/TypeText.vue"
 import AiOrb from "../components/AiOrb.vue"
+import ManagerLetters from "../components/ManagerLetters.vue"
+import AttendanceDrawer from "../components/AttendanceDrawer.vue"
+import TeacherLatesDrawer from "../components/TeacherLatesDrawer.vue"
 
 const ALERT_LOOK = {
   teacher_late: { icon: "clock", tone: "danger" },
   letter_decision: { icon: "file", tone: "primary" },
+  letter_info: { icon: "mail", tone: "info" },
   letter_deadline: { icon: "calendar", tone: "warning" },
 }
 const user = computed(() => session.user)
-const data = ref(null), brief = ref(""), view = ref("home")
+const data = ref(null), brief = ref(""), view = ref("home"), focusLetter = ref(null)
+const drawer = ref(null)   // "attendance" or "lates" while one of the detail drawers is open
 const draft = reactive({ open: false, alert: null, text: "", loading: false, saving: false, verified: null, missing: [] })
 const open = computed(() => data.value ? data.value.alerts.filter((a) => !a.done).length : 0)
 const nav = computed(() => [
   { header: "پیشخوان" },
   { key: "home", label: "داشبورد", icon: "dashboard", badge: open.value },
+  { key: "letters", label: "نامه‌ها", icon: "mail", badge: letterCount.value },
 ])
+// letters waiting for the manager: a decision, or a "seen" on something sent for information
+const letterCount = computed(() => data.value ? data.value.alerts.filter((a) => ["letter_decision", "letter_info"].includes(a.type)).length : 0)
 const presentPct = computed(() => {
   const s = data.value?.students
   return s && s.total ? Math.round(100 * s.present / s.total) : 0
@@ -31,15 +39,15 @@ const presentPct = computed(() => {
 const stats = computed(() => {
   const d = data.value
   return [
-    { label: "دانش‌آموزان حاضر", value: d.students.present, of: d.students.total, sub: `${fa(d.students.absent)} غایب، ${fa(d.students.late)} تأخیر`, icon: "userCheck", tone: "success" },
-    { label: "غیبت امروز", value: d.students.absent, sub: "دانش‌آموزان غایب امروز", icon: "calendar", tone: "danger" },
-    { label: "تأخیر معلمان امروز", value: d.late_teachers.length, sub: d.late_teachers.map((t) => t.full_name + " " + fa(t.check_in)).join("، ") || "همه به موقع", icon: "clock", tone: "warning" },
-    { label: "نامه‌های منتظر رسیدگی", value: d.open_letters, sub: "در صندوق پرسنل اداری", icon: "mail", tone: "primary" },
+    { label: "دانش‌آموزان حاضر", value: d.students.present, of: d.students.total, sub: `${fa(d.students.absent)} غایب، ${fa(d.students.late)} تأخیر`, icon: "userCheck", tone: "success", go: "attendance" },
+    { label: "غیبت امروز", value: d.students.absent, sub: "دانش‌آموزان غایب امروز", icon: "calendar", tone: "danger", go: "attendance" },
+    { label: "تأخیر معلمان امروز", value: d.late_teachers.length, sub: d.late_teachers.map((t) => t.full_name + " " + fa(t.check_in)).join("، ") || "همه به موقع", icon: "clock", tone: "warning", go: "lates" },
+    { label: "نامه‌های منتظر رسیدگی", value: d.open_letters, sub: "در صندوق پرسنل اداری", icon: "mail", tone: "primary", go: "letters" },
   ]
 })
 const look = (a) => ALERT_LOOK[a.type] || { icon: "alert", tone: "warning" }
 const load = async () => { data.value = await api("/manager/overview") }
-watch(() => draft.open, lockScroll)
+watch(() => draft.open || !!drawer.value, lockScroll)
 // the bell fires this when a new notification arrives, so alerts stay current
 const onNotify = () => load()
 onMounted(async () => {
@@ -61,14 +69,19 @@ const issue = async () => {
   try { await api("/manager/warnings", { teacher_id: draft.alert.teacher_id, text: draft.text }); draft.open = false; await load() }
   finally { draft.saving = false }
 }
-const decide = async (alert, approve) => {
-  await api(`/manager/letters/${alert.letter_id}/decide`, { approve }); await load()
-}
+// the letters card switches page; the attendance and late cards open a drawer
+const openStat = (go) => { if (go === "letters") view.value = go; else if (go) drawer.value = go }
+// the full late list hands a teacher at the limit to the same warning dialog as the dashboard alert
+const draftFromList = (t) => { drawer.value = null; openDraft(t) }
+// a dashboard alert opens the letters page with that letter already open
+const goLetter = (id) => { focusLetter.value = id; view.value = "letters" }
+watch(view, (v) => { if (v !== "letters") focusLetter.value = null })
 </script>
 
 <template>
-  <AppLayout :chat="DOCS_CHAT" title="داشبورد مدیر" :subtitle="data ? fa(data.today) : ''" :nav="nav" v-model="view">
-    <div class="flex flex-col gap-6">
+  <AppLayout :chat="DOCS_CHAT" :title="view === 'letters' ? 'نامه‌ها' : 'داشبورد مدیر'" :subtitle="data ? fa(data.today) : ''" :nav="nav" v-model="view">
+    <ManagerLetters v-if="view === 'letters'" :focus="focusLetter" @changed="load" />
+    <div v-else class="flex flex-col gap-6">
       <div class="grid grid-cols-12 gap-6">
         <section v-reveal class="card welcome brief col-span-12 xl:col-span-8">
           <div class="welcome-text">
@@ -80,7 +93,8 @@ const decide = async (alert, approve) => {
           <div class="welcome-art"><AiOrb :size="150" :busy="!brief" /></div>
         </section>
         <section v-reveal class="card col-span-12 xl:col-span-4 flex flex-col">
-          <div class="card-head">حضور امروز <small>دانش‌آموزان</small></div>
+          <div class="card-head"><span class="grow">حضور امروز <small>دانش‌آموزان</small></span>
+            <button class="btn ghost sm" @click="drawer = 'attendance'">جزئیات</button></div>
           <template v-if="data">
             <RadialGauge :value="presentPct" label="حاضر" />
             <div class="grid grid-cols-3 text-center mt-2">
@@ -94,11 +108,11 @@ const decide = async (alert, approve) => {
       </div>
 
       <div v-if="data" class="grid grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-6">
-        <div v-for="s in stats" :key="s.label" v-reveal class="card stat" :style="{ '--c': 'var(--' + s.tone + ')' }">
+        <component :is="s.go ? 'button' : 'div'" v-for="s in stats" :key="s.label" v-reveal class="card stat" :style="{ '--c': 'var(--' + s.tone + ')' }" @click="openStat(s.go)">
           <div class="stat-top"><span :class="['tint', 'lg', 't-' + s.tone]"><Icon :name="s.icon" :size="24" /></span>
             <div class="stat-num"><CountUp :value="s.value" /> <span v-if="s.of" class="of">از {{ fa(s.of) }}</span></div></div>
           <div><div class="stat-label">{{ s.label }}</div><div class="stat-sub">{{ s.sub }}</div></div>
-        </div>
+        </component>
       </div>
 
       <div v-if="data" class="grid grid-cols-12 gap-6">
@@ -114,10 +128,8 @@ const decide = async (alert, approve) => {
                 <small v-if="a.done" class="ok">✓ {{ fa(a.done_text) }}</small>
               </div>
               <button v-if="a.type === 'teacher_late' && !a.done" class="btn sm" @click="openDraft(a)"><Icon name="edit" :size="16" />پیش‌نویس تذکر</button>
-              <div v-if="a.type === 'letter_decision'" class="btn-row">
-                <button class="btn sm success" @click="decide(a, true)">موافقم</button>
-                <button class="btn sm danger-soft" @click="decide(a, false)">مخالفم</button>
-              </div>
+              <button v-if="a.type === 'letter_decision'" class="btn sm" @click="goLetter(a.letter_id)"><Icon name="file" :size="16" />بررسی نامه</button>
+              <button v-if="a.type === 'letter_info'" class="btn sm" @click="goLetter(a.letter_id)"><Icon name="mail" :size="16" />خواندن نامه</button>
             </li>
           </ul>
         </section>
@@ -129,6 +141,9 @@ const decide = async (alert, approve) => {
         </section>
       </div>
     </div>
+
+    <AttendanceDrawer v-if="drawer === 'attendance'" @close="drawer = null" />
+    <TeacherLatesDrawer v-if="drawer === 'lates'" @close="drawer = null" @draft="draftFromList" />
 
     <!-- written warning dialog -->
     <div v-if="draft.open" class="overlay" @click.self="draft.open = false">

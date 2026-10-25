@@ -2,7 +2,7 @@ import os
 from datetime import date, timedelta
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
-import db, checks, school
+import db, checks, school, students
 from auth import require_role
 from llm import ask_llm
 from jalali import jstr, to_jalali, MONTHS
@@ -85,7 +85,11 @@ def collect(c):
     for r in c.execute("SELECT id, subject, summary, action FROM letters WHERE status = 'needs_manager'").fetchall():
         alerts.append({"type": "letter_decision", "letter_id": r["id"], "title": f"نیاز به تصمیم شما: {r['subject']}",
                        "detail": f"{r['summary']} پیشنهاد دستیار: {r['action']}", "done": False})
-    # 4. Letters with a close deadline
+    # 4. Letters the office sent for the manager's information (meeting invitations), not seen yet
+    for r in c.execute("SELECT id, subject, summary FROM letters WHERE status = 'forwarded'").fetchall():
+        alerts.append({"type": "letter_info", "letter_id": r["id"], "title": f"برای اطلاع شما: {r['subject']}",
+                       "detail": r["summary"] or "", "done": False})
+    # 5. Letters with a close deadline
     until = (t + timedelta(days=DEADLINE_DAYS)).isoformat()
     for r in c.execute("""SELECT subject, deadline FROM letters WHERE status IN ('new', 'todo', 'awaiting_approval') AND deadline BETWEEN ? AND ?
                           ORDER BY deadline""", (t_iso, until)).fetchall():
@@ -199,8 +203,93 @@ def issue_warning(req: IssueRequest, user: dict = Depends(manager_only)):
     return {"ok": True}
 
 
+@router.get("/letters")
+def letters(user: dict = Depends(manager_only)):
+    """The manager's letters: waiting for a decision, sent for information, and what the office still has open."""
+    from staff import view   # imported here because staff.py imports this file
+    with db.conn() as c:
+        rows = c.execute("SELECT * FROM letters ORDER BY received_date DESC, id DESC").fetchall()
+        return {
+            "decide": [view(r, c) for r in rows if r["status"] == "needs_manager"],
+            # unseen first, then the last ten the manager already saw
+            "info": [view(r, c) for r in rows if r["status"] == "forwarded"]
+                    + sorted([view(r, c) for r in rows if r["manager_seen_at"]], key=lambda l: l["manager_seen_at"], reverse=True)[:10],
+            "office": [view(r, c) for r in rows if r["status"] in ("new", "processing", "todo", "awaiting_approval")],
+        }
+
+@router.post("/letters/{lid}/seen")
+def seen(lid: int, user: dict = Depends(manager_only)):
+    """The manager read a letter sent for their information. Nothing is left for the office, so it closes."""
+    with db.conn() as c:
+        row = c.execute("SELECT subject FROM letters WHERE id = ? AND status = 'forwarded'", (lid,)).fetchone()
+        if not row:
+            raise HTTPException(status_code=404, detail="نامه پیدا نشد")
+        c.execute("UPDATE letters SET status = 'done', manager_seen_at = ? WHERE id = ?", (db.stamp(), lid))
+        c.execute("INSERT INTO agent_log (letter_id, action, reason, created_at) VALUES (?, ?, ?, ?)",
+                  (lid, f"مدیر نامه «{row['subject']}» را دید", "نامه برای اطلاع مدیر بود و با رؤیت او بسته شد.", db.stamp()))
+    db.notify(db.users_with("staff"), "letter", f"مدیر نامه «{row['subject']}» را دید")
+    _briefing_cache.clear()
+    return {"ok": True}
+
+@router.get("/attendance/today")
+def attendance_today(user: dict = Depends(manager_only)):
+    """Today's attendance in detail: per class, who is absent (and how often lately), who came late."""
+    t = today()
+    t_iso, since = t.isoformat(), (t - timedelta(days=14)).isoformat()
+    with db.conn() as c:
+        classes = [dict(r) for r in c.execute("""SELECT cl.name, COUNT(*) AS total, COALESCE(SUM(a.status != 'absent'), 0) AS present
+                                                 FROM students s JOIN classes cl ON cl.id = s.class_id
+                                                 LEFT JOIN student_attendance a ON a.student_id = s.id AND a.date = ?
+                                                 GROUP BY cl.id ORDER BY cl.grade, cl.name""", (t_iso,))]
+        def who(status):
+            return [dict(r) for r in c.execute("""SELECT s.id, s.first_name || ' ' || s.last_name AS name, cl.name AS class, a.excused,
+                                                         (SELECT COUNT(*) FROM student_attendance x WHERE x.student_id = s.id
+                                                          AND x.status = a.status AND x.date >= ? AND x.date <= ?) AS recent
+                                                  FROM student_attendance a JOIN students s ON s.id = a.student_id
+                                                  JOIN classes cl ON cl.id = s.class_id
+                                                  WHERE a.date = ? AND a.status = ? ORDER BY recent DESC, name""",
+                                               (since, t_iso, t_iso, status))]
+        return {"classes": classes, "absent": who("absent"), "late": who("late")}
+
+@router.get("/teachers/lates")
+def teacher_lates(user: dict = Depends(manager_only)):
+    """Every teacher who came late in the last 30 days, not only those who reached the warning limit."""
+    t = today()
+    t_iso, since = t.isoformat(), (t - timedelta(days=LATE_WINDOW - 1)).isoformat()
+    with db.conn() as c:
+        rows = c.execute("""SELECT t.id, t.full_name, t.subject, a.date, a.check_in
+                            FROM teacher_attendance a JOIN teachers t ON t.id = a.teacher_id
+                            WHERE a.date >= ? AND a.date <= ? AND a.check_in > ? ORDER BY a.date DESC""",
+                         (since, t_iso, ARRIVAL)).fetchall()
+        out = {}
+        for r in rows:
+            p = out.setdefault(r["id"], {"teacher_id": r["id"], "name": r["full_name"], "subject": r["subject"],
+                                         "today": None, "lates": []})
+            if r["date"] == t_iso:
+                p["today"] = r["check_in"].lstrip("0")
+            p["lates"].append({"date": jdate_short(date.fromisoformat(r["date"])), "time": r["check_in"].lstrip("0")})
+        for p in out.values():
+            p["count"] = len(p["lates"])
+            p["over_limit"] = p["count"] >= LATE_LIMIT
+            w = c.execute("SELECT date, acknowledged_at FROM warnings WHERE teacher_id = ? AND date >= ? ORDER BY id DESC",
+                          (p["teacher_id"], since)).fetchone()
+            p["warning"] = {"date": jdate_short(date.fromisoformat(w["date"])), "acknowledged_at": w["acknowledged_at"]} if w else None
+    # late today first, then the most lates
+    teachers = sorted(out.values(), key=lambda p: (p["today"] is None, -p["count"]))
+    return {"teachers": teachers, "limit": LATE_LIMIT, "window": LATE_WINDOW, "arrival": ARRIVAL.lstrip("0")}
+
+@router.get("/students/{sid}")
+def student(sid: int, user: dict = Depends(manager_only)):
+    """A short file for the manager: progress and attendance. Counselor notes and health forms stay with the counselor."""
+    with db.conn() as c:
+        f = students.facts(c, sid, today())
+    if not f:
+        raise HTTPException(status_code=404, detail="دانش‌آموز پیدا نشد")
+    return {k: f[k] for k in ("id", "name", "class", "teacher", "progress", "attendance")}
+
 class DecideRequest(BaseModel):
     approve: bool
+    note: str = ""   # optional words for the office, e.g. a budget limit
 
 @router.post("/letters/{lid}/decide")
 def decide(lid: int, req: DecideRequest, user: dict = Depends(manager_only)):
@@ -209,10 +298,12 @@ def decide(lid: int, req: DecideRequest, user: dict = Depends(manager_only)):
         row = c.execute("SELECT subject FROM letters WHERE id = ? AND status = 'needs_manager'", (lid,)).fetchone()
         if not row:
             raise HTTPException(status_code=404, detail="نامه پیدا نشد")
+        note = req.note.strip()[:500]
         c.execute("UPDATE letters SET status = 'todo', action = ? WHERE id = ?",
-                  (f"مدیر {word} کرد. نتیجه به فرستنده اعلام شود.", lid))
+                  (f"مدیر {word} کرد" + (f" ({note})" if note else "") + ". نتیجه به فرستنده اعلام شود.", lid))
         c.execute("INSERT INTO agent_log (letter_id, action, reason, created_at) VALUES (?, ?, ?, ?)",
                   (lid, f"مدیر با «{row['subject']}» {word} کرد", "تصمیم مدیر ثبت و کار اعلام نتیجه به دفتر سپرده شد.", db.stamp()))
-    db.notify(db.users_with("staff"), "letter", f"مدیر با «{row['subject']}» {word} کرد", "لطفا نتیجه را به فرستنده اعلام کنید.")
+    db.notify(db.users_with("staff"), "letter", f"مدیر با «{row['subject']}» {word} کرد",
+              (f"یادداشت مدیر: {note}\n" if note else "") + "لطفا نتیجه را به فرستنده اعلام کنید.")
     _briefing_cache.clear()
     return {"ok": True}

@@ -135,6 +135,40 @@ test("staff: agent works the queue, a reply is approved and a letter is referred
   expect(errors).toEqual([])
 })
 
+test("manager opens a letter from the dashboard, decides with a note, and marks an invitation as seen", async ({ page }) => {
+  const errors = noPageErrors(page)
+  await loginAs(page, "مدیر")                                               // the office test above already ran the agent
+  await page.locator(".alert button", { hasText: "بررسی نامه" }).first().click()
+  const dialog = page.locator(".dialog")
+  await expect(dialog.locator(".letter")).not.toBeEmpty()                    // the full letter, not only the summary
+  await dialog.locator("textarea").fill("موافقم، تا سقف بودجه فوق‌برنامه")
+  await dialog.locator(".btn.success").click()
+  await expect(dialog).toBeHidden()
+  const info = page.locator(".letter-card", { has: page.locator("button", { hasText: "دیدم" }) }).first()
+  await info.locator("button", { hasText: "دیدم" }).click()
+  await expect(page.locator(".letter-card .tag.st-done").first()).toContainText("دیدید")
+  expect(await seriousA11y(page)).toEqual([])
+  expect(errors).toEqual([])
+})
+
+test("manager opens today's attendance and a student's short file, then every late teacher", async ({ page }) => {
+  const errors = noPageErrors(page)
+  await loginAs(page, "مدیر")
+  await page.locator(".stat", { hasText: "غیبت امروز" }).click()
+  await page.locator(".drawer .student-row").first().click()
+  const file = page.locator(".drawer").last()
+  await expect(file.locator(".prog-row").first()).toBeVisible()
+  await expect(file).not.toContainText("یادداشت‌های مشاور")                    // counselor notes stay with the counselor
+  expect(await seriousA11y(page)).toEqual([])
+  await page.keyboard.press("Escape")
+  await page.keyboard.press("Escape")
+  await expect(page.locator(".drawer")).toHaveCount(0)
+  await page.locator(".stat", { hasText: "تأخیر معلمان" }).click()
+  await expect(page.locator(".drawer .late-card")).not.toHaveCount(0)
+  expect(await seriousA11y(page)).toEqual([])
+  expect(errors).toEqual([])
+})
+
 test("counselor sends a message for Ava; Escape closes the drawer", async ({ page }) => {
   await loginAs(page, "مشاور")
   await page.locator(".segmented button").nth(1).click()

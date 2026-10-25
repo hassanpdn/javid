@@ -52,7 +52,8 @@ CREATE TABLE IF NOT EXISTS letters (
     deadline TEXT, jdeadline TEXT, status TEXT DEFAULT 'new',
     -- filled by the agent:
     category TEXT, summary TEXT, action TEXT, reply TEXT, handled_at TEXT,
-    corrected INTEGER DEFAULT 0);                -- 1 when staff fixed the agent's category
+    corrected INTEGER DEFAULT 0,                 -- 1 when staff fixed the agent's category
+    manager_seen_at TEXT);                       -- when the manager pressed "seen" on a letter sent for their information
 CREATE TABLE IF NOT EXISTS suggestions (         -- counselor-approved advice; parents only ever see approved ones
     id INTEGER PRIMARY KEY, student_id INTEGER, for_counselor TEXT, for_parent TEXT,
     status TEXT DEFAULT 'draft', created_at TEXT, approved_at TEXT, approved_by INTEGER);
@@ -75,6 +76,9 @@ LEVELS = {4: "خیلی خوب", 3: "خوب", 2: "قابل قبول", 1: "نیا�
 def init():
     with conn() as c:
         c.executescript(SCHEMA)
+        # databases made before a column existed get it added (CREATE TABLE IF NOT EXISTS leaves old tables as they are)
+        if "manager_seen_at" not in [r["name"] for r in c.execute("PRAGMA table_info(letters)")]:
+            c.execute("ALTER TABLE letters ADD COLUMN manager_seen_at TEXT")
     with conn() as c:
         empty = c.execute("SELECT COUNT(*) FROM users").fetchone()[0] == 0
         c.execute("CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT)")

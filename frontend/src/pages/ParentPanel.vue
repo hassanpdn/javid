@@ -85,6 +85,8 @@ const askExamples = computed(() => {
                   <Sparkline :points="p.points" :change="p.change" />
                   <LevelChip :level="p.now" />
                 </div>
+                <!-- the time axis under the trend lines: oldest on the right, today on the left -->
+                <div class="prog-row prog-axis" aria-hidden="true"><span></span><span class="axis"><span>مهر</span><span>امروز</span></span><span></span></div>
               </div>
               <div class="legend"><span v-for="l in [4,3,2,1]" :key="l"><LevelChip :level="l" /></span></div>
             </section>
