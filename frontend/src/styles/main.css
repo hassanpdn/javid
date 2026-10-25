@@ -384,7 +384,8 @@ body .nav-title h1 { color: var(--ink); font-size: 16px; line-height: 1.5; }
 .btn-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
 
 /* ---------- bar chart ---------- */
-.bars { width: 100%; height: auto; max-height: 260px; display: block; }
+.bars-box { flex: 1; min-height: 220px; position: relative; }   /* grows with the card; the svg is drawn at this size */
+.bars { position: absolute; inset: 0; display: block; }
 .bars .bar { fill: url(#barGrad); }
 .bars .bar.low { fill: url(#barGradLow); }
 .bars .val { font-size: 12px; fill: var(--ink); text-anchor: middle; font-family: Vazirmatn; font-weight: 700; }

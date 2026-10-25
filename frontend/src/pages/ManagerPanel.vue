@@ -122,7 +122,7 @@ const decide = async (alert, approve) => {
           </ul>
         </section>
 
-        <section v-reveal class="card col-span-12 2xl:col-span-6">
+        <section v-reveal class="card col-span-12 2xl:col-span-6 flex flex-col">
           <div class="card-head"><span class="grow">درصد حضور دانش‌آموزان در ده روز اخیر</span>
             <span class="legend-dot" style="--c: var(--primary)">۹۵٪ و بیشتر</span><span class="legend-dot" style="--c: var(--warning)">کمتر از ۹۵٪</span></div>
           <BarChart :points="data.trend" />
