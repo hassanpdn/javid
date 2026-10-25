@@ -11,10 +11,17 @@ NIKAN = {"name": "دبستان نیکان", "gender": "boys", "city": "اصفه�
 def setup(school, password=serve.SETUP_PASSWORD):
     return httpx.post(BASE + "/setup", json={"school": school, "password": password}, timeout=60)
 
-def test_default_is_javid():
-    info = httpx.get(BASE + "/school").json()
-    assert info["school"]["full_name"] == "دبستان جاوید"
-    assert info["names"]["modir"] == "آقای دکتر انوشه‌پور" and info["needs_password"]
+def test_nothing_is_given_out_before_setup():
+    r = httpx.get(BASE + "/school")
+    assert r.json() == {"set_up": False, "needs_password": True}
+    assert "جاوید" not in r.text and "انوشه" not in r.text
+
+def test_default_school_needs_the_password():
+    assert httpx.post(BASE + "/setup/default", json={"password": "wrong"}).status_code == 403
+    assert httpx.post(BASE + "/setup/unlock", json={"password": "wrong"}).status_code == 403
+    assert httpx.post(BASE + "/setup/unlock", json={"password": serve.SETUP_PASSWORD}).status_code == 200
+    d = httpx.post(BASE + "/setup/default", json={"password": serve.SETUP_PASSWORD}).json()["school"]
+    assert d["name"] == "جاوید" and d["manager_name"] == "دکتر انوشه‌پور"
 
 @pytest.mark.parametrize("change,code", [
     ({}, 403),                                   # wrong password
@@ -23,7 +30,7 @@ def test_default_is_javid():
 def test_bad_setup_is_refused(change, code):
     r = setup({**NIKAN, **change}, password="wrong" if code == 403 else serve.SETUP_PASSWORD)
     assert r.status_code == code, r.text
-    assert httpx.get(BASE + "/school").json()["school"]["name"] == "جاوید"   # nothing changed
+    assert httpx.get(BASE + "/school").json()["set_up"] is False   # nothing changed
 
 def test_setup_for_another_school():
     old = Client("modir")
@@ -35,7 +42,7 @@ def test_setup_for_another_school():
     assert info["school"]["full_name"] == "دبستان نیکان"   # «دبستان» typed in the name is not doubled
     assert info["names"]["modir"] == "آقای علی رستمی" and info["names"]["karimi"] == "حمید کریمی"
     assert "آرین" in info["names"]["vali"]
-    assert info["saved"][0]["name"] == "نیکان"
+    assert "saved" not in info and "default" not in info   # no other school's name is ever given out
 
     with db() as c:
         assert c.execute("SELECT COUNT(*) FROM students WHERE gender = 'm'").fetchone()[0] == 30
@@ -53,8 +60,10 @@ def test_setup_for_another_school():
     assert fake_llm.CALLS and all("جاوید" not in c["system"] for c in fake_llm.CALLS)
     assert any("دبستان نیکان" in c["system"] for c in fake_llm.CALLS)
 
-def test_back_to_javid():
-    javid = httpx.get(BASE + "/school").json()["default"]
-    assert setup(javid).status_code == 200
+def test_back_to_the_default_school_forgets_the_other():
+    default = httpx.post(BASE + "/setup/default", json={"password": serve.SETUP_PASSWORD}).json()["school"]
+    assert setup(default).status_code == 200
     conftest._tokens.clear()
-    assert httpx.get(BASE + "/school").json()["names"]["vali"].endswith("(ولیِ آوا)")
+    r = httpx.get(BASE + "/school")
+    assert r.json()["names"]["vali"].endswith("(ولیِ آوا)")
+    assert "نیکان" not in r.text and "رستمی" not in r.text

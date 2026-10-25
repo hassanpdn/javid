@@ -71,13 +71,43 @@ DEMO_LOGINS = ["modir", "edari", "moalem", "karimi", "moshaver", "vali", "danesh
 
 @app.get("/school")
 def get_school():
-    """Public: the login page shows the school's name and the names on the demo role cards."""
+    """Public: the login page shows the school's name and the names on the demo role cards.
+    Before the first setup nothing is given out (not even the default school)."""
+    if not school.is_set_up():
+        return {"set_up": False, "needs_password": bool(os.getenv("SETUP_PASSWORD"))}
     with db.conn() as c:
         rows = c.execute(f"SELECT username, full_name FROM users WHERE username IN ({','.join('?' * len(DEMO_LOGINS))})",
                          DEMO_LOGINS).fetchall()
-    return {"set_up": school.is_set_up(), "school": school.public(), "saved": [school.public(x) for x in school.saved()],
-            "default": school.public(school.DEFAULT), "needs_password": bool(os.getenv("SETUP_PASSWORD")),
+    return {"set_up": True, "school": school.public(), "needs_password": bool(os.getenv("SETUP_PASSWORD")),
             "names": {r["username"]: r["full_name"] for r in rows}}
+
+class PasswordRequest(BaseModel):
+    password: str = ""
+
+def check_setup_password(password):
+    """The setup screens belong to whoever runs the demo. With SETUP_PASSWORD set, every setup call needs it,
+    and wrong guesses are limited like logins."""
+    secret = os.getenv("SETUP_PASSWORD", "")
+    if not secret:
+        return
+    recent = [t for t in _failed.get("__setup__", []) if time.time() - t < FAIL_WINDOW]
+    if len(recent) >= MAX_FAILS:
+        raise HTTPException(status_code=429, detail="تلاش‌های ناموفق زیاد بود. چند دقیقه دیگر دوباره امتحان کنید.")
+    if not secrets.compare_digest(password, secret):
+        _failed["__setup__"] = recent + [time.time()]
+        raise HTTPException(status_code=403, detail="رمز راه‌اندازی درست نیست")
+
+@app.post("/setup/unlock")
+def setup_unlock(req: PasswordRequest):
+    """Opens the setup form."""
+    check_setup_password(req.password)
+    return {"ok": True}
+
+@app.post("/setup/default")
+def setup_default(req: PasswordRequest):
+    """The default school's details, for the «تنظیمات پیش‌فرض» button."""
+    check_setup_password(req.password)
+    return {"school": school.DEFAULT}
 
 class SetupRequest(BaseModel):
     school: dict
@@ -89,14 +119,7 @@ _setup_lock = threading.Lock()
 def setup(req: SetupRequest):
     """Set up the demo for a school: save its details and rebuild all demo data with them.
     Everyone is logged out, because the old accounts are replaced."""
-    secret = os.getenv("SETUP_PASSWORD", "")
-    if secret:
-        recent = [t for t in _failed.get("__setup__", []) if time.time() - t < FAIL_WINDOW]
-        if len(recent) >= MAX_FAILS:
-            raise HTTPException(status_code=429, detail="تلاش‌های ناموفق زیاد بود. چند دقیقه دیگر دوباره امتحان کنید.")
-        if not secrets.compare_digest(req.password, secret):
-            _failed["__setup__"] = recent + [time.time()]
-            raise HTTPException(status_code=403, detail="رمز راه‌اندازی درست نیست")
+    check_setup_password(req.password)
     try:
         settings = school.clean(req.school)
     except ValueError as e:

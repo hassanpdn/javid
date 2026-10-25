@@ -1,7 +1,8 @@
 """The school this demo is set up for. Every name the app shows or puts in a prompt comes from here.
 
-The settings live in school.json (path: SCHOOL_PATH). Without the file the demo is Javid, the default.
-The file also keeps the schools set up before, so a demo for an earlier school can be loaded again.
+The settings live in school.json (path: SCHOOL_PATH). It holds only the school being shown: no list of
+earlier schools, so one school never sees another's name. Without the file the demo is the default (Javid),
+whose details are given out only to whoever passes the setup password.
 """
 import json, os
 
@@ -37,10 +38,6 @@ def is_set_up():
     """False on the very first run: the app then opens on the setup form."""
     return "current" in _read()
 
-def saved():
-    """Schools set up before, newest first (at most 10)."""
-    return _read().get("saved", [])
-
 def clean(data):
     """Check the form. Returns the cleaned settings or raises ValueError with a message for the user."""
     out = {}
@@ -62,10 +59,9 @@ def clean(data):
     return out
 
 def save(settings):
-    """Make these settings the active school and remember them in the list."""
-    others = [s for s in saved() if s["name"] != settings["name"]]
+    """Make these settings the active school (the previous school is forgotten)."""
     with open(PATH, "w", encoding="utf-8") as f:
-        json.dump({"current": settings, "saved": [settings] + others[:9]}, f, ensure_ascii=False, indent=1)
+        json.dump({"current": settings}, f, ensure_ascii=False, indent=1)
 
 # ---------- names used across the app ----------
 

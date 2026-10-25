@@ -35,19 +35,28 @@ async function askAssistant(page, question) {
 
 const SETUP_PASSWORD = "setup-test"   // set by tests/serve.py
 
-test("first visit opens an empty setup; each step is checked; quick start builds Javid", async ({ page }) => {
+async function unlockSetup(page) {
+  await expect(page.locator(".setup-lock h1")).toHaveText("تنظیمات دمو")
+  await page.locator(".setup-lock input").fill(SETUP_PASSWORD)
+  await page.locator(".setup-lock .btn.primary").click()
+  await expect(page.locator(".setup-top h1")).toHaveText("راه‌اندازی دمو برای مدرسه")
+}
+
+test("first visit: locked setup, empty form, no school's name anywhere until «تنظیمات پیش‌فرض»", async ({ page }) => {
   const errors = noPageErrors(page)
   await page.goto("/")
-  await expect(page.locator(".setup-top h1")).toHaveText("راه‌اندازی دمو برای مدرسه")
-  await expect(page.locator(".name-row input")).toHaveValue("")          // no names filled in for you
+  await page.locator(".setup-lock input").fill("wrong")
+  await page.locator(".setup-lock .btn.primary").click()
+  await expect(page.locator(".setup-lock .error-text")).toBeVisible()
+  await unlockSetup(page)
+  await expect(page.locator(".name-row input")).toHaveValue("")          // no names filled in
+  await expect(page.locator("body")).not.toContainText("جاوید")
   await page.locator(".step-actions .btn.primary").click()               // "next" with nothing filled
   await expect(page.locator(".step-panel .error-text")).toHaveCount(2)
-  await expect(page.locator(".stepper li").first()).not.toHaveClass(/done/)
   expect(await seriousA11y(page)).toEqual([])
-  await page.locator(".chip-btn", { hasText: "پیش‌فرض" }).click()          // quick start: Javid fills every step
+  await page.locator(".chip-btn", { hasText: "تنظیمات پیش‌فرض" }).click() // the default school replaces the form
   await expect(page.locator(".stepper li.done")).toHaveCount(3)
   await expect(page.locator(".school-card")).toContainText("دبستان جاوید")
-  await page.locator('input[type="password"]').fill(SETUP_PASSWORD)
   await page.locator(".step-actions .btn.primary").click()
   await expect(page.locator(".sc-build")).toBeVisible()
   await expect(page.locator(".role-card")).toHaveCount(7, { timeout: 30_000 })
@@ -193,6 +202,7 @@ test("an expired session goes back to the login page", async ({ page }) => {
 test("a demo for another school, step by step, with the card filling in", async ({ page }) => {
   await page.goto("/")
   await page.locator(".switch-school").click()
+  await unlockSetup(page)
   const next = page.locator(".step-actions .btn.primary")
   await page.locator(".name-row input").fill("نیکان")
   await page.locator(".choice", { hasText: "پسرانه" }).click()
@@ -210,7 +220,6 @@ test("a demo for another school, step by step, with the card filling in", async 
   await next.click()
   await expect(page.locator(".school-card")).toContainText("آقای علی رستمی")
   await expect(page.locator(".school-card.ready")).toBeVisible()
-  await page.locator('input[type="password"]').fill(SETUP_PASSWORD)
   await next.click()
   await expect(page.locator(".auth-form")).toContainText("دبستان نیکان", { timeout: 30_000 })
   await expect(page.locator(".role-card", { hasText: "مدیر" }).first()).toContainText("آقای علی رستمی")
@@ -220,8 +229,9 @@ test("a demo for another school, step by step, with the card filling in", async 
   // and back to the default for the next run
   await page.locator(".avatar-btn").click(); await page.locator(".dd-item.danger").click()
   await page.locator(".switch-school").click()
-  await page.locator(".chip-btn", { hasText: "پیش‌فرض" }).click()
-  await page.locator('input[type="password"]').fill(SETUP_PASSWORD)
+  await unlockSetup(page)
+  await expect(page.locator("body")).not.toContainText("نیکان")          // the previous school isn't listed anywhere
+  await page.locator(".chip-btn", { hasText: "تنظیمات پیش‌فرض" }).click()
   await page.locator(".step-actions .btn.primary").click()
   await expect(page.locator(".auth-form")).toContainText("دبستان جاوید", { timeout: 30_000 })
 })

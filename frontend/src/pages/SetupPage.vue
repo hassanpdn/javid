@@ -1,7 +1,7 @@
 <script setup>
 // First step of a demo: the school's details, in four short steps. The card next to the form fills in as
 // each step is finished; the last step rebuilds all demo data with these names and opens the login page.
-import { ref, reactive, computed, nextTick, onMounted, onUnmounted } from "vue"
+import { ref, reactive, nextTick, onMounted, onUnmounted } from "vue"
 import { api } from "../lib/api.js"
 import { schoolInfo, setupUi, loadSchool } from "../lib/school.js"
 import { gsap, motion } from "../lib/motion.js"
@@ -15,9 +15,9 @@ const STEPS = [
   { title: "ساخت دمو", hint: "مرور و ساخت", icon: "sparkles" },
 ]
 const PEOPLE = [
-  { title: "manager_title", name: "manager_name", label: "مدیر مدرسه", placeholder: "مثلا دکتر انوشه‌پور" },
-  { title: "counselor_title", name: "counselor_name", label: "مشاور", placeholder: "مثلا مریم کاظمی" },
-  { title: "staff_title", name: "staff_name", label: "کارمند اداری", placeholder: "مثلا زهره امینی" },
+  { title: "manager_title", name: "manager_name", label: "مدیر مدرسه", placeholder: "نام و نام خانوادگی مدیر" },
+  { title: "counselor_title", name: "counselor_name", label: "مشاور", placeholder: "نام و نام خانوادگی مشاور" },
+  { title: "staff_title", name: "staff_name", label: "کارمند اداری", placeholder: "نام و نام خانوادگی کارمند" },
 ]
 const FIELDS = ["name", "gender", "city", "district", "manager_title", "manager_name",
                 "counselor_title", "counselor_name", "staff_title", "staff_name"]
@@ -26,7 +26,14 @@ const form = reactive(Object.fromEntries(FIELDS.map((k) => [k, ""])))   // start
 const step = ref(0), done = reactive(new Set()), errors = reactive({}), direction = ref(1)
 const password = ref(""), error = ref(""), building = ref(null), success = ref(false)
 const page = ref(null), body = ref(null), cardRef = ref(null), lineFill = ref(null)
-const quickStart = computed(() => [schoolInfo.default, ...schoolInfo.saved.filter((s) => s.name !== schoolInfo.default.name)])
+// With a setup password, the form stays locked until it is entered: the schools watching a demo can't open it
+const unlocked = ref(!schoolInfo.needs_password), unlocking = ref(false)
+async function unlock() {
+  unlocking.value = true; error.value = ""
+  try { await api("/setup/unlock", { password: password.value }); unlocked.value = true }
+  catch (e) { error.value = e.message === "Failed to fetch" ? "ارتباط با سرور برقرار نشد." : e.message }
+  finally { unlocking.value = false }
+}
 
 // ---------- checking each step ----------
 const filled = (k) => String(form[k] || "").trim()
@@ -58,11 +65,15 @@ function next() {
 }
 const back = () => step.value > 0 && go(step.value - 1)
 const canOpen = (i) => i <= step.value || [...Array(i).keys()].every((j) => done.has(j))
-// a saved school (or the default Javid) fills everything and jumps to the last step
-function useSchool(s) {
-  for (const k of FIELDS) form[k] = s[k] || ""
-  ;[0, 1, 2].forEach((i) => done.add(i))
-  go(3)
+// «تنظیمات پیش‌فرض»: the server sends the default school's details, they replace the form and we jump to the last step
+async function useDefault() {
+  error.value = ""
+  try {
+    const { school } = await api("/setup/default", { password: password.value })
+    for (const k of FIELDS) form[k] = school[k] || ""
+    ;[0, 1, 2].forEach((i) => done.add(i))
+    go(3)
+  } catch (e) { error.value = e.message }
 }
 
 // steps slide in from the side they come from
@@ -111,7 +122,17 @@ onUnmounted(() => blobs?.revert())
 <template>
   <main class="setup" ref="page">
     <i class="setup-blob a" aria-hidden="true"></i><i class="setup-blob b" aria-hidden="true"></i>
-    <div class="setup-layout">
+    <form v-if="!unlocked" class="setup-lock card" v-pop @submit.prevent="unlock">
+      <span class="tint lg t-primary"><Icon name="shield" :size="26" /></span>
+      <h1>تنظیمات دمو</h1>
+      <p class="muted small">این بخش فقط برای برگزارکننده دمو است. رمز راه‌اندازی را وارد کنید.</p>
+      <input v-model="password" type="password" autocomplete="off" aria-label="رمز راه‌اندازی" placeholder="رمز راه‌اندازی">
+      <p v-if="error" class="error-text">{{ error }}</p>
+      <button class="btn primary" :disabled="unlocking || !password"><Icon name="check" :size="18" />ورود به تنظیمات</button>
+      <button v-if="schoolInfo.set_up" type="button" class="link small" @click="setupUi.open = false">بازگشت به ورود</button>
+    </form>
+
+    <div v-else class="setup-layout">
       <form class="setup-form card" @submit.prevent="next" novalidate>
         <div class="setup-top">
           <div><h1>راه‌اندازی دمو برای مدرسه</h1><p class="muted small">چند قدم کوتاه؛ همه صفحه‌ها، نامه‌ها و پیام‌ها با همین نام‌ها ساخته می‌شوند.</p></div>
@@ -152,11 +173,8 @@ onUnmounted(() => blobs?.revert())
                 <small v-if="errors.gender" class="error-text">{{ errors.gender }}</small>
               </div>
               <div class="quick">
-                <span class="small muted">یا شروع سریع با:</span>
-                <button v-for="s in quickStart" :key="s.name" type="button" class="chip-btn" @click="useSchool(s)">
-                  <Icon :name="s.name === schoolInfo.default.name ? 'sparkles' : 'school'" :size="14" />
-                  {{ s.full_name }}{{ s.name === schoolInfo.default.name ? ' (پیش‌فرض)' : '' }}
-                </button>
+                <span class="small muted">یا همه مراحل با یک کلیک:</span>
+                <button type="button" class="chip-btn" @click="useDefault"><Icon name="refresh" :size="14" />تنظیمات پیش‌فرض</button>
               </div>
             </section>
 
@@ -185,8 +203,6 @@ onUnmounted(() => blobs?.revert())
 
             <section v-else key="3" class="step-panel">
               <p>همه چیز آماده است. با «ساخت دمو» داده‌های نمونه برای <b class="text-ink">دبستان {{ form.name.replace(/^دبستان\s*/, '') }}</b> ساخته می‌شود و صفحه ورود باز می‌شود.</p>
-              <label v-if="schoolInfo.needs_password" class="field"><span>رمز راه‌اندازی</span>
-                <input v-model="password" type="password" autocomplete="off"></label>
               <p v-if="schoolInfo.set_up" class="check bad small">داده‌های نمونه فعلی پاک و از نو ساخته می‌شوند و همه از حساب خارج می‌شوند.</p>
             </section>
           </Transition>
