@@ -2,7 +2,7 @@ import re, threading
 from datetime import date, timedelta
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
-import db, stats, checks
+import db, stats, checks, school
 from auth import require_role
 from llm import ask_llm, ask_json
 from jalali import MONTHS, to_jalali, to_gregorian, jstr
@@ -21,7 +21,6 @@ STATUS = {
     "awaiting_approval": "منتظر تأیید شما", "todo": "نیازمند اقدام شما",
     "needs_manager": "ارجاع به مدیر", "forwarded": "ارسال به مدیر",
 }
-SIGN = "با احترام، مدیریت دبستان جاوید"
 
 CLASSIFY = """تو دستیار دفتر اداری یک دبستان هستی. یک نامه رسیده را بخوان و دسته‌بندی کن.
 دسته‌ها:
@@ -55,7 +54,7 @@ def draft_stats_reply(c, letter):
     month = guess_month(letter["subject"])
     data = stats.absence_text(c, month) if ("غیبت" in text and month) else stats.students_text(c)
     example = c.execute("SELECT reply FROM letters WHERE category = 'stats' AND reply IS NOT NULL ORDER BY id DESC LIMIT 1").fetchone()
-    fallback = f"با سلام و احترام\nدر پاسخ به نامه شما، {data}\n{SIGN}"
+    fallback = f"با سلام و احترام\nدر پاسخ به نامه شما، {data}\n{school.signature()}"
     reply = ask_llm(
         "تو کارمند دفتر یک دبستان هستی. برای نامه زیر یک پاسخ اداری کوتاه بنویس. "
         "دقیقا همان قالب و لحن «پاسخ قبلی» را رعایت کن و فقط از عددهای «داده‌ها» استفاده کن. هیچ عددی را تغییر نده.",
@@ -117,7 +116,7 @@ def handle(letter):
     with db.conn() as c:
         log(c, lid, f"نامه را خواند و در دسته «{CATEGORIES[category]}» گذاشت", summary)
         if category == "ack":
-            reply = f"با سلام و احترام\nوصول «{letter['subject']}» بدین‌وسیله اعلام می‌گردد.\n{SIGN}"
+            reply = f"با سلام و احترام\nوصول «{letter['subject']}» بدین‌وسیله اعلام می‌گردد.\n{school.signature()}"
             status = "done"
             log(c, lid, "پاسخ اعلام وصول را خودکار ثبت کرد و نامه را بست",
                 "اعلام وصول کاری تکراری و بدون ریسک است و تأیید انسانی لازم ندارد.")
@@ -336,7 +335,7 @@ def parent_draft(lid: int, user: dict = Depends(staff_or_manager)):
     text = ask_llm(
         "تو دفتر یک دبستان هستی. این نامه اداری را به یک پیام کوتاه، ساده و مؤدبانه برای اولیای دانش‌آموزان تبدیل کن. "
         "شماره بخشنامه و اصطلاحات اداری را حذف کن. فقط آنچه برای اولیا مهم است را بگو: چه خبر است، چه کاری از آن‌ها خواسته شده و تا چه زمانی. "
-        "حداکثر چهار جمله. در پایان بنویس «دبستان جاوید».",
+        f"حداکثر چهار جمله. در پایان بنویس «{school.full_name()}».",
         f"موضوع: {l['subject']}\nمتن: {l['body']}", max_tokens=250, temperature=0.3)
     return {"text": stats.to_fa(text)}
 

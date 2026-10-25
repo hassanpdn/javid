@@ -1,4 +1,4 @@
-import os, re, json, time
+import os, re, json, time, secrets, threading, importlib
 from fastapi import FastAPI, Depends, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
@@ -8,6 +8,8 @@ from common import normalize, embed, collection
 from llm import ask_llm
 from auth import get_token, current_user
 import db
+import school
+import seed
 import manager
 import notifications
 import staff
@@ -63,6 +65,50 @@ def login(req: LoginRequest):
     token, user = result
     return {"token": token, "user": db.public_user(user)}
 
+# ---------- which school this demo is for (before login) ----------
+
+DEMO_LOGINS = ["modir", "edari", "moalem", "karimi", "moshaver", "vali", "daneshamooz"]
+
+@app.get("/school")
+def get_school():
+    """Public: the login page shows the school's name and the names on the demo role cards."""
+    with db.conn() as c:
+        rows = c.execute(f"SELECT username, full_name FROM users WHERE username IN ({','.join('?' * len(DEMO_LOGINS))})",
+                         DEMO_LOGINS).fetchall()
+    return {"set_up": school.is_set_up(), "school": school.public(), "saved": [school.public(x) for x in school.saved()],
+            "default": school.public(school.DEFAULT), "needs_password": bool(os.getenv("SETUP_PASSWORD")),
+            "names": {r["username"]: r["full_name"] for r in rows}}
+
+class SetupRequest(BaseModel):
+    school: dict
+    password: str = ""
+
+_setup_lock = threading.Lock()
+
+@app.post("/setup")
+def setup(req: SetupRequest):
+    """Set up the demo for a school: save its details and rebuild all demo data with them.
+    Everyone is logged out, because the old accounts are replaced."""
+    secret = os.getenv("SETUP_PASSWORD", "")
+    if secret:
+        recent = [t for t in _failed.get("__setup__", []) if time.time() - t < FAIL_WINDOW]
+        if len(recent) >= MAX_FAILS:
+            raise HTTPException(status_code=429, detail="تلاش‌های ناموفق زیاد بود. چند دقیقه دیگر دوباره امتحان کنید.")
+        if not secrets.compare_digest(req.password, secret):
+            _failed["__setup__"] = recent + [time.time()]
+            raise HTTPException(status_code=403, detail="رمز راه‌اندازی درست نیست")
+    try:
+        settings = school.clean(req.school)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    with _setup_lock:
+        school.save(settings)
+        importlib.reload(seed)   # seed works out "today" when it is loaded
+        seed.run()
+        # texts the model wrote for the previous school must not show up for this one
+        manager._briefing_cache.clear(); parent._reports.clear(); counselor._insights.clear()
+    return {"ok": True, "school": school.public()}
+
 @app.get("/me")
 def me(user: dict = Depends(current_user)):
     return db.public_user(user)
@@ -101,7 +147,7 @@ def search(queries, role):
     top_score = round(hits[0]["score"], 2) if hits else 0
     return [h for h in hits if h["score"] >= THRESHOLD and h["score"] >= hits[0]["score"] - 0.08][:3], top_score
 
-SYSTEM = """تو دستیار پرسنل مدرسه جاوید هستی.
+SYSTEM = """تو دستیار پرسنل {school} هستی.
 قوانین:
 - فقط از روی «منابع» زیر جواب بده. اگر جواب در منابع نیست، بگو «این مورد در اسناد نیامده است.»
 - چیزی از خودت اضافه نکن و حدس نزن.
@@ -129,7 +175,7 @@ def answer_question(q, role):
     if not hits:
         return {"answer": NOT_FOUND, "sources": [], "rewritten": formal, "top_score": top_score}
     context = "\n\n".join(f"[{h['short']} - {h['article']}]\n{h['text']}" for h in hits)
-    answer = ask_llm(SYSTEM, f"منابع:\n{context}\n\nسؤال: {q}")
+    answer = ask_llm(SYSTEM.replace("{school}", school.full_name()), f"منابع:\n{context}\n\nسؤال: {q}")
     cited = [h for h in hits if h["article"] in answer]
     shown = cited or hits[:1]
     return {

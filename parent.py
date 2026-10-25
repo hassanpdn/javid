@@ -1,7 +1,7 @@
 import json
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
-import db, students, checks
+import db, students, checks, school
 from auth import require_role
 from llm import ask_llm
 from manager import today
@@ -61,7 +61,7 @@ def weekly_report(user: dict = Depends(parent_only)):
         facts = students.facts_text(f, include_private=False)
         try:
             text = ask_llm(
-                f"تو دبستان جاوید هستی و برای ولیِ {f['first_name']} یک گزارش کوتاه هفتگی می‌نویسی. "
+                f"تو {school.full_name()} هستی و برای ولیِ {f['first_name']} یک گزارش کوتاه هفتگی می‌نویسی. "
                 "سه یا چهار جمله ساده، گرم و محترمانه. اول نقطه‌های قوت را بگو، بعد درسی که نیاز به تمرین بیشتر دارد را بدون نگرانی‌افزایی بگو، "
                 "و در پایان وضعیت حضور را با عدد بگو. هیچ تشخیص یا حدسی نزن و فقط از اطلاعات داده‌شده استفاده کن.",
                 facts, max_tokens=260, temperature=0.3)

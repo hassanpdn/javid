@@ -224,6 +224,23 @@ body .nav-title h1 { color: var(--ink); font-size: 16px; line-height: 1.5; }
 .auth-note { margin-top: 18px !important; font-size: 12px; color: var(--muted); display: flex; align-items: center; gap: 6px; }
 @media (max-width: 1023px) { .auth-art { display: none; } .auth-panel { margin: 0 auto; padding: 28px 18px; } }
 
+/* ---------- demo setup (first step) ---------- */
+.setup { min-height: 100vh; display: grid; place-items: center; padding: 28px 16px; }
+.setup-card { width: 100%; max-width: 720px; display: flex; flex-direction: column; gap: 16px; padding: 28px; }
+.setup-card h1 { font-size: 21px; }
+.setup-card p { margin: 0; }
+.setup-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 16px; }
+.setup-grid .span-2 { grid-column: 1 / -1; }
+.name-row { display: flex; align-items: center; gap: 10px; }
+.name-row input { flex: 1; min-width: 0; }
+.prefix { color: var(--muted); font-size: 15px; }
+.saved { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 12px 14px; border-radius: var(--radius); background: var(--panel-2); border: 1px solid var(--line); }
+.chip-btn { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 999px; border: 1px solid var(--line);
+  background: var(--panel); color: var(--text); font-size: 13px; cursor: pointer; transition: border-color .2s, color .2s; }
+.chip-btn:hover, .chip-btn.on { border-color: var(--primary); color: var(--primary-ink); }
+.switch-school { display: inline-flex; align-items: center; gap: 6px; margin-top: 10px; font-size: 13px; }
+@media (max-width: 640px) { .setup-grid { grid-template-columns: 1fr; } .name-row { flex-wrap: wrap; } .setup-card { padding: 20px; } }
+
 /* ---------- welcome card ---------- */
 .welcome { display: flex; align-items: center; gap: 18px; position: relative; overflow: hidden; }
 .welcome::before { content: ""; position: absolute; width: 260px; height: 260px; border-radius: 50%; left: -80px; top: -110px; background: var(--primary-soft); }

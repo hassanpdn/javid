@@ -5,6 +5,7 @@
 import { ref, computed, watch, onMounted, onUnmounted } from "vue"
 import { api, fa, session, clearSession, lockScroll } from "../lib/api.js"
 import { theme } from "../lib/theme.js"
+import { schoolInfo } from "../lib/school.js"
 import { gsap, motion } from "../lib/motion.js"
 import Icon from "./Icon.vue"
 import Avatar from "./Avatar.vue"
@@ -38,8 +39,8 @@ onUnmounted(() => { document.removeEventListener("click", outside); lockScroll(f
   <div :class="['layout', { 'menu-open': menuOpen }]">
     <aside class="sidebar" ref="side">
       <div class="side-brand">
-        <span class="logo">ج</span>
-        <div><b>دبستان جاوید</b><small>دستیار هوشمند مدرسه</small></div>
+        <span class="logo">{{ (schoolInfo.school.name || 'ج')[0] }}</span>
+        <div><b>{{ schoolInfo.school.full_name }}</b><small>دستیار هوشمند مدرسه</small></div>
         <button class="icon-btn xl:hidden" @click="menuOpen = false" aria-label="بستن منو"><Icon name="x" /></button>
       </div>
       <nav class="side-nav">
@@ -79,7 +80,7 @@ onUnmounted(() => { document.removeEventListener("click", outside); lockScroll(f
         </div>
       </header>
       <main class="main-body"><slot /></main>
-      <footer class="footer">نسخه آزمایشی دستیار هوشمند دبستان غیرانتفاعی جاوید · همه داده‌ها ساختگی است</footer>
+      <footer class="footer">نسخه آزمایشی دستیار هوشمند {{ schoolInfo.school.full_name }} · همه داده‌ها ساختگی است</footer>
     </div>
     <FloatingChat v-bind="chat" />
   </div>

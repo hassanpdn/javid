@@ -33,6 +33,21 @@ async function askAssistant(page, question) {
   return win
 }
 
+const SETUP_PASSWORD = "setup-test"   // set by tests/serve.py
+
+test("first visit opens the school setup, prefilled with Javid", async ({ page }) => {
+  const errors = noPageErrors(page)
+  await page.goto("/")
+  await expect(page.locator(".setup-card h1")).toHaveText("راه‌اندازی دمو برای مدرسه")
+  await expect(page.locator(".name-row input").first()).toHaveValue("جاوید")
+  expect(await seriousA11y(page)).toEqual([])
+  await page.locator('input[type="password"]').fill(SETUP_PASSWORD)
+  await page.locator(".setup-card .btn.primary").click()
+  await expect(page.locator(".role-card")).toHaveCount(7, { timeout: 30_000 })
+  await expect(page.locator(".auth-form")).toContainText("دبستان جاوید")
+  expect(errors).toEqual([])
+})
+
 test("login page shows every role and has no serious accessibility issues", async ({ page }) => {
   const errors = noPageErrors(page)
   await page.goto("/")
@@ -166,4 +181,28 @@ test("an expired session goes back to the login page", async ({ page }) => {
   await loginAs(page, "ولی")
   await page.evaluate(() => fetch("/logout", { method: "POST", headers: { Authorization: "Bearer " + localStorage.getItem("token") } }))
   await expect(page.locator(".role-card").first()).toBeVisible({ timeout: 20_000 })   // the bell polls every 15s
+})
+
+test("a demo for another school: boys' school with its own names everywhere", async ({ page }) => {
+  await page.goto("/")
+  await page.locator(".switch-school").click()
+  const form = page.locator(".setup-card")
+  await form.locator(".name-row input").first().fill("نیکان")
+  await form.locator(".segmented button", { hasText: "پسرانه" }).click()
+  await form.locator("label", { hasText: "شهر" }).locator("input").fill("اصفهان")
+  await form.locator(".field", { hasText: "مدیر مدرسه" }).locator("input").fill("علی رستمی")
+  await page.locator('input[type="password"]').fill(SETUP_PASSWORD)
+  await form.locator(".btn.primary").click()
+  await expect(page.locator(".auth-form")).toContainText("دبستان نیکان", { timeout: 30_000 })
+  await expect(page.locator(".role-card", { hasText: "مدیر" }).first()).toContainText("آقای علی رستمی")
+  await loginAs(page, "مدیر")
+  await expect(page.locator(".side-brand")).toContainText("دبستان نیکان")
+  await expect(page.locator("body")).not.toContainText("جاوید")
+  // and back to the default for the next run
+  await page.locator(".avatar-btn").click(); await page.locator(".dd-item.danger").click()
+  await page.locator(".switch-school").click()
+  await page.locator(".chip-btn", { hasText: "جاوید (پیش‌فرض)" }).click()
+  await page.locator('input[type="password"]').fill(SETUP_PASSWORD)
+  await page.locator(".setup-card .btn.primary").click()
+  await expect(page.locator(".auth-form")).toContainText("دبستان جاوید", { timeout: 30_000 })
 })
