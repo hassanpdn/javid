@@ -1,0 +1,111 @@
+<script setup>
+// The manager's letters: decide on what the office sent up, mark letters sent for information as seen,
+// and look at what the office still has open. The office writes and sends the formal replies; the manager decides.
+import { ref, computed, watch, onMounted, onUnmounted } from "vue"
+import { api, fa, lockScroll } from "../lib/api.js"
+import Icon from "./Icon.vue"
+
+const props = defineProps({ focus: { default: null } })   // id of a letter to open right away (from a dashboard alert)
+const emit = defineEmits(["changed"])
+// the office's statuses, worded for the manager ("waiting for you" in the office panel means the office)
+const OFFICE_STATUS = { new: "در صف دستیار", processing: "در حال بررسی", awaiting_approval: "پاسخ آماده، منتظر تأیید دفتر", todo: "در دست اقدام دفتر" }
+const data = ref(null), open = ref(null), note = ref(""), saving = ref(false)
+const queued = computed(() => data.value ? data.value.office.filter((l) => ["new", "processing"].includes(l.status)).length : 0)
+const load = async () => { data.value = await api("/manager/letters") }
+const show = (l) => { open.value = l; note.value = "" }
+const done = async () => { open.value = null; await load(); emit("changed") }
+const decide = async (approve) => {
+  saving.value = true
+  try { await api(`/manager/letters/${open.value.id}/decide`, { approve, note: note.value }); await done() }
+  finally { saving.value = false }
+}
+const markSeen = async (l) => { await api(`/manager/letters/${l.id}/seen`, {}); await done() }
+watch(() => !!open.value, lockScroll)
+onMounted(async () => {
+  await load()
+  const d = data.value, l = props.focus && [...d.decide, ...d.info, ...d.office].find((x) => x.id === props.focus)
+  if (l) show(l)
+})
+onUnmounted(() => lockScroll(false))
+</script>
+
+<template>
+  <div class="flex flex-col gap-6">
+    <section v-reveal>
+      <h2>نامه‌ها</h2>
+      <p class="muted">تصمیم با شماست. پاسخ رسمی را دفتر می‌نویسد و می‌فرستد.</p>
+    </section>
+
+    <div v-if="!data" class="card shimmer"><span></span><span></span><span style="width:60%"></span></div>
+    <template v-else>
+      <section class="letters">
+        <h3 class="group-head">منتظر تصمیم شما <span v-if="data.decide.length" class="count">{{ fa(data.decide.length) }}</span></h3>
+        <p v-if="!data.decide.length" class="muted small">نامه‌ای منتظر تصمیم شما نیست.</p>
+        <article v-for="l in data.decide" :key="l.id" v-reveal class="letter-card card st-needs_manager">
+          <div class="lc-top">
+            <b>{{ fa(l.subject) }}</b>
+            <span v-if="l.deadline_short" :class="['chip', { hot: l.days_left <= 3 }]">مهلت {{ fa(l.deadline_short) }}</span>
+          </div>
+          <div class="lc-meta"><Icon name="mail" :size="15" />{{ l.sender }} · {{ fa(l.received_short) }}</div>
+          <p v-if="l.summary" class="lc-summary">{{ fa(l.summary) }}</p>
+          <p v-if="l.action" class="lc-action"><Icon name="sparkles" :size="16" /><span>پیشنهاد دستیار: {{ fa(l.action) }}</span></p>
+          <div class="btn-row"><button class="btn primary sm" @click="show(l)">خواندن نامه و تصمیم</button></div>
+        </article>
+      </section>
+
+      <section class="letters">
+        <h3 class="group-head">برای اطلاع شما</h3>
+        <p v-if="!data.info.length" class="muted small">نامه‌ای برای اطلاع شما نیامده.</p>
+        <article v-for="l in data.info" :key="l.id" v-reveal :class="['letter-card', 'card', 'st-' + l.status]">
+          <div class="lc-top">
+            <b>{{ fa(l.subject) }}</b>
+            <span v-if="l.manager_seen_at" class="tag st-done">دیدید · {{ fa(l.manager_seen_at) }}</span>
+          </div>
+          <div class="lc-meta"><Icon name="mail" :size="15" />{{ l.sender }} · {{ fa(l.received_short) }}</div>
+          <p v-if="l.summary" class="lc-summary">{{ fa(l.summary) }}</p>
+          <div class="btn-row">
+            <button class="btn ghost sm" @click="show(l)">متن نامه</button>
+            <button v-if="l.status === 'forwarded'" class="btn success sm" @click="markSeen(l)"><Icon name="check" :size="16" />دیدم</button>
+          </div>
+        </article>
+      </section>
+
+      <section v-reveal class="card">
+        <div class="card-head">در دست دفتر <small>فقط برای دیدن؛ کار این نامه‌ها با دفتر است</small></div>
+        <p v-if="queued" class="muted small">{{ fa(queued) }} نامه هنوز در صف بررسی دستیار در دفتر است.</p>
+        <p v-if="!data.office.length" class="muted small">دفتر نامه بازی ندارد.</p>
+        <ul class="office-list">
+          <li v-for="l in data.office" :key="l.id">
+            <button class="office-row" @click="show(l)">
+              <span class="grow">{{ fa(l.subject) }}</span>
+              <span :class="['tag', 'st-' + l.status]">{{ OFFICE_STATUS[l.status] || l.status_name }}</span>
+              <span v-if="l.deadline_short" :class="['chip', { hot: l.days_left <= 3 }]">مهلت {{ fa(l.deadline_short) }}</span>
+            </button>
+          </li>
+        </ul>
+      </section>
+    </template>
+
+    <div v-if="open" class="overlay" @click.self="open = null">
+      <div class="dialog" v-pop>
+        <h3>{{ fa(open.subject) }}</h3>
+        <p class="muted small">{{ open.sender }} · {{ fa(open.received_short) }}<span v-if="open.deadline_short"> · مهلت {{ fa(open.deadline_short) }}</span></p>
+        <div class="letter">{{ fa(open.body) }}</div>
+        <template v-if="open.status === 'needs_manager'">
+          <p v-if="open.action" class="lc-action"><Icon name="sparkles" :size="16" /><span>پیشنهاد دستیار: {{ fa(open.action) }}</span></p>
+          <label class="field"><span>یادداشت برای دفتر <span class="muted">(اختیاری)</span></span>
+            <textarea v-model="note" rows="3" maxlength="500" placeholder="مثلا: موافقم، به شرط اینکه هزینه از بودجه فوق‌برنامه پرداخت شود"></textarea></label>
+          <div class="dialog-actions">
+            <button class="btn success" :disabled="saving" @click="decide(true)"><Icon name="check" :size="18" />موافقم</button>
+            <button class="btn danger-soft" :disabled="saving" @click="decide(false)">مخالفم</button>
+            <button class="btn ghost" @click="open = null">انصراف</button>
+          </div>
+        </template>
+        <div v-else class="dialog-actions">
+          <button v-if="open.status === 'forwarded'" class="btn primary" @click="markSeen(open)"><Icon name="check" :size="18" />دیدم</button>
+          <button class="btn ghost" @click="open = null">بستن</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>

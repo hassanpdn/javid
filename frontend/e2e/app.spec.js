@@ -135,6 +135,22 @@ test("staff: agent works the queue, a reply is approved and a letter is referred
   expect(errors).toEqual([])
 })
 
+test("manager opens a letter from the dashboard, decides with a note, and marks an invitation as seen", async ({ page }) => {
+  const errors = noPageErrors(page)
+  await loginAs(page, "مدیر")                                               // the office test above already ran the agent
+  await page.locator(".alert button", { hasText: "بررسی نامه" }).first().click()
+  const dialog = page.locator(".dialog")
+  await expect(dialog.locator(".letter")).not.toBeEmpty()                    // the full letter, not only the summary
+  await dialog.locator("textarea").fill("موافقم، تا سقف بودجه فوق‌برنامه")
+  await dialog.locator(".btn.success").click()
+  await expect(dialog).toBeHidden()
+  const info = page.locator(".letter-card", { has: page.locator("button", { hasText: "دیدم" }) }).first()
+  await info.locator("button", { hasText: "دیدم" }).click()
+  await expect(page.locator(".letter-card .tag.st-done").first()).toContainText("دیدید")
+  expect(await seriousA11y(page)).toEqual([])
+  expect(errors).toEqual([])
+})
+
 test("counselor sends a message for Ava; Escape closes the drawer", async ({ page }) => {
   await loginAs(page, "مشاور")
   await page.locator(".segmented button").nth(1).click()

@@ -85,7 +85,11 @@ def collect(c):
     for r in c.execute("SELECT id, subject, summary, action FROM letters WHERE status = 'needs_manager'").fetchall():
         alerts.append({"type": "letter_decision", "letter_id": r["id"], "title": f"نیاز به تصمیم شما: {r['subject']}",
                        "detail": f"{r['summary']} پیشنهاد دستیار: {r['action']}", "done": False})
-    # 4. Letters with a close deadline
+    # 4. Letters the office sent for the manager's information (meeting invitations), not seen yet
+    for r in c.execute("SELECT id, subject, summary FROM letters WHERE status = 'forwarded'").fetchall():
+        alerts.append({"type": "letter_info", "letter_id": r["id"], "title": f"برای اطلاع شما: {r['subject']}",
+                       "detail": r["summary"] or "", "done": False})
+    # 5. Letters with a close deadline
     until = (t + timedelta(days=DEADLINE_DAYS)).isoformat()
     for r in c.execute("""SELECT subject, deadline FROM letters WHERE status IN ('new', 'todo', 'awaiting_approval') AND deadline BETWEEN ? AND ?
                           ORDER BY deadline""", (t_iso, until)).fetchall():
@@ -199,8 +203,37 @@ def issue_warning(req: IssueRequest, user: dict = Depends(manager_only)):
     return {"ok": True}
 
 
+@router.get("/letters")
+def letters(user: dict = Depends(manager_only)):
+    """The manager's letters: waiting for a decision, sent for information, and what the office still has open."""
+    from staff import view   # imported here because staff.py imports this file
+    with db.conn() as c:
+        rows = c.execute("SELECT * FROM letters ORDER BY received_date DESC, id DESC").fetchall()
+        return {
+            "decide": [view(r, c) for r in rows if r["status"] == "needs_manager"],
+            # unseen first, then the last ten the manager already saw
+            "info": [view(r, c) for r in rows if r["status"] == "forwarded"]
+                    + sorted([view(r, c) for r in rows if r["manager_seen_at"]], key=lambda l: l["manager_seen_at"], reverse=True)[:10],
+            "office": [view(r, c) for r in rows if r["status"] in ("new", "processing", "todo", "awaiting_approval")],
+        }
+
+@router.post("/letters/{lid}/seen")
+def seen(lid: int, user: dict = Depends(manager_only)):
+    """The manager read a letter sent for their information. Nothing is left for the office, so it closes."""
+    with db.conn() as c:
+        row = c.execute("SELECT subject FROM letters WHERE id = ? AND status = 'forwarded'", (lid,)).fetchone()
+        if not row:
+            raise HTTPException(status_code=404, detail="نامه پیدا نشد")
+        c.execute("UPDATE letters SET status = 'done', manager_seen_at = ? WHERE id = ?", (db.stamp(), lid))
+        c.execute("INSERT INTO agent_log (letter_id, action, reason, created_at) VALUES (?, ?, ?, ?)",
+                  (lid, f"مدیر نامه «{row['subject']}» را دید", "نامه برای اطلاع مدیر بود و با رؤیت او بسته شد.", db.stamp()))
+    db.notify(db.users_with("staff"), "letter", f"مدیر نامه «{row['subject']}» را دید")
+    _briefing_cache.clear()
+    return {"ok": True}
+
 class DecideRequest(BaseModel):
     approve: bool
+    note: str = ""   # optional words for the office, e.g. a budget limit
 
 @router.post("/letters/{lid}/decide")
 def decide(lid: int, req: DecideRequest, user: dict = Depends(manager_only)):
@@ -209,10 +242,12 @@ def decide(lid: int, req: DecideRequest, user: dict = Depends(manager_only)):
         row = c.execute("SELECT subject FROM letters WHERE id = ? AND status = 'needs_manager'", (lid,)).fetchone()
         if not row:
             raise HTTPException(status_code=404, detail="نامه پیدا نشد")
+        note = req.note.strip()[:500]
         c.execute("UPDATE letters SET status = 'todo', action = ? WHERE id = ?",
-                  (f"مدیر {word} کرد. نتیجه به فرستنده اعلام شود.", lid))
+                  (f"مدیر {word} کرد" + (f" ({note})" if note else "") + ". نتیجه به فرستنده اعلام شود.", lid))
         c.execute("INSERT INTO agent_log (letter_id, action, reason, created_at) VALUES (?, ?, ?, ?)",
                   (lid, f"مدیر با «{row['subject']}» {word} کرد", "تصمیم مدیر ثبت و کار اعلام نتیجه به دفتر سپرده شد.", db.stamp()))
-    db.notify(db.users_with("staff"), "letter", f"مدیر با «{row['subject']}» {word} کرد", "لطفا نتیجه را به فرستنده اعلام کنید.")
+    db.notify(db.users_with("staff"), "letter", f"مدیر با «{row['subject']}» {word} کرد",
+              (f"یادداشت مدیر: {note}\n" if note else "") + "لطفا نتیجه را به فرستنده اعلام کنید.")
     _briefing_cache.clear()
     return {"ok": True}
