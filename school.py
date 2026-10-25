@@ -2,7 +2,7 @@
 
 The settings live in school.json (path: SCHOOL_PATH). It holds only the school being shown: no list of
 earlier schools, so one school never sees another's name. Without the file the demo is the default (Javid),
-whose details are given out only to whoever passes the setup password.
+whose details are only filled in by the setup form's «تنظیمات پیش‌فرض» button.
 """
 import json, os
 

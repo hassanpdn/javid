@@ -8,7 +8,6 @@ import fake_llm
 
 APP_PORT, LLM_PORT = int(os.getenv("TEST_APP_PORT", "8765")), int(os.getenv("TEST_LLM_PORT", "11500"))
 TODAY = "2026-10-25"   # 3 Aban 1405, so tests always see the same school days
-SETUP_PASSWORD = "setup-test"
 
 def start():
     """Returns (uvicorn process, base url). The fake model runs in this process (fake_llm.MODE controls it)."""
@@ -18,7 +17,7 @@ def start():
     env = {**os.environ, "DB_PATH": os.path.join(tmp, "school.db"), "CHROMA_PATH": os.path.join(tmp, "db"),
            "LLM_BASE_URL": llm, "EMBED_BASE_URL": llm, "LLM_API_KEY": "x", "EMBED_API_KEY": "x",
            "LLM_MODEL": "fake", "EMBED_MODEL": "fake", "DEMO_TODAY": TODAY, "KEEP_DB": "1",
-           "SIMILARITY_THRESHOLD": "0.1", "SCHOOL_PATH": os.path.join(tmp, "school.json"), "SETUP_PASSWORD": SETUP_PASSWORD}
+           "SIMILARITY_THRESHOLD": "0.1", "SCHOOL_PATH": os.path.join(tmp, "school.json")}
     for script in ("seed.py", "ingest.py"):
         subprocess.run([sys.executable, script], cwd=ROOT, env=env, check=True, capture_output=True)
     proc = subprocess.Popen([sys.executable, "-m", "uvicorn", "app:app", "--port", str(APP_PORT)],

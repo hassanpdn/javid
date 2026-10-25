@@ -24,16 +24,9 @@ const FIELDS = ["name", "gender", "city", "district", "manager_title", "manager_
 
 const form = reactive(Object.fromEntries(FIELDS.map((k) => [k, ""])))   // starts empty: nothing is assumed
 const step = ref(0), done = reactive(new Set()), errors = reactive({}), direction = ref(1)
-const password = ref(""), error = ref(""), building = ref(null), success = ref(false)
+const error = ref(""), building = ref(null), success = ref(false)
 const page = ref(null), body = ref(null), cardRef = ref(null), lineFill = ref(null)
-// With a setup password, the form stays locked until it is entered: the schools watching a demo can't open it
-const unlocked = ref(!schoolInfo.needs_password), unlocking = ref(false)
-async function unlock() {
-  unlocking.value = true; error.value = ""
-  try { await api("/setup/unlock", { password: password.value }); unlocked.value = true }
-  catch (e) { error.value = e.message === "Failed to fetch" ? "ارتباط با سرور برقرار نشد." : e.message }
-  finally { unlocking.value = false }
-}
+
 
 // ---------- checking each step ----------
 const filled = (k) => String(form[k] || "").trim()
@@ -69,7 +62,7 @@ const canOpen = (i) => i <= step.value || [...Array(i).keys()].every((j) => done
 async function useDefault() {
   error.value = ""
   try {
-    const { school } = await api("/setup/default", { password: password.value })
+    const { school } = await api("/setup/default")
     for (const k of FIELDS) form[k] = school[k] || ""
     ;[0, 1, 2].forEach((i) => done.add(i))
     go(3)
@@ -91,7 +84,7 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms))
 async function build() {
   error.value = ""; success.value = false
   building.value = BUILD_STEPS.map((text) => ({ text, done: false }))
-  const request = api("/setup", { school: { ...form }, password: password.value })
+  const request = api("/setup", { school: { ...form } })
   try {
     for (const item of building.value) { await wait(motion ? 420 : 0); item.done = true }   // the checklist ticks while the server works
     await request
@@ -122,17 +115,7 @@ onUnmounted(() => blobs?.revert())
 <template>
   <main class="setup" ref="page">
     <i class="setup-blob a" aria-hidden="true"></i><i class="setup-blob b" aria-hidden="true"></i>
-    <form v-if="!unlocked" class="setup-lock card" v-pop @submit.prevent="unlock">
-      <span class="tint lg t-primary"><Icon name="shield" :size="26" /></span>
-      <h1>تنظیمات دمو</h1>
-      <p class="muted small">این بخش فقط برای برگزارکننده دمو است. رمز راه‌اندازی را وارد کنید.</p>
-      <input v-model="password" type="password" autocomplete="off" aria-label="رمز راه‌اندازی" placeholder="رمز راه‌اندازی">
-      <p v-if="error" class="error-text">{{ error }}</p>
-      <button class="btn primary" :disabled="unlocking || !password"><Icon name="check" :size="18" />ورود به تنظیمات</button>
-      <button v-if="schoolInfo.set_up" type="button" class="link small" @click="setupUi.open = false">بازگشت به ورود</button>
-    </form>
-
-    <div v-else class="setup-layout">
+    <div class="setup-layout">
       <form class="setup-form card" @submit.prevent="next" novalidate>
         <div class="setup-top">
           <div><h1>راه‌اندازی دمو برای مدرسه</h1><p class="muted small">چند قدم کوتاه؛ همه صفحه‌ها، نامه‌ها و پیام‌ها با همین نام‌ها ساخته می‌شوند.</p></div>

@@ -33,22 +33,15 @@ async function askAssistant(page, question) {
   return win
 }
 
-const SETUP_PASSWORD = "setup-test"   // set by tests/serve.py
 
-async function unlockSetup(page) {
-  await expect(page.locator(".setup-lock h1")).toHaveText("تنظیمات دمو")
-  await page.locator(".setup-lock input").fill(SETUP_PASSWORD)
-  await page.locator(".setup-lock .btn.primary").click()
+async function openedSetup(page) {
   await expect(page.locator(".setup-top h1")).toHaveText("راه‌اندازی دمو برای مدرسه")
 }
 
-test("first visit: locked setup, empty form, no school's name anywhere until «تنظیمات پیش‌فرض»", async ({ page }) => {
+test("first visit: empty setup form, no school's name anywhere until «تنظیمات پیش‌فرض»", async ({ page }) => {
   const errors = noPageErrors(page)
   await page.goto("/")
-  await page.locator(".setup-lock input").fill("wrong")
-  await page.locator(".setup-lock .btn.primary").click()
-  await expect(page.locator(".setup-lock .error-text")).toBeVisible()
-  await unlockSetup(page)
+  await openedSetup(page)
   await expect(page.locator(".name-row input")).toHaveValue("")          // no names filled in
   await expect(page.locator("body")).not.toContainText("جاوید")
   await page.locator(".step-actions .btn.primary").click()               // "next" with nothing filled
@@ -202,7 +195,7 @@ test("an expired session goes back to the login page", async ({ page }) => {
 test("a demo for another school, step by step, with the card filling in", async ({ page }) => {
   await page.goto("/")
   await page.locator(".switch-school").click()
-  await unlockSetup(page)
+  await openedSetup(page)
   const next = page.locator(".step-actions .btn.primary")
   await page.locator(".name-row input").fill("نیکان")
   await page.locator(".choice", { hasText: "پسرانه" }).click()
@@ -229,7 +222,7 @@ test("a demo for another school, step by step, with the card filling in", async 
   // and back to the default for the next run
   await page.locator(".avatar-btn").click(); await page.locator(".dd-item.danger").click()
   await page.locator(".switch-school").click()
-  await unlockSetup(page)
+  await openedSetup(page)
   await expect(page.locator("body")).not.toContainText("نیکان")          // the previous school isn't listed anywhere
   await page.locator(".chip-btn", { hasText: "تنظیمات پیش‌فرض" }).click()
   await page.locator(".step-actions .btn.primary").click()

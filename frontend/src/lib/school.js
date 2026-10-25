@@ -3,7 +3,7 @@ import { api } from "./api.js"
 
 // The school this demo is set up for, loaded before login. Every page reads names from here
 // instead of having "Javid" written in, so the same app can be shown for any school.
-export const schoolInfo = reactive({ loaded: false, set_up: true, school: {}, needs_password: false, names: {} })
+export const schoolInfo = reactive({ loaded: false, set_up: true, school: {}, names: {} })
 // true while the setup form is open (on the first run, or from the login page's «مدرسه دیگر»)
 export const setupUi = reactive({ open: false })
 

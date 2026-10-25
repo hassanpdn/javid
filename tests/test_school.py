@@ -1,34 +1,31 @@
 """Setting the demo up for another school: every name comes from the form, nothing says Javid any more.
 These tests rebuild the demo data, so they end by going back to Javid with fresh logins."""
 import httpx, pytest
-import conftest, fake_llm, serve
+import conftest, fake_llm
 from conftest import BASE, Client, db
 
 NIKAN = {"name": "دبستان نیکان", "gender": "boys", "city": "اصفهان", "district": "ناحیه ۲",
          "manager_title": "آقای", "manager_name": "علی رستمی", "counselor_title": "آقای", "counselor_name": "رضا یزدانی",
          "staff_title": "خانم", "staff_name": "سمیرا امینی"}
 
-def setup(school, password=serve.SETUP_PASSWORD):
-    return httpx.post(BASE + "/setup", json={"school": school, "password": password}, timeout=60)
+def setup(school):
+    return httpx.post(BASE + "/setup", json={"school": school}, timeout=60)
 
 def test_nothing_is_given_out_before_setup():
     r = httpx.get(BASE + "/school")
-    assert r.json() == {"set_up": False, "needs_password": True}
+    assert r.json() == {"set_up": False}
     assert "جاوید" not in r.text and "انوشه" not in r.text
 
-def test_default_school_needs_the_password():
-    assert httpx.post(BASE + "/setup/default", json={"password": "wrong"}).status_code == 403
-    assert httpx.post(BASE + "/setup/unlock", json={"password": "wrong"}).status_code == 403
-    assert httpx.post(BASE + "/setup/unlock", json={"password": serve.SETUP_PASSWORD}).status_code == 200
-    d = httpx.post(BASE + "/setup/default", json={"password": serve.SETUP_PASSWORD}).json()["school"]
+def test_default_school_for_the_button():
+    d = httpx.get(BASE + "/setup/default").json()["school"]
     assert d["name"] == "جاوید" and d["manager_name"] == "دکتر انوشه‌پور"
+    assert httpx.post(BASE + "/setup/unlock", json={}).status_code in (404, 405)   # no password step any more
 
 @pytest.mark.parametrize("change,code", [
-    ({}, 403),                                   # wrong password
     ({"name": "  "}, 400), ({"gender": "x"}, 400), ({"manager_title": "دکتر"}, 400), ({"city": "ا" * 50}, 400),
 ])
 def test_bad_setup_is_refused(change, code):
-    r = setup({**NIKAN, **change}, password="wrong" if code == 403 else serve.SETUP_PASSWORD)
+    r = setup({**NIKAN, **change})
     assert r.status_code == code, r.text
     assert httpx.get(BASE + "/school").json()["set_up"] is False   # nothing changed
 
@@ -61,7 +58,7 @@ def test_setup_for_another_school():
     assert any("دبستان نیکان" in c["system"] for c in fake_llm.CALLS)
 
 def test_back_to_the_default_school_forgets_the_other():
-    default = httpx.post(BASE + "/setup/default", json={"password": serve.SETUP_PASSWORD}).json()["school"]
+    default = httpx.get(BASE + "/setup/default").json()["school"]
     assert setup(default).status_code == 200
     conftest._tokens.clear()
     r = httpx.get(BASE + "/school")
