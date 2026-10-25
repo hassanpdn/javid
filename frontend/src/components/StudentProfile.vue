@@ -86,6 +86,8 @@ onMounted(async () => {
               <Sparkline :points="p.points" :change="p.change" />
               <LevelChip :level="p.now" />
             </div>
+            <!-- the time axis under the trend lines: oldest on the right, today on the left -->
+            <div class="prog-row prog-axis" aria-hidden="true"><span></span><span class="axis"><span>مهر</span><span>امروز</span></span><span></span></div>
           </div>
           <p v-for="p in f.progress.filter(p => p.note)" :key="'n' + p.subject" class="teacher-note">یادداشت آموزگار ({{ p.subject }}): {{ p.note }}</p>
         </section>
