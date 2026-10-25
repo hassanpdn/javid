@@ -271,6 +271,8 @@ def recipient_options(c):
     groups = [{"key": "group:teachers", "label": "همه معلمان", "kind": "teacher"},
               {"key": "group:parents", "label": "همه اولیا", "kind": "parent"}]
     groups += [{"key": f"group:class:{cl['id']}", "label": f"اولیای کلاس {cl['name']}", "kind": "parent"} for cl in classes]
+    if not school.features()["parents"]:   # parents switched off: they can't be picked as recipients
+        groups, parents = [g for g in groups if g["kind"] != "parent"], []
     people = [{"key": f"user:{r['id']}", "label": r["full_name"], "sub": {"staff": "پرسنل اداری", "counselor": "مشاور", "manager": "مدیر"}[r["role"]], "kind": "staff"} for r in staff]
     people += [{"key": f"user:{r['id']}", "label": r["full_name"], "sub": f"معلم {r['subject']}", "kind": "teacher"} for r in teachers]
     people += [{"key": f"user:{r['id']}", "label": r["full_name"], "sub": f"ولیِ {r['child']}، {r['class']}", "kind": "parent"} for r in parents]
@@ -296,6 +298,7 @@ def expand(c, keys):
         elif k.startswith("user:"):
             ids.add(int(k.split(":")[1]))
     rows = c.execute(f"SELECT id, role FROM users WHERE id IN ({','.join('?' * len(ids)) or 'NULL'})", list(ids)).fetchall()
+    rows = [r for r in rows if school.role_enabled(r["role"])]   # nobody in a switched-off role gets messages
     return [r["id"] for r in rows if r["role"] == "parent"], [r["id"] for r in rows if r["role"] != "parent"]
 
 def get_letter(c, lid):

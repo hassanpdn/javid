@@ -2,6 +2,7 @@
 // Counselor: one student's file, opened in a side drawer
 import { ref, computed, onMounted } from "vue"
 import { api, fa } from "../lib/api.js"
+import { schoolInfo } from "../lib/school.js"
 import Icon from "./Icon.vue"
 import Avatar from "./Avatar.vue"
 import CountUp from "./CountUp.vue"
@@ -54,7 +55,7 @@ onMounted(async () => {
           </div>
         </section>
 
-        <section v-reveal class="card">
+        <section v-if="schoolInfo.features.parents" v-reveal class="card">
           <div class="card-head">پیام به ولی</div>
           <template v-if="draft">
             <p class="muted small">این متن را دستیار نوشته است. بخوانید، در صورت نیاز ویرایش کنید و بعد بفرستید.</p>

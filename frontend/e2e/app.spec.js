@@ -192,9 +192,31 @@ test("an expired session goes back to the login page", async ({ page }) => {
   await expect(page.locator(".role-card").first()).toBeVisible({ timeout: 20_000 })   // the bell polls every 15s
 })
 
+test("internal CRM mode: switching parents and students off on the login page", async ({ page }) => {
+  await page.goto("/")
+  await expect(page.locator(".role-card")).toHaveCount(7)
+  await page.locator(".roles-toggle").click()
+  await page.locator(".toggle-row", { hasText: "نقش ولی" }).click()
+  await page.locator(".toggle-row", { hasText: "نقش دانش‌آموز" }).click()
+  await expect(page.locator(".role-card")).toHaveCount(5)
+  await expect(page.locator(".toggle-mode")).toContainText("سی‌آر‌ام داخلی")
+  expect(await seriousA11y(page)).toEqual([])
+  await loginAs(page, "مشاور")                                           // the counselor can't message parents now
+  await page.locator(".segmented button").nth(1).click()
+  await page.locator(".student-row").first().click()
+  await expect(page.locator(".drawer-body .card").first()).toBeVisible()
+  await expect(page.locator(".drawer")).not.toContainText("پیام به ولی")
+  await page.keyboard.press("Escape")
+  await page.locator(".avatar-btn").click(); await page.locator(".dd-item.danger").click()
+  await page.locator(".roles-toggle").click()   // back to the full version
+  await page.locator(".toggle-row", { hasText: "نقش ولی" }).click()
+  await page.locator(".toggle-row", { hasText: "نقش دانش‌آموز" }).click()
+  await expect(page.locator(".role-card")).toHaveCount(7)
+})
+
 test("a demo for another school, step by step, with the card filling in", async ({ page }) => {
   await page.goto("/")
-  await page.locator(".switch-school").click()
+  await page.locator(".new-demo").click()
   await openedSetup(page)
   const next = page.locator(".step-actions .btn.primary")
   await page.locator(".name-row input").fill("نیکان")
@@ -221,7 +243,7 @@ test("a demo for another school, step by step, with the card filling in", async 
   await expect(page.locator("body")).not.toContainText("جاوید")
   // and back to the default for the next run
   await page.locator(".avatar-btn").click(); await page.locator(".dd-item.danger").click()
-  await page.locator(".switch-school").click()
+  await page.locator(".new-demo").click()
   await openedSetup(page)
   await expect(page.locator("body")).not.toContainText("نیکان")          // the previous school isn't listed anywhere
   await page.locator(".chip-btn", { hasText: "تنظیمات پیش‌فرض" }).click()

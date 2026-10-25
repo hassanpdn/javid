@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
-import db, students
+import db, students, school
 from auth import require_role
 from llm import ask_llm, ask_json
 from manager import today
@@ -8,6 +8,10 @@ from jalali import jstr
 
 router = APIRouter(prefix="/counselor")
 counselor_only = require_role("counselor", "manager")
+
+def parents_on():
+    if not school.features()["parents"]:
+        raise HTTPException(status_code=403, detail="پیام به ولی در این نسخه فعال نیست")
 _insights = {}   # cache: same student + same day + same signals -> same text
 
 def load(c, sid):
@@ -70,6 +74,7 @@ def add_note(sid: int, req: NoteRequest, user: dict = Depends(counselor_only)):
 
 @router.post("/students/{sid}/suggest")
 def draft_suggestion(sid: int, user: dict = Depends(counselor_only)):
+    parents_on()
     with db.conn() as c:
         f = load(c, sid)
     try:
@@ -97,6 +102,7 @@ class ApproveRequest(BaseModel):
 
 @router.post("/suggestions/{gid}/approve")
 def approve(gid: int, req: ApproveRequest, user: dict = Depends(counselor_only)):
+    parents_on()
     if not req.for_parent.strip():
         raise HTTPException(status_code=400, detail="متن پیام ولی خالی است")
     with db.conn() as c:

@@ -4,6 +4,7 @@ import { ref, onMounted, onUnmounted } from "vue"
 import { computed } from "vue"
 import { api, session, store } from "../lib/api.js"
 import { schoolInfo, setupUi } from "../lib/school.js"
+import FeatureToggles from "../components/FeatureToggles.vue"
 import { gsap, motion } from "../lib/motion.js"
 import Icon from "../components/Icon.vue"
 
@@ -17,7 +18,12 @@ const ROLES = [
   { u: "daneshamooz", role: "دانش‌آموز", desc: "نمره‌ها و پیشرفت من", icon: "school", tone: "secondary", soon: true },
 ]
 // role cards: what each role does, with the person's name for the school this demo is set up for
-const demo = computed(() => ROLES.map((d) => ({ ...d, name: schoolInfo.names[d.u] || "" })))
+// roles switched off (parent, student) don't get a card
+const FEATURE_OF = { vali: "parents", daneshamooz: "students" }
+const demo = computed(() => ROLES.filter((d) => !FEATURE_OF[d.u] || schoolInfo.features[FEATURE_OF[d.u]])
+  .map((d) => ({ ...d, name: schoolInfo.names[d.u] || "",
+                desc: d.u === "moshaver" && !schoolInfo.features.parents ? "دانش‌آموزان نیازمند توجه و پرونده‌ها" : d.desc })))
+const rolesOpen = ref(false)
 const school = computed(() => schoolInfo.school)
 const error = ref(""), busy = ref(false), picked = ref(""), root = ref(null)
 // windows of the two school wings in the illustration; a few are "lit" and blink
@@ -81,7 +87,7 @@ onUnmounted(() => ctx?.revert())
         </svg>
         <div class="float-card fc1" style="top: 4%; right: 0"><span class="tint sm t-primary"><Icon name="sparkles" :size="18" /></span><div>خلاصه امروز آماده شد<small>دستیار مدیر</small></div></div>
         <div class="float-card fc2" style="top: 40%; left: -4%"><span class="tint sm t-info"><Icon name="mail" :size="18" /></span><div>نامه‌ها دسته‌بندی شدند<small>دستیار اداری</small></div></div>
-        <div class="float-card fc3" style="bottom: 4%; right: 10%"><span class="tint sm t-success"><Icon name="message" :size="18" /></span><div>پیام مشاور برای ولی<small>بعد از تأیید مشاور</small></div></div>
+        <div v-if="schoolInfo.features.parents" class="float-card fc3" style="bottom: 4%; right: 10%"><span class="tint sm t-success"><Icon name="message" :size="18" /></span><div>پیام مشاور برای ولی<small>بعد از تأیید مشاور</small></div></div>
       </div>
     </div>
 
@@ -91,7 +97,7 @@ onUnmounted(() => ctx?.revert())
         <h1>به دستیار هوشمند {{ school.name }} خوش آمدید</h1>
         <p class="muted">نسخه آزمایشی. با یکی از نقش‌ها وارد شوید؛ هر نقش پنل و دسترسی‌های خودش را دارد.</p>
         <p v-if="error" class="error-text">{{ error }}</p>
-        <div class="role-list">
+        <TransitionGroup name="role" tag="div" class="role-list">
           <button v-for="d in demo" :key="d.u" type="button" class="role-card" :style="{ '--c': 'var(--' + d.tone + ')' }"
                   :disabled="busy" @click="login(d.u, '1234')">
             <span :class="['tint', 't-' + d.tone]"><Icon :name="d.icon" :size="20" /></span>
@@ -100,9 +106,13 @@ onUnmounted(() => ctx?.revert())
             <span v-if="busy && picked === d.u" class="dots go"><i></i><i></i><i></i></span>
             <Icon v-else name="chevron" :size="18" class="go" />
           </button>
-        </div>
+        </TransitionGroup>
         <p class="auth-note"><Icon name="shield" :size="16" /> همه داده‌های این نسخه ساختگی است.</p>
-        <button type="button" class="link switch-school" @click="setupUi.open = true"><Icon name="school" :size="16" />دموی جدید برای مدرسه دیگر</button>
+        <div class="login-tools">
+          <button type="button" class="link switch-school new-demo" @click="setupUi.open = true"><Icon name="school" :size="16" />دموی جدید برای مدرسه دیگر</button>
+          <button type="button" class="link switch-school roles-toggle" :aria-expanded="rolesOpen" @click="rolesOpen = !rolesOpen"><Icon name="users" :size="16" />نقش‌های فعال</button>
+        </div>
+        <div v-if="rolesOpen" v-pop:drop class="roles-panel"><FeatureToggles /></div>
       </div>
     </div>
   </main>

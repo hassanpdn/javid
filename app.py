@@ -62,6 +62,9 @@ def login(req: LoginRequest):
         _failed[name] = recent + [now]
         raise HTTPException(status_code=401, detail="نام کاربری یا رمز عبور اشتباه است")
     _failed.pop(name, None)
+    if not school.role_enabled(result[1]["role"]):
+        db.logout(result[0])
+        raise HTTPException(status_code=403, detail="این نقش در این نسخه فعال نیست")
     token, user = result
     return {"token": token, "user": db.public_user(user)}
 
@@ -74,11 +77,21 @@ def get_school():
     """Public: the login page shows the school's name and the names on the demo role cards.
     Before the first setup nothing is given out (not even the default school)."""
     if not school.is_set_up():
-        return {"set_up": False}
+        return {"set_up": False, "features": school.features()}
     with db.conn() as c:
         rows = c.execute(f"SELECT username, full_name FROM users WHERE username IN ({','.join('?' * len(DEMO_LOGINS))})",
                          DEMO_LOGINS).fetchall()
-    return {"set_up": True, "school": school.public(), "names": {r["username"]: r["full_name"] for r in rows}}
+    return {"set_up": True, "school": school.public(), "features": school.features(),
+            "names": {r["username"]: r["full_name"] for r in rows}}
+
+class FeaturesRequest(BaseModel):
+    parents: bool = True
+    students: bool = True
+
+@app.post("/features")
+def set_features(req: FeaturesRequest):
+    """Switch the parent and student roles on or off. Takes effect at once; no data is rebuilt."""
+    return {"features": school.set_features(req.model_dump())}
 
 @app.get("/setup/default")
 def setup_default():

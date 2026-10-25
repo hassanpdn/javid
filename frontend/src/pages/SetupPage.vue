@@ -7,6 +7,7 @@ import { schoolInfo, setupUi, loadSchool } from "../lib/school.js"
 import { gsap, motion } from "../lib/motion.js"
 import Icon from "../components/Icon.vue"
 import SchoolCard from "../components/SchoolCard.vue"
+import FeatureToggles from "../components/FeatureToggles.vue"
 
 const STEPS = [
   { title: "مدرسه", hint: "نام و نوع مدرسه", icon: "school" },
@@ -186,6 +187,7 @@ onUnmounted(() => blobs?.revert())
 
             <section v-else key="3" class="step-panel">
               <p>همه چیز آماده است. با «ساخت دمو» داده‌های نمونه برای <b class="text-ink">دبستان {{ form.name.replace(/^دبستان\s*/, '') }}</b> ساخته می‌شود و صفحه ورود باز می‌شود.</p>
+              <div class="field"><span>نقش‌های این دمو</span><FeatureToggles /></div>
               <p v-if="schoolInfo.set_up" class="check bad small">داده‌های نمونه فعلی پاک و از نو ساخته می‌شوند و همه از حساب خارج می‌شوند.</p>
             </section>
           </Transition>
