@@ -2,8 +2,8 @@
 // Manager dashboard: today's brief, attendance, alerts that need a decision, 10-day trend
 import { ref, reactive, computed, watch, onMounted, onUnmounted } from "vue"
 import { api, fa, session, lockScroll } from "../lib/api.js"
+import { DOCS_CHAT } from "../lib/constants.js"
 import AppLayout from "../components/AppLayout.vue"
-import ChatBox from "../components/ChatBox.vue"
 import BarChart from "../components/BarChart.vue"
 import RadialGauge from "../components/RadialGauge.vue"
 import Icon from "../components/Icon.vue"
@@ -23,8 +23,6 @@ const open = computed(() => data.value ? data.value.alerts.filter((a) => !a.done
 const nav = computed(() => [
   { header: "پیشخوان" },
   { key: "home", label: "داشبورد", icon: "dashboard", badge: open.value },
-  { header: "دستیار" },
-  { key: "chat", label: "پرسش از اسناد", icon: "message" },
 ])
 const presentPct = computed(() => {
   const s = data.value?.students
@@ -69,8 +67,8 @@ const decide = async (alert, approve) => {
 </script>
 
 <template>
-  <AppLayout title="داشبورد مدیر" :subtitle="data ? fa(data.today) : ''" :nav="nav" v-model="view">
-    <div v-show="view === 'home'" class="flex flex-col gap-6">
+  <AppLayout :chat="DOCS_CHAT" title="داشبورد مدیر" :subtitle="data ? fa(data.today) : ''" :nav="nav" v-model="view">
+    <div class="flex flex-col gap-6">
       <div class="grid grid-cols-12 gap-6">
         <section v-reveal class="card welcome brief col-span-12 xl:col-span-8">
           <div class="welcome-text">
@@ -132,10 +130,6 @@ const decide = async (alert, approve) => {
       </div>
     </div>
 
-    <div v-show="view === 'chat'">
-      <ChatBox class="card chat-card" title="دستیار اسناد" subtitle="پاسخ فقط از روی آیین‌نامه‌ها و دستورالعمل‌های مدرسه" />
-    </div>
-
     <!-- written warning dialog -->
     <div v-if="draft.open" class="overlay" @click.self="draft.open = false">
       <div class="dialog" v-pop>
@@ -144,7 +138,7 @@ const decide = async (alert, approve) => {
         <div v-if="draft.loading" class="shimmer tall"><span></span><span></span><span></span><span style="width:50%"></span></div>
         <p v-if="!draft.loading && draft.verified === true" class="check ok">✓ تاریخ‌ها و ساعت‌های این متن با ثبت ورود سامانه تطبیق داده شد.</p>
         <p v-if="!draft.loading && draft.verified === false" class="check bad">این موارد ثبت‌شده در متن نیامده یا متفاوت آمده: {{ fa(draft.missing.join('، ')) }}. قبل از صدور اصلاح کنید.</p>
-        <textarea v-if="!draft.loading" v-model="draft.text" rows="10"></textarea>
+        <textarea v-if="!draft.loading" v-model="draft.text" rows="10" class="ai-draft" aria-label="متن تذکر"></textarea>
         <div class="dialog-actions">
           <button class="btn primary" :disabled="draft.loading || !draft.text.trim() || draft.saving" @click="issue">تأیید و صدور</button>
           <button class="btn ghost" @click="draft.open = false">انصراف</button>

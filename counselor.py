@@ -44,11 +44,14 @@ def insight(sid: int, user: dict = Depends(counselor_only)):
         if not f["signals"]:
             _insights[key] = "نشانه قابل توجهی در نمره‌ها، حضور یا فرم‌ها دیده نمی‌شود."
         else:
-            _insights[key] = ask_llm(
-                "تو دستیار مشاور یک دبستان هستی. از روی اطلاعات زیر، در دو جمله کوتاه بگو چه چیزی تغییر کرده و "
-                "چه نشانه‌هایی ممکن است به هم ربط داشته باشند. تشخیص پزشکی یا روان‌شناختی نده و از «ممکن است» استفاده کن. "
-                "فقط از اطلاعات داده‌شده استفاده کن.",
-                students.facts_text(f, include_private=True), max_tokens=180)
+            try:
+                _insights[key] = ask_llm(
+                    "تو دستیار مشاور یک دبستان هستی. از روی اطلاعات زیر، در دو جمله کوتاه بگو چه چیزی تغییر کرده و "
+                    "چه نشانه‌هایی ممکن است به هم ربط داشته باشند. تشخیص پزشکی یا روان‌شناختی نده و از «ممکن است» استفاده کن. "
+                    "فقط از اطلاعات داده‌شده استفاده کن.",
+                    students.facts_text(f, include_private=True), max_tokens=180)
+            except Exception:
+                raise HTTPException(status_code=503, detail="دستیار در دسترس نیست")
     return {"text": _insights[key]}
 
 class NoteRequest(BaseModel):
@@ -69,14 +72,17 @@ def add_note(sid: int, req: NoteRequest, user: dict = Depends(counselor_only)):
 def draft_suggestion(sid: int, user: dict = Depends(counselor_only)):
     with db.conn() as c:
         f = load(c, sid)
-    r = ask_json(
-        "تو دستیار مشاور یک دبستان هستی. از روی اطلاعات زیر دو متن بنویس:\n"
-        "for_counselor: یک یا دو گام عملی و مشخص برای خود مشاور (مثلا گفت‌وگو با آموزگار درباره موضوعی مشخص).\n"
-        f"for_parent: پیامی سه تا چهار جمله‌ای، گرم و محترمانه برای ولیِ {f['first_name']}. اول یک نقطه قوت واقعی بگو، "
-        "بعد موضوع را بدون سرزنش و بدون تشخیص پزشکی بیان کن، یک کار ساده و عملی در خانه پیشنهاد بده و برای گفت‌وگو با مشاور دعوت کن. "
-        "یادداشت‌های مشاور و جزئیات فرم‌ها را عینا نقل نکن.\n"
-        "فقط از اطلاعات داده‌شده استفاده کن.",
-        students.facts_text(f, include_private=True), max_tokens=450) or {}
+    try:
+        r = ask_json(
+            "تو دستیار مشاور یک دبستان هستی. از روی اطلاعات زیر دو متن بنویس:\n"
+            "for_counselor: یک یا دو گام عملی و مشخص برای خود مشاور (مثلا گفت‌وگو با آموزگار درباره موضوعی مشخص).\n"
+            f"for_parent: پیامی سه تا چهار جمله‌ای، گرم و محترمانه برای ولیِ {f['first_name']}. اول یک نقطه قوت واقعی بگو، "
+            "بعد موضوع را بدون سرزنش و بدون تشخیص پزشکی بیان کن، یک کار ساده و عملی در خانه پیشنهاد بده و برای گفت‌وگو با مشاور دعوت کن. "
+            "یادداشت‌های مشاور و جزئیات فرم‌ها را عینا نقل نکن.\n"
+            "فقط از اطلاعات داده‌شده استفاده کن.",
+            students.facts_text(f, include_private=True), max_tokens=450) or {}
+    except Exception:
+        r = {}
     for_counselor, for_parent = (r.get("for_counselor") or "").strip(), (r.get("for_parent") or "").strip()
     if not for_parent:
         raise HTTPException(status_code=503, detail="دستیار نتوانست پیشنهاد بنویسد. دوباره امتحان کنید.")
@@ -97,6 +103,9 @@ def approve(gid: int, req: ApproveRequest, user: dict = Depends(counselor_only))
         g = c.execute("SELECT * FROM suggestions WHERE id = ?", (gid,)).fetchone()
         if not g:
             raise HTTPException(status_code=404, detail="پیشنهاد پیدا نشد")
+        # only a draft can be sent; a sent or dismissed one can't be sent again
+        if g["status"] != "draft":
+            raise HTTPException(status_code=409, detail="این پیام قبلا ارسال یا کنار گذاشته شده است")
         c.execute("""UPDATE suggestions SET for_counselor = ?, for_parent = ?, status = 'approved', approved_at = ?, approved_by = ?
                      WHERE id = ?""", (req.for_counselor.strip(), req.for_parent.strip(), db.stamp(), user["id"], gid))
         name = c.execute("SELECT first_name FROM students WHERE id = ?", (g["student_id"],)).fetchone()[0]

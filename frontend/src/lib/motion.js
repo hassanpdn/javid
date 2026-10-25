@@ -21,9 +21,32 @@ export const vReveal = {
   },
 }
 
+// Keyboard users stay inside an open dialog: focus moves into it, Tab cycles through its buttons and
+// fields, and when it closes focus goes back to whatever opened it.
+const FOCUSABLE = 'button:not([disabled]), [href], input:not([disabled]), select, textarea, [tabindex]:not([tabindex="-1"])'
+function trapFocus(el) {
+  el._returnTo = document.activeElement
+  el._onKey = (e) => {
+    if (e.key !== "Tab") return
+    const items = [...el.querySelectorAll(FOCUSABLE)].filter((x) => x.offsetParent !== null)
+    if (!items.length) return
+    const first = items[0], last = items[items.length - 1]
+    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus() }
+    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus() }
+  }
+  el.addEventListener("keydown", el._onKey)
+  requestAnimationFrame(() => (el.querySelector("textarea, input, select") || el.querySelector(FOCUSABLE) || el).focus({ preventScroll: true }))
+}
+function releaseFocus(el) {
+  el.removeEventListener("keydown", el._onKey)
+  el._returnTo?.focus?.({ preventScroll: true })
+}
+
 // v-pop: dialogs spring in. v-pop:drop is the smaller version for dropdown menus.
 export const vPop = {
+  unmounted(el, { arg }) { if (arg !== "drop") releaseFocus(el) },
   mounted(el, { arg }) {
+    if (arg !== "drop") { el.setAttribute("role", "dialog"); el.setAttribute("aria-modal", "true"); trapFocus(el) }
     if (!motion) return
     const drop = arg === "drop"
     gsap.fromTo(el, drop ? { opacity: 0, y: -10, scale: .96 } : { opacity: 0, y: 30, scale: .94 },
@@ -33,7 +56,9 @@ export const vPop = {
 
 // v-drawer: side drawers slide in from the right edge
 export const vDrawer = {
+  unmounted: releaseFocus,
   mounted(el) {
+    el.setAttribute("role", "dialog"); el.setAttribute("aria-modal", "true"); trapFocus(el)
     if (!motion) return
     gsap.fromTo(el, { xPercent: 100 }, { xPercent: 0, duration: .5, ease: "power4.out", clearProps: "transform" })
   },

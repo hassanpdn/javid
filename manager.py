@@ -2,7 +2,7 @@ import os
 from datetime import date, timedelta
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
-import db
+import db, checks
 from auth import require_role
 from llm import ask_llm
 from jalali import jstr, to_jalali, MONTHS
@@ -11,12 +11,13 @@ router = APIRouter(prefix="/manager")
 manager_only = require_role("manager")
 
 ARRIVAL = "07:30"         # teachers must arrive by this time
-LATE_LIMIT = 3            # lates in one month before a written warning
+LATE_LIMIT = 3            # lates in the last LATE_WINDOW days before a written warning
+LATE_WINDOW = 30
 ABSENCE_LIMIT = 4         # unexcused absences in 14 days before an alert
 DEADLINE_DAYS = 5         # letters due within this many days
 
 def today():
-    return date.fromisoformat(os.getenv("DEMO_TODAY", date.today().isoformat()))
+    return date.fromisoformat(os.getenv("DEMO_TODAY") or date.today().isoformat())
 
 def jdate_long(d):
     y, m, dd = to_jalali(d)
@@ -29,7 +30,7 @@ def jdate_short(d):
 def collect(c):
     """Everything the manager page needs, computed from the database."""
     t = today()
-    t_iso, month = t.isoformat(), jstr(t)[:7]
+    t_iso, since_late = t.isoformat(), (t - timedelta(days=LATE_WINDOW - 1)).isoformat()
 
     rows = c.execute("SELECT status, COUNT(*) n FROM student_attendance WHERE date = ? GROUP BY status", (t_iso,)).fetchall()
     st = {r["status"]: r["n"] for r in rows}
@@ -41,11 +42,11 @@ def collect(c):
     open_letters = c.execute("SELECT COUNT(*) FROM letters WHERE status NOT IN ('done', 'forwarded')").fetchone()[0]
 
     alerts = []
-    # 1. Teachers who reached the late limit this month
+    # 1. Teachers who reached the late limit in the last 30 days
     late_rows = c.execute("""SELECT t.id, t.full_name, t.subject, a.date, a.check_in
                              FROM teacher_attendance a JOIN teachers t ON t.id = a.teacher_id
-                             WHERE a.jdate LIKE ? AND a.check_in > ? ORDER BY a.date""",
-                          (month + "%", ARRIVAL)).fetchall()
+                             WHERE a.date >= ? AND a.date <= ? AND a.check_in > ? ORDER BY a.date""",
+                          (since_late, t_iso, ARRIVAL)).fetchall()
     by_teacher = {}
     for r in late_rows:
         by_teacher.setdefault(r["id"], []).append(r)
@@ -54,18 +55,19 @@ def collect(c):
             continue
         r0 = rows[0]
         dates = "، ".join(f"{jdate_short(date.fromisoformat(r['date']))} ساعت {r['check_in'].lstrip('0')}" for r in rows)
-        issued = c.execute("SELECT date, acknowledged_at FROM warnings WHERE teacher_id = ? AND jdate LIKE ?",
-                           (tid, month + "%")).fetchone()
+        issued = c.execute("SELECT date, acknowledged_at FROM warnings WHERE teacher_id = ? AND date >= ? ORDER BY id DESC",
+                           (tid, since_late)).fetchone()
         done_text = None
         if issued:
             done_text = f"تذکر کتبی در {jdate_short(date.fromisoformat(issued['date']))} صادر شد. "
             done_text += f"رؤیت شد: {issued['acknowledged_at']}" if issued["acknowledged_at"] else "هنوز رؤیت نشده"
         alerts.append({
             "type": "teacher_late", "teacher_id": tid,
-            "title": f"{r0['full_name']} این ماه {len(rows)} بار دیر آمده است",
+            "title": f"{r0['full_name']} در ۳۰ روز اخیر {len(rows)} بار دیر آمده است",
             "detail": f"معلم {r0['subject']}. تأخیرها: {dates}",
             "dates": dates, "count": len(rows), "name": r0["full_name"],
-        "facts": [(to_jalali(date.fromisoformat(r["date"]))[2], r["check_in"].lstrip("0")) for r in rows],
+            "facts": [(to_jalali(date.fromisoformat(r["date"]))[2], MONTHS[to_jalali(date.fromisoformat(r["date"]))[1] - 1],
+                       r["check_in"].lstrip("0")) for r in rows],
             "done": bool(issued),
             "done_text": done_text,
         })
@@ -117,26 +119,39 @@ _briefing_cache = {}
 def briefing(user: dict = Depends(manager_only)):
     key = today().isoformat()
     if key not in _briefing_cache:
-        with db.conn() as c:
-            d = collect(c)
-        actions = [a["title"] for a in d["alerts"] if not a.get("done")]
-        facts = (
-            f"تاریخ: {d['today']}\n"
-            f"حضور: {d['students']['present']} از {d['students']['total']} دانش‌آموز، {d['students']['absent']} غایب\n"
-            f"تأخیر معلمان امروز: {len(d['late_teachers'])}\n"
-            f"نامه‌های باز: {d['open_letters']}\n"
-            "موارد نیازمند اقدام، به ترتیب اهمیت:\n" + "\n".join(f"{i + 1}. {t}" for i, t in enumerate(actions))
-        )
-        _briefing_cache[key] = ask_llm(
-            "تو دستیار مدیر یک دبستان هستی. از روی اطلاعات زیر یک خلاصه صبحگاهی دو یا سه جمله‌ای به فارسی روان بنویس.\n"
-            "قوانین:\n"
-            "- جمله اول درباره مورد شماره ۱ باشد و اسم شخص یا نامه را دقیق بیاورد.\n"
-            "- جمله دوم دو مورد مهم بعدی را با اسم بگوید.\n"
-            "- در پایان وضعیت حضور امروز را با عدد بگو.\n"
-            "- کلی‌گویی نکن. فقط از اسم‌ها و عددهای داده‌شده استفاده کن. سلام ننویس.\n"
-            "مثال لحن: «تأخیرهای خانم الف این ماه به سه بار رسیده و منتظر تصمیم شماست. مهلت نامه ب و پیگیری غیبت‌های ج هم نزدیک است. امروز ۲۸ نفر از ۳۰ دانش‌آموز حاضرند.»",
-            facts, max_tokens=220, temperature=0.2)
+        try:
+            _write_briefing(key)
+        except Exception:
+            raise HTTPException(status_code=503, detail="دستیار در دسترس نیست")
     return {"text": _briefing_cache[key]}
+
+def _write_briefing(key):
+    """Morning summary for the manager, written by the model from computed facts."""
+    with db.conn() as c:
+        d = collect(c)
+    actions = [a["title"] for a in d["alerts"] if not a.get("done")]
+    facts = (
+        f"تاریخ: {d['today']}\n"
+        f"حضور: {d['students']['present']} از {d['students']['total']} دانش‌آموز، {d['students']['absent']} غایب\n"
+        f"تأخیر معلمان امروز: {len(d['late_teachers'])}\n"
+        f"نامه‌های باز: {d['open_letters']}\n"
+        "موارد نیازمند اقدام، به ترتیب اهمیت:\n" + "\n".join(f"{i + 1}. {t}" for i, t in enumerate(actions))
+    )
+    text = ask_llm(
+        "تو دستیار مدیر یک دبستان هستی. از روی اطلاعات زیر یک خلاصه صبحگاهی دو یا سه جمله‌ای به فارسی روان بنویس.\n"
+        "قوانین:\n"
+        "- جمله اول درباره مورد شماره ۱ باشد و اسم شخص یا نامه را دقیق بیاورد.\n"
+        "- جمله دوم دو مورد مهم بعدی را با اسم بگوید.\n"
+        "- در پایان وضعیت حضور امروز را با عدد بگو.\n"
+        "- کلی‌گویی نکن. فقط از اسم‌ها و عددهای داده‌شده استفاده کن. سلام ننویس.\n"
+        "مثال لحن: «تأخیرهای خانم الف در یک ماه اخیر به سه بار رسیده و منتظر تصمیم شماست. مهلت نامه ب و پیگیری غیبت‌های ج هم نزدیک است. امروز ۲۸ نفر از ۳۰ دانش‌آموز حاضرند.»",
+        facts, max_tokens=220, temperature=0.2)
+    # every number in the summary must come from the facts; otherwise use a plain summary built by code
+    if not checks.only_known_numbers(text, facts):
+        s = d["students"]
+        text = ((f"مهم‌ترین مورد امروز: {actions[0]}. " if actions else "امروز مورد فوری‌ای نیست. ")
+                + f"امروز {s['present']} نفر از {s['total']} دانش‌آموز حاضرند و {s['absent']} نفر غایب‌اند.")
+    _briefing_cache[key] = text
 
 class DraftRequest(BaseModel):
     teacher_id: int
@@ -152,13 +167,10 @@ def draft_warning(req: DraftRequest, user: dict = Depends(manager_only)):
         "ساختار: «همکار گرامی، خانم ...»، بیان تأخیرها با تاریخ و ساعت دقیق، یادآوری اینکه ساعت حضور ۷:۳۰ است، "
         "درخواست رعایت در ادامه، و در پایان «با احترام، مدیریت دبستان جاوید». "
         "فقط از تاریخ‌ها و ساعت‌های داده‌شده استفاده کن. لحن تهدیدآمیز نباشد.",
-        f"نام معلم: {alert['name']}\nتعداد تأخیر این ماه: {alert['count']}\nتأخیرها: {alert['dates']}",
+        f"نام معلم: {alert['name']}\nتعداد تأخیر در ۳۰ روز اخیر: {alert['count']}\nتأخیرها: {alert['dates']}",
         max_tokens=350, temperature=0.3)
-    # Check the draft against the database: every late day and time must appear in the text
-    import stats
-    plain = stats.to_en(text)
-    missing = [f"{day} آذر ساعت {time}" for day, time in alert["facts"]
-               if str(day) not in plain or time not in plain]
+    # Check the draft against the database: every late day must appear with its own arrival time
+    missing = checks.missing_dated_times(text, alert["facts"])
     return {"text": text, "verified": not missing, "missing": missing}
 
 class IssueRequest(BaseModel):
@@ -167,8 +179,16 @@ class IssueRequest(BaseModel):
 
 @router.post("/warnings")
 def issue_warning(req: IssueRequest, user: dict = Depends(manager_only)):
+    if not req.text.strip():
+        raise HTTPException(status_code=400, detail="متن تذکر خالی است")
     t = today()
     with db.conn() as c:
+        # only for a teacher who really reached the late limit, and only once a month
+        alert = next((a for a in collect(c)["alerts"] if a.get("teacher_id") == req.teacher_id), None)
+        if not alert:
+            raise HTTPException(status_code=404, detail="هشداری برای این معلم پیدا نشد")
+        if alert["done"]:
+            raise HTTPException(status_code=409, detail="برای این تأخیرها قبلا تذکر صادر شده است")
         cur = c.execute("INSERT INTO warnings (teacher_id, text, date, jdate, issued_by) VALUES (?, ?, ?, ?, ?)",
                         (req.teacher_id, req.text.strip(), t.isoformat(), jstr(t), user["id"]))
         warning_id = cur.lastrowid

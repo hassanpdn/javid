@@ -2,7 +2,7 @@ import re, threading
 from datetime import date, timedelta
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
-import db, stats
+import db, stats, checks
 from auth import require_role
 from llm import ask_llm, ask_json
 from jalali import MONTHS, to_jalali, to_gregorian, jstr
@@ -61,9 +61,9 @@ def draft_stats_reply(c, letter):
         "دقیقا همان قالب و لحن «پاسخ قبلی» را رعایت کن و فقط از عددهای «داده‌ها» استفاده کن. هیچ عددی را تغییر نده.",
         f"نامه: {letter['subject']}\n\nپاسخ قبلی مدرسه به نامه مشابه:\n{example['reply'] if example else fallback}\n\nداده‌ها:\n{data}",
         max_tokens=300)
-    # Safety check: every number from the database must appear in the draft, otherwise use the plain template
-    numbers = re.findall(r"\d+", data)
-    if not reply or any(n not in stats.to_en(reply) for n in numbers):
+    # Safety check: after each grade the draft must have exactly that grade's numbers, and no number
+    # that isn't in the data. Otherwise use the plain template with the database numbers.
+    if not reply or not checks.grade_lines_match(reply, data) or not checks.only_known_numbers(reply, data):
         return stats.to_fa(fallback), "پیش‌نویس مدل عددها را دقیق نیاورد؛ از قالب ثابت با عددهای پایگاه داده استفاده شد."
     return stats.to_fa(reply), "پاسخ با قالب پاسخ‌های قبلی و عددهای واقعی پایگاه داده نوشته شد."
 
@@ -214,11 +214,18 @@ def agent_log(user: dict = Depends(staff_or_manager)):
 class ApproveRequest(BaseModel):
     reply: str
 
+def require_status(c, lid, status):
+    """404 if the letter doesn't exist, 409 if it is not in the expected state (e.g. already closed)."""
+    if get_letter(c, lid)["status"] != status:
+        raise HTTPException(status_code=409, detail="این نامه در وضعیت مناسب برای این کار نیست")
+
 @router.post("/letters/{lid}/approve")
 def approve(lid: int, req: ApproveRequest, user: dict = Depends(staff_or_manager)):
+    if not req.reply.strip():
+        raise HTTPException(status_code=400, detail="متن پاسخ خالی است")
     with db.conn() as c:
-        c.execute("UPDATE letters SET status = 'done', reply = ? WHERE id = ? AND status = 'awaiting_approval'",
-                  (req.reply.strip(), lid))
+        require_status(c, lid, "awaiting_approval")
+        c.execute("UPDATE letters SET status = 'done', reply = ? WHERE id = ?", (req.reply.strip(), lid))
         log(c, lid, f"{user['full_name']} پاسخ را تأیید کرد و نامه بسته شد", "تأیید انسانی انجام شد.")
     _briefing_cache.clear()
     return {"ok": True}
@@ -226,7 +233,8 @@ def approve(lid: int, req: ApproveRequest, user: dict = Depends(staff_or_manager
 @router.post("/letters/{lid}/complete")
 def complete(lid: int, user: dict = Depends(staff_or_manager)):
     with db.conn() as c:
-        c.execute("UPDATE letters SET status = 'done' WHERE id = ? AND status = 'todo'", (lid,))
+        require_status(c, lid, "todo")
+        c.execute("UPDATE letters SET status = 'done' WHERE id = ?", (lid,))
         log(c, lid, f"{user['full_name']} کار را انجام‌شده علامت زد", "کار توسط کارمند انجام شد.")
     _briefing_cache.clear()
     return {"ok": True}
@@ -269,8 +277,13 @@ def recipient_options(c):
     people += [{"key": f"user:{r['id']}", "label": r["full_name"], "sub": f"ولیِ {r['child']}، {r['class']}", "kind": "parent"} for r in parents]
     return groups, people
 
+KEY = re.compile(r"group:teachers|group:parents|group:class:\d+|user:\d+")
+
 def expand(c, keys):
     """Turn recipient keys into user ids, split into parents and everyone else."""
+    bad = [k for k in keys if not KEY.fullmatch(k)]
+    if bad:
+        raise HTTPException(status_code=400, detail="گیرنده نامعتبر است")
     ids = set()
     for k in keys:
         if k == "group:teachers":

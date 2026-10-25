@@ -36,7 +36,7 @@ onMounted(async () => {
 
 <template>
   <div class="overlay" @click.self="$emit('close')">
-    <aside class="drawer wide-drawer" v-drawer>
+    <aside class="drawer wide-drawer" v-drawer :aria-label="f ? 'پرونده ' + f.name : 'پرونده دانش‌آموز'">
       <div class="drawer-head">
         <div class="head-person" v-if="f"><Avatar :name="f.name" :size="46" /><div><b>{{ f.name }}</b><small class="muted">کلاس {{ f.class }} · آموزگار: {{ f.teacher }}</small></div></div>
         <span v-else></span>
@@ -58,8 +58,8 @@ onMounted(async () => {
           <div class="card-head">پیام به ولی</div>
           <template v-if="draft">
             <p class="muted small">این متن را دستیار نوشته است. بخوانید، در صورت نیاز ویرایش کنید و بعد بفرستید.</p>
-            <label class="field mt-3"><span>گام بعدی برای شما</span><textarea v-model="draft.for_counselor" rows="2"></textarea></label>
-            <label class="field mt-3"><span>پیام برای ولی</span><textarea v-model="draft.for_parent" rows="5"></textarea></label>
+            <label class="field mt-3"><span>گام بعدی برای شما</span><textarea v-model="draft.for_counselor" rows="2" class="ai-draft"></textarea></label>
+            <label class="field mt-3"><span>پیام برای ولی</span><textarea v-model="draft.for_parent" rows="5" class="ai-draft"></textarea></label>
             <div class="dialog-actions mt-3">
               <button class="btn primary" :disabled="!draft.for_parent.trim()" @click="approve"><Icon name="send" :size="18" />تأیید و ارسال به ولی</button>
               <button class="btn ghost" @click="dismiss">کنار گذاشتن</button>
@@ -69,7 +69,7 @@ onMounted(async () => {
             <p class="muted small mb-3" v-if="!sent.length">هنوز پیامی برای ولیِ {{ f.first_name }} فرستاده نشده.</p>
             <div v-for="s in sent" :key="s.id" class="sent-msg">
               <small class="ok">✓ ارسال شد · {{ fa(s.approved_at) }}</small>
-              <p>{{ fa(s.for_parent) }}</p>
+              <p class="ai-draft">{{ fa(s.for_parent) }}</p>
               <small v-if="s.for_counselor" class="muted">گام شما: {{ fa(s.for_counselor) }}</small>
             </div>
             <button class="btn" :disabled="drafting" @click="suggest"><Icon name="sparkles" :size="18" />{{ drafting ? 'دستیار در حال نوشتن...' : 'نوشتن پیام با دستیار' }}</button>
@@ -122,7 +122,7 @@ onMounted(async () => {
         <section v-reveal class="card">
           <div class="card-head">یادداشت‌های مشاور <small>فقط برای شما، ولی این‌ها را نمی‌بیند</small></div>
           <form class="note-add" @submit.prevent="addNote">
-            <textarea v-model="newNote" rows="2" placeholder="یادداشت جدید..."></textarea>
+            <textarea v-model="newNote" rows="2" placeholder="یادداشت جدید..." aria-label="یادداشت جدید"></textarea>
             <button class="btn" :disabled="!newNote.trim()">ثبت</button>
           </form>
           <ul class="notes"><li v-for="(n, i) in f.notes" :key="i"><small class="muted">{{ fa(n.date) }}</small><p>{{ fa(n.note) }}</p></li></ul>

@@ -1,6 +1,7 @@
-import sqlite3, hashlib, secrets
+import os, sqlite3, hashlib, secrets
 
-DB_PATH = "school.db"
+DB_PATH = os.getenv("DB_PATH", "school.db")
+SESSION_DAYS = int(os.getenv("SESSION_DAYS", "7"))   # a login stays valid this many days
 ROLE_NAMES = {
     "manager": "مدیر", "staff": "پرسنل اداری", "teacher": "معلم",
     "counselor": "مشاور", "parent": "ولی", "student": "دانش‌آموز",
@@ -76,8 +77,15 @@ def init():
         c.executescript(SCHEMA)
     with conn() as c:
         empty = c.execute("SELECT COUNT(*) FROM users").fetchone()[0] == 0
-    if empty:
-        import seed
+        c.execute("CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT)")
+        seeded = c.execute("SELECT value FROM meta WHERE key = 'seeded_for'").fetchone()
+    # The demo data is built around "today". If it was built on another day, rebuild it so the
+    # dashboard and the stories line up with today's date. KEEP_DB=1 keeps the old data.
+    from datetime import date
+    today = os.getenv("DEMO_TODAY") or date.today().isoformat()
+    if empty or ((not seeded or seeded[0] != today) and os.getenv("KEEP_DB") != "1"):
+        import importlib, seed
+        importlib.reload(seed)   # seed works out "today" when it is loaded
         seed.run()
 
 def login(username, password):
@@ -92,7 +100,8 @@ def login(username, password):
 def user_by_token(token):
     with conn() as c:
         u = c.execute("""SELECT users.* FROM sessions JOIN users ON users.id = sessions.user_id
-                         WHERE sessions.token = ?""", (token,)).fetchone()
+                         WHERE sessions.token = ? AND sessions.created_at > datetime('now', ?)""",
+                      (token, f"-{SESSION_DAYS} days")).fetchone()
         return dict(u) if u else None
 
 def logout(token):
@@ -109,7 +118,7 @@ def stamp():
     import os
     from datetime import date, datetime
     from jalali import to_jalali, MONTHS
-    d = date.fromisoformat(os.getenv("DEMO_TODAY", date.today().isoformat()))
+    d = date.fromisoformat(os.getenv("DEMO_TODAY") or date.today().isoformat())
     y, m, dd = to_jalali(d)
     return f"{dd} {MONTHS[m - 1]} ساعت {datetime.now().strftime('%H:%M')}"
 

@@ -2,8 +2,8 @@
 // Parent: weekly report and progress for their own child only
 import { ref, computed, watch, onMounted, onUnmounted } from "vue"
 import { api, fa, lockScroll } from "../lib/api.js"
+import { chatUi } from "../lib/chat.js"
 import AppLayout from "../components/AppLayout.vue"
-import ChatBox from "../components/ChatBox.vue"
 import Sparkline from "../components/Sparkline.vue"
 import LevelChip from "../components/LevelChip.vue"
 import HealthFormDialog from "../components/HealthFormDialog.vue"
@@ -18,8 +18,6 @@ const load = async () => { f.value = await api("/parent/child") }
 const nav = computed(() => [
   { header: "فرزند من" },
   { key: "child", label: f.value ? "گزارش " + f.value.first_name : "گزارش فرزند", icon: "user" },
-  { header: "دستیار" },
-  { key: "chat", label: "پرسش از مدرسه", icon: "message" },
 ])
 watch(() => !!formKind.value, lockScroll)
 const onNotify = () => load()
@@ -29,6 +27,12 @@ onMounted(async () => {
   try { report.value = (await api("/parent/report")).text } catch { report.value = "گزارش این هفته در دسترس نیست." }
 })
 onUnmounted(() => { lockScroll(false); window.removeEventListener("notifications-changed", onNotify) })
+// the floating assistant answers about this child only (the server takes the child from the login)
+const chat = computed(() => ({
+  title: "پرسش از مدرسه", subtitle: "درباره درس و حضور فرزندتان یا مقررات مدرسه", endpoint: "/parent/ask",
+  loadingText: "در حال بررسی", examples: askExamples.value,
+  intro: "درباره درس‌ها، غیبت و تأخیر " + (f.value ? f.value.first_name : "فرزندتون") + " یا مقررات مدرسه بپرسید:",
+}))
 const askExamples = computed(() => {
   const n = f.value?.first_name || "بچه‌م"
   return [`${n} توی چه درسی ضعیف‌تره؟`, "توی سه هفته اخیر چند روز غیبت داشته؟", "وضعیت ریاضیش چطوره؟", "ساعت شروع کلاس‌ها چنده؟"]
@@ -36,8 +40,8 @@ const askExamples = computed(() => {
 </script>
 
 <template>
-  <AppLayout title="پنل ولی" :subtitle="f ? 'گزارش ' + f.name : ''" :nav="nav" v-model="view">
-    <div v-show="view === 'child'">
+  <AppLayout :chat="chat" title="پنل ولی" :subtitle="f ? 'گزارش ' + f.name : ''" :nav="nav" v-model="view">
+    <div>
       <div v-if="!f" class="card"><div class="shimmer"><span></span><span></span><span></span></div></div>
       <div v-else class="flex flex-col gap-6">
         <section v-reveal class="card profile">
@@ -53,7 +57,7 @@ const askExamples = computed(() => {
                 <span><Icon name="user" :size="17" />آموزگار: {{ f.teacher }}</span>
               </div>
             </div>
-            <button class="btn primary" @click="view = 'chat'"><Icon name="message" :size="18" />پرسش درباره {{ f.first_name }}</button>
+            <button class="btn primary" @click="chatUi.open = true"><Icon name="message" :size="18" />پرسش درباره {{ f.first_name }}</button>
           </div>
         </section>
 
@@ -118,12 +122,6 @@ const askExamples = computed(() => {
           </div>
         </div>
       </div>
-    </div>
-
-    <div v-show="view === 'chat'">
-      <ChatBox class="card chat-card" title="پرسش از مدرسه" subtitle="درباره درس و حضور فرزندتان یا مقررات مدرسه"
-        endpoint="/parent/ask" loading-text="در حال بررسی" :examples="askExamples"
-        :intro="'درباره درس‌ها، غیبت و تأخیر ' + (f ? f.first_name : 'فرزندتون') + ' یا مقررات مدرسه بپرسید:'" />
     </div>
 
     <HealthFormDialog v-if="formKind" :kind="formKind" @close="formKind = null" @saved="formKind = null; load()" />

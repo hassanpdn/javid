@@ -25,24 +25,62 @@ def jshort(iso):
     y, m, d = to_jalali(date.fromisoformat(iso))
     return f"{d} {MONTHS[m - 1]}"
 
+NUMBER_RANGES = {"height": (40, 220), "weight": (5, 150), "sleep_hours": (0, 24), "screen_hours": (0, 24)}
+TEXT_MAX = 500
+
+def to_number(v):
+    """'9', '۹', '8.5' or '۸٫۵' -> float. None if it isn't a number."""
+    try:
+        return float(str(v).strip().translate(str.maketrans("۰۱۲۳۴۵۶۷۸۹٫/", "0123456789..")))
+    except ValueError:
+        return None
+
+def clean_form(kind, data):
+    """Check every answer against its question type. Returns the cleaned answers,
+    or raises ValueError with a message the parent can read."""
+    out = {}
+    for key, label, typ in FORM_FIELDS[kind]:
+        v = data.get(key)
+        if v in (None, ""):
+            continue
+        if typ == "number":
+            n, (lo, hi) = to_number(v), NUMBER_RANGES[key]
+            if n is None or not lo <= n <= hi:
+                raise ValueError(f"«{label}» باید عددی بین {lo} و {hi} باشد")
+            out[key] = int(n) if n == int(n) else n
+        elif typ == "scale":
+            n = to_number(v)
+            if n not in (1, 2, 3, 4, 5):
+                raise ValueError(f"برای «{label}» یکی از گزینه‌های ۱ تا ۵ را انتخاب کنید")
+            out[key] = int(n)
+        elif typ == "text":
+            out[key] = str(v).strip()[:TEXT_MAX]
+        else:  # a list of options
+            if v not in typ:
+                raise ValueError(f"برای «{label}» یکی از گزینه‌ها را انتخاب کنید")
+            out[key] = v
+    return out
+
 def form_flags(kind, data):
     """Simple, explainable rules. The model never decides these."""
     flags = []
     if kind == "physical":
-        if data.get("sleep_hours") not in (None, "") and float(data["sleep_hours"]) < 9:
+        sleep = to_number(data.get("sleep_hours", ""))
+        if sleep is not None and sleep < 9:
             flags.append("خواب کمتر از ۹ ساعت")
         if data.get("vision") == "ضعیف" and data.get("glasses") == "خیر":
             flags.append("بینایی ضعیف بدون عینک")
         if data.get("breakfast") == "به‌ندرت":
             flags.append("صبحانه نمی‌خورد")
     else:
-        if int(data.get("mood") or 5) <= 2:
+        scale = lambda k, default: to_number(data.get(k) or default) or default
+        if scale("mood", 5) <= 2:
             flags.append("حال و حوصله پایین")
-        if int(data.get("school_worry") or 1) >= 4:
+        if scale("school_worry", 1) >= 4:
             flags.append("نگرانی زیاد درباره مدرسه")
-        if int(data.get("sleep_quality") or 5) <= 2:
+        if scale("sleep_quality", 5) <= 2:
             flags.append("خواب نامناسب")
-        if int(data.get("friends") or 5) <= 2:
+        if scale("friends", 5) <= 2:
             flags.append("مشکل در رابطه با دوستان")
     return flags
 

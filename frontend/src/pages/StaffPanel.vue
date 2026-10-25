@@ -2,9 +2,8 @@
 // Staff: smart letter inbox. The agent reads queued letters one by one; people approve replies.
 import { ref, reactive, computed, watch, onMounted, onUnmounted } from "vue"
 import { api, fa, lockScroll } from "../lib/api.js"
-import { CATEGORY_OPTIONS } from "../lib/constants.js"
+import { CATEGORY_OPTIONS, DOCS_CHAT } from "../lib/constants.js"
 import AppLayout from "../components/AppLayout.vue"
-import ChatBox from "../components/ChatBox.vue"
 import ReferDialog from "../components/ReferDialog.vue"
 import Icon from "../components/Icon.vue"
 import CountUp from "../components/CountUp.vue"
@@ -29,8 +28,6 @@ const shown = computed(() => {
 const nav = computed(() => [
   { header: "نامه‌ها" },
   { key: "inbox", label: "صندوق نامه", icon: "inbox", badge: count(TABS[0].match) },
-  { header: "دستیار" },
-  { key: "chat", label: "پرسش از اسناد", icon: "message" },
 ])
 const stats = computed(() => [
   { label: "منتظر شما", value: count(TABS[0].match), icon: "inbox", tone: "warning" },
@@ -83,8 +80,8 @@ onUnmounted(() => lockScroll(false))
 </script>
 
 <template>
-  <AppLayout title="پنل اداری" subtitle="صندوق نامه‌های اداری" :nav="nav" v-model="view">
-    <div v-show="view === 'inbox'" class="flex flex-col gap-6">
+  <AppLayout :chat="DOCS_CHAT" title="پنل اداری" subtitle="صندوق نامه‌های اداری" :nav="nav" v-model="view">
+    <div class="flex flex-col gap-6">
       <section v-reveal class="row-between">
         <div><h2>روز بخیر</h2><p class="muted">دستیار نامه‌ها را می‌خواند، دسته‌بندی می‌کند و پیش‌نویس پاسخ می‌نویسد. تصمیم با شماست.</p></div>
         <button class="btn primary" @click="compose.open = true" :disabled="agent.running"><Icon name="plus" :size="18" />ثبت نامه جدید</button>
@@ -147,7 +144,7 @@ onUnmounted(() => lockScroll(false))
             <button v-if="l.reply && l.status === 'done'" class="btn ghost sm" @click="openLetter(l)">مشاهده پاسخ</button>
             <button v-if="!l.reply" class="btn ghost sm" @click="openLetter(l)">متن نامه</button>
             <button v-if="!['new', 'processing'].includes(l.status)" class="btn sm" @click="referring = l"><Icon name="forward" :size="16" />ارجاع</button>
-            <select v-if="l.category" class="cat-select" :value="l.category" @change="changeCategory(l, $event.target.value)" title="اصلاح دسته">
+            <select v-if="l.category" class="cat-select" :value="l.category" @change="changeCategory(l, $event.target.value)" title="اصلاح دسته" aria-label="اصلاح دسته نامه">
               <option v-for="[k, v] in CATEGORY_OPTIONS" :key="k" :value="k">دسته: {{ v }}</option>
             </select>
           </div>
@@ -168,10 +165,6 @@ onUnmounted(() => lockScroll(false))
       </section>
     </div>
 
-    <div v-show="view === 'chat'">
-      <ChatBox class="card chat-card" title="دستیار اسناد" subtitle="پاسخ فقط از روی آیین‌نامه‌ها و دستورالعمل‌های مدرسه" />
-    </div>
-
     <div v-if="open" class="overlay" @click.self="open = null">
       <div class="dialog" v-pop>
         <h3>{{ fa(open.subject) }}</h3>
@@ -179,14 +172,14 @@ onUnmounted(() => lockScroll(false))
         <div class="letter">{{ fa(open.body) }}</div>
         <template v-if="open.status === 'awaiting_approval'">
           <p class="small text-ink"><b>پیش‌نویس پاسخ دستیار</b> <span class="muted">(قبل از تأیید بخوانید و در صورت نیاز ویرایش کنید)</span></p>
-          <textarea v-model="reply" rows="7"></textarea>
+          <textarea v-model="reply" rows="7" class="ai-draft" aria-label="متن پاسخ"></textarea>
           <div class="dialog-actions">
             <button class="btn primary" :disabled="!reply.trim()" @click="approve"><Icon name="send" :size="18" />تأیید و ارسال پاسخ</button>
             <button class="btn ghost" @click="open = null">انصراف</button>
           </div>
         </template>
         <template v-else>
-          <template v-if="open.reply"><p class="small text-ink"><b>پاسخ ثبت‌شده</b></p><div class="letter">{{ fa(open.reply) }}</div></template>
+          <template v-if="open.reply"><p class="small text-ink"><b>پاسخ ثبت‌شده</b></p><div class="letter ai-draft">{{ fa(open.reply) }}</div></template>
           <div class="dialog-actions"><button class="btn ghost" @click="open = null">بستن</button></div>
         </template>
       </div>

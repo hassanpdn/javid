@@ -50,7 +50,7 @@ onUnmounted(() => ctx?.revert())
 </script>
 
 <template>
-  <div class="auth" ref="root">
+  <main class="auth" ref="root">
     <div class="auth-art">
       <div class="art-stage">
         <svg viewBox="0 0 560 460" aria-hidden="true">
@@ -99,5 +99,5 @@ onUnmounted(() => ctx?.revert())
         <p class="auth-note"><Icon name="shield" :size="16" /> همه داده‌های این نسخه ساختگی است.</p>
       </div>
     </div>
-  </div>
+  </main>
 </template>

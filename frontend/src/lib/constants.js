@@ -28,4 +28,5 @@ export const CATEGORY_OPTIONS = [
   ["info", "برای اطلاع"], ["decision", "نیازمند تصمیم مدیر"], ["request", "نیازمند اقدام"],
 ]
 
-export const DOCS_CHAT = { title: "دستیار اسناد", subtitle: "پاسخ فقط از روی آیین‌نامه‌ها و دستورالعمل‌های مدرسه" }
+// settings for the floating assistant of staff roles: answers come only from the school documents
+export const DOCS_CHAT = { title: "دستیار هوشمند", subtitle: "پاسخ از روی آیین‌نامه‌ها و مقررات مدرسه" }

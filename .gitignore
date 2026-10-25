@@ -19,3 +19,7 @@ Modelfile*
 
 # Frontend dependencies (npm install recreates them)
 frontend/node_modules/
+
+# Browser test output
+frontend/test-results/
+frontend/playwright-report/

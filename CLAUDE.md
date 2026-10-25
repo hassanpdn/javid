@@ -26,16 +26,25 @@ cd frontend && pnpm install
 pnpm dev                      # http://localhost:5173, hot reload, API calls proxied to :8000
 pnpm build                    # writes the finished site into ../static (committed, so the demo needs no Node)
 ```
+Tests (no Ollama needed: a fake model in `tests/fake_llm.py` stands in, and can misbehave on purpose):
+```
+pip install -r requirements-dev.txt
+pytest                                        # API, privacy, checks, validation, dates, concurrency
+cd frontend && pnpm exec playwright install chromium   # once
+PYTHON=../.venv/bin/python pnpm test:e2e      # browser tests for every role
+```
+The demo follows the real date: `seed.py` builds everything around today, and the server rebuilds the data on startup when it was made on another day. `DEMO_TODAY` pins a date, `KEEP_DB=1` keeps old data. Other settings: `SHOW_DOCS=1` turns on /docs, `ALLOWED_ORIGINS` allows other sites to call the API, `SESSION_DAYS` (default 7).
 Models run in Ollama on the Mac: `qwen3-14b` (chat) and `bge-m3` (embeddings), both through the OpenAI-compatible API. Python 3.15 breaks chromadb builds; use 3.12. Demo users all have password `1234` (modir, edari, moalem, karimi, moshaver, vali, daneshamooz, plus teacher{id} and parent{student_id}).
 
 ## Layout
 
 - `app.py`: FastAPI app, login, `/chat` (document Q&A), includes all routers. Static files are mounted last.
+- `checks.py`: every check on model output (whole-number matching, per-grade stats lines, date+time pairs, attendance labels, parent-safety: no diagnosis, comparison, private notes or other children). Model text that fails is replaced by text built in code.
 - `common.py` normalize/embed/collection, `ingest.py` per-article chunking with `access_{role}` metadata, `llm.py` `ask_llm` / `ask_json`.
 - `db.py` SQLite schema and helpers (`notify`, `users_with`, `stamp`), `seed.py` demo data with planted scenarios.
 - Role routers: `manager.py`, `staff.py` (letter agent), `counselor.py`, `parent.py`, `parent_chat.py` (parent asks about own child), `notifications.py`.
 - `students.py` per-student facts and signal rules, `stats.py`, `jalali.py` date conversion.
-- `frontend/`: Vue 3 + Vite + Tailwind 4 + GSAP. `src/pages/` one panel per role, `src/components/` shared pieces (`AppLayout` sidebar/navbar/dark mode, `ChatBox`, `NotificationBell`, charts), `src/lib/` (`api.js` session and fetch, `motion.js` GSAP directives `v-reveal`/`v-pop`/`v-drawer`, `theme.js`, `icons.js`, `constants.js`), `src/styles/main.css` design tokens (light/dark) and components. Tailwind utilities for grids and spacing in templates. Font Vazirmatn in `public/fonts`.
+- `frontend/`: Vue 3 + Vite + Tailwind 4 + GSAP. `src/pages/` one panel per role, `src/components/` shared pieces (`AppLayout` sidebar/navbar/dark mode, `FloatingChat` the assistant button in the bottom-right corner of every role, `ChatBox`, `NotificationBell`, charts), `src/lib/` (`api.js` session and fetch, `chat.js` opens the floating assistant, `motion.js` GSAP directives `v-reveal`/`v-pop`/`v-drawer`, `theme.js`, `icons.js`, `constants.js`), `src/styles/main.css` design tokens (light/dark) and components. Tailwind utilities for grids and spacing in templates. Font Vazirmatn (woff2) in `public/fonts`; AI-drafted official texts in dialogs use the class `ai-draft` (B Nazanin when installed on the computer, else Vazirmatn). Colors meet WCAG AA contrast: text on a tinted background uses the `--*-ink` tokens, white text sits on `--*-strong`.
 - `static/`: build output of `frontend/`, served by FastAPI. Never edit by hand; run `pnpm build` and commit it. API routes the dev proxy forwards are listed in `frontend/vite.config.js`; add new route prefixes there.
 
 ## Rules that must not break
@@ -46,4 +55,6 @@ Models run in Ollama on the Mac: `qwen3-14b` (chat) and `bge-m3` (embeddings), b
 - Parents see only their own child. Counselor notes, health-form flags and unapproved suggestions never reach parents or the model in parent flows. No comparison with other students.
 - Vector search always filters by `access_{role}`.
 - SQLite allows one writer: send notifications after the write transaction commits.
+- Any new model-written text shown to a parent goes through `checks.unsafe_for_parent` and `checks.only_known_numbers`, with a code-built fallback.
 - Don't commit `.env`, `school.db`, `db/` or model files.
+- `tests/` and `frontend/e2e/` must pass before merging.
