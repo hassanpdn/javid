@@ -2,6 +2,7 @@
 import os, random
 from datetime import date, timedelta
 import db
+import school
 import stats
 from jalali import jstr, to_jalali, to_gregorian, MONTHS
 
@@ -29,16 +30,24 @@ def ahead(n):
 
 THIS_MONTH, LAST_MONTH = MONTHS[JM - 1], MONTHS[(JM - 2) % 12]
 
-TEACHERS = [  # (name, subject); first two are homeroom teachers
-    ("سارا احمدی", "آموزگار پایه چهارم"), ("مریم رضایی", "آموزگار پایه پنجم"),
-    ("نرگس کریمی", "ورزش"), ("زهرا موسوی", "قرآن"), ("لیلا حسینی", "هنر"),
-    ("فاطمه نوری", "زبان انگلیسی"), ("الهام صادقی", "علوم آزمایشگاهی"), ("شیما رحیمی", "رایانه و هوش مصنوعی"),
-]
+# (name, subject, gender); the first two are homeroom teachers. Same last names in both lists,
+# so the demo logins (moalem, karimi, ...) tell the same stories at a girls' or a boys' school.
+TEACHERS = {
+    "girls": [("سارا احمدی", "آموزگار پایه چهارم", "f"), ("مریم رضایی", "آموزگار پایه پنجم", "f"),
+              ("نرگس کریمی", "ورزش", "f"), ("زهرا موسوی", "قرآن", "f"), ("لیلا حسینی", "هنر", "f"),
+              ("فاطمه نوری", "زبان انگلیسی", "f"), ("الهام صادقی", "علوم آزمایشگاهی", "f"), ("شیما رحیمی", "رایانه و هوش مصنوعی", "f")],
+    "boys": [("علی احمدی", "آموزگار پایه چهارم", "m"), ("محمد رضایی", "آموزگار پایه پنجم", "m"),
+             ("حمید کریمی", "ورزش", "m"), ("زهرا موسوی", "قرآن", "f"), ("لیلا حسینی", "هنر", "f"),
+             ("مهدی نوری", "زبان انگلیسی", "m"), ("الهام صادقی", "علوم آزمایشگاهی", "f"), ("سعید رحیمی", "رایانه و هوش مصنوعی", "m")],
+}
 LATE_TEACHER = 3  # نرگس کریمی: planted pattern, late three times in the last weeks
 
 HOMEROOM_SUBJECTS = ["ریاضی", "فارسی", "علوم تجربی", "مطالعات اجتماعی", "هدیه‌های آسمان"]
 SPECIAL_SUBJECTS = {"ورزش": 3, "قرآن": 4, "هنر": 5, "زبان انگلیسی": 6}
 
+FIRST_BOYS = ["آرین", "امیرعلی", "محمدطاها", "علی", "حسین", "پارسا", "آرسام", "ایلیا", "سامیار", "کیان",
+              "امیرحسین", "محمدرضا", "یاسین", "آرمان", "رادین", "بردیا", "سپهر", "امیرمهدی", "ماهان", "نیما",
+              "پرهام", "آراد", "سبحان", "ابوالفضل", "مهراد", "رایان", "دانیال", "کیارش", "امیرعباس", "هومن"]
 FIRST = ["آوا", "نازنین", "ریحانه", "فاطمه", "زهرا", "یسنا", "هلیا", "باران", "رها", "نیایش",
          "مهسا", "سارینا", "آیدا", "پرنیا", "ستایش", "کیانا", "محدثه", "النا", "دینا", "مبینا",
          "ترانه", "یکتا", "آرتمیس", "حنانه", "ملیکا", "آیلین", "روژان", "تینا", "غزل", "نگار"]
@@ -47,17 +56,20 @@ LAST = ["محمدی", "جعفری", "اکبری", "قاسمی", "طاهری", "�
         "نوروزی", "باقری", "فتحی", "ملکی", "رنجبر", "خلیلی", "پاکزاد", "داوودی", "عسگری", "میرزایی"]
 FATHERS = ["رضا", "علی", "محمد", "حسین", "مهدی", "امیر", "حمید", "سعید", "مجید", "وحید"]
 
-DECLINING_STUDENT = 1  # آوا محمدی: math drops since the start of the year
-ABSENT_STUDENT = 2     # نازنین جعفری: many absences in the last two weeks
+DECLINING_STUDENT = 1  # آوا (or آرین) محمدی: math drops since the start of the year
+ABSENT_STUDENT = 2     # نازنین (or امیرعلی) جعفری: many absences in the last two weeks
 
 def run():
+    sch = school.current()
+    boys = sch["gender"] == "boys"
+    teachers, first_names, student_gender = TEACHERS[sch["gender"]], (FIRST_BOYS if boys else FIRST), ("m" if boys else "f")
     if os.path.exists(db.DB_PATH):
         os.remove(db.DB_PATH)
     with db.conn() as c:
         c.executescript(db.SCHEMA)
 
-        for name, subject in TEACHERS:
-            c.execute("INSERT INTO teachers (full_name, subject, gender) VALUES (?, ?, 'f')", (name, subject))
+        for name, subject, gender in teachers:
+            c.execute("INSERT INTO teachers (full_name, subject, gender) VALUES (?, ?, ?)", (name, subject, gender))
         c.execute("INSERT INTO classes (name, grade, homeroom_teacher_id) VALUES ('چهارم الف', 4, 1)")
         c.execute("INSERT INTO classes (name, grade, homeroom_teacher_id) VALUES ('پنجم الف', 5, 2)")
 
@@ -70,8 +82,8 @@ def run():
                 class_id = 1
             phone = f"0912{random.randint(1000000, 9999999)}"
             c.execute("""INSERT INTO students (first_name, last_name, gender, class_id, parent_name, parent_phone)
-                         VALUES (?, ?, 'f', ?, ?, ?)""",
-                      (FIRST[i], LAST[i], class_id, f"{random.choice(FATHERS)} {LAST[i]}", phone))
+                         VALUES (?, ?, ?, ?, ?, ?)""",
+                      (first_names[i], LAST[i], student_gender, class_id, f"{random.choice(FATHERS)} {LAST[i]}", phone))
         students = c.execute("SELECT id, class_id FROM students").fetchall()
 
         # Assessments: about one every five school days per subject (at least three), descriptive level 1..4
@@ -107,7 +119,7 @@ def run():
 
         # Teacher check-in / check-out. Required arrival: 07:30
         late_days = set(random.sample(recent, min(3, len(recent))))
-        for t in range(1, len(TEACHERS) + 1):
+        for t in range(1, len(teachers) + 1):
             for d in SCHOOL_DAYS:
                 check_in = f"07:{random.randint(10, 29):02d}"
                 if t == LATE_TEACHER and d in late_days:
@@ -152,7 +164,7 @@ def run():
                       (sid, kind, json.dumps(data, ensure_ascii=False), d.isoformat(), jstr(d), jstr(d), None))
 
         # Administrative letters. category/summary/assignee stay empty for the agent to fill later.
-        R = "اداره آموزش و پرورش منطقه"
+        R = school.education_office(sch)
         # (received, sender, subject, body, deadline, status). Dates are relative to today; the texts name them.
         letters = [
             (ago(10), R, f"درخواست آمار ماهانه غیبت دانش‌آموزان ({LAST_MONTH}‌ماه)",
@@ -200,7 +212,7 @@ def run():
             name = MONTHS[m - 1]
             sent = to_gregorian(y, m, 1) + timedelta(days=33)
             reply = stats.to_fa("با سلام و احترام\nدر پاسخ به نامه شما، " + stats.absence_text(c, m) +
-                                "\nبا احترام، مدیریت دبستان جاوید")
+                                "\n" + school.signature(sch))
             c.execute("""INSERT INTO letters (received_date, jreceived, sender, subject, body, deadline, jdeadline, status,
                                               category, summary, reply, handled_at)
                          VALUES (?, ?, ?, ?, ?, ?, ?, 'done', 'stats', ?, ?, 'پاسخ داده شده توسط کارمند اداری')""",
@@ -211,14 +223,15 @@ def run():
             y, m = (y + 1, 1) if m == 12 else (y, m + 1)
 
         # Login users. Every password is 1234.
+        star = c.execute("SELECT first_name, last_name, parent_name FROM students WHERE id = ?", (DECLINING_STUDENT,)).fetchone()
         users = [
-            ("modir", "آقای دکتر انوشه‌پور", "manager", None),
-            ("edari", "کارمند اداری نمونه", "staff", None),
-            ("moalem", "سارا احمدی", "teacher", 1),
-            ("karimi", "نرگس کریمی", "teacher", LATE_TEACHER),
-            ("moshaver", "مریم کاظمی", "counselor", None),
-            ("vali", "رضا محمدی (ولیِ آوا)", "parent", DECLINING_STUDENT),
-            ("daneshamooz", "آوا محمدی", "student", DECLINING_STUDENT),
+            ("modir", school.manager(sch), "manager", None),
+            ("edari", sch["staff_name"], "staff", None),
+            ("moalem", teachers[0][0], "teacher", 1),
+            ("karimi", teachers[LATE_TEACHER - 1][0], "teacher", LATE_TEACHER),
+            ("moshaver", sch["counselor_name"], "counselor", None),
+            ("vali", f"{star[2]} (ولیِ {star[0]})", "parent", DECLINING_STUDENT),
+            ("daneshamooz", f"{star[0]} {star[1]}", "student", DECLINING_STUDENT),
         ]
         # Accounts for every other teacher and parent, so letters can be referred to anyone
         taken_teachers = {r for _, _, role, r in users if role == "teacher"}
@@ -234,7 +247,7 @@ def run():
                       (username, pw, full_name, role, ref))
         c.execute("CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT)")
         c.execute("INSERT INTO meta VALUES ('seeded_for', ?)", (TODAY.isoformat(),))
-    print(f"school.db ready: {len(SCHOOL_DAYS)} school days, today = {jstr(TODAY)}")
+    print(f"school.db ready for {school.full_name(sch)}: {len(SCHOOL_DAYS)} school days, today = {jstr(TODAY)}")
 
 if __name__ == "__main__":
     run()

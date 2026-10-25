@@ -3,7 +3,7 @@ import vue from "@vitejs/plugin-vue"
 import tailwindcss from "@tailwindcss/vite"
 
 // API routes that live in FastAPI. In development (npm run dev) Vite forwards them to uvicorn on :8000.
-const API = ["/login", "/logout", "/me", "/chat", "/manager", "/staff", "/counselor", "/parent", "/notifications"]
+const API = ["/school", "/setup", "/login", "/logout", "/me", "/chat", "/manager", "/staff", "/counselor", "/parent", "/notifications"]
 
 export default defineConfig({
   plugins: [vue(), tailwindcss()],

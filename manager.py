@@ -2,7 +2,7 @@ import os
 from datetime import date, timedelta
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
-import db, checks
+import db, checks, school
 from auth import require_role
 from llm import ask_llm
 from jalali import jstr, to_jalali, MONTHS
@@ -138,7 +138,7 @@ def _write_briefing(key):
         "موارد نیازمند اقدام، به ترتیب اهمیت:\n" + "\n".join(f"{i + 1}. {t}" for i, t in enumerate(actions))
     )
     text = ask_llm(
-        "تو دستیار مدیر یک دبستان هستی. از روی اطلاعات زیر یک خلاصه صبحگاهی دو یا سه جمله‌ای به فارسی روان بنویس.\n"
+        f"تو دستیار مدیر {school.full_name()} هستی. از روی اطلاعات زیر یک خلاصه صبحگاهی دو یا سه جمله‌ای به فارسی روان بنویس.\n"
         "قوانین:\n"
         "- جمله اول درباره مورد شماره ۱ باشد و اسم شخص یا نامه را دقیق بیاورد.\n"
         "- جمله دوم دو مورد مهم بعدی را با اسم بگوید.\n"
@@ -165,7 +165,7 @@ def draft_warning(req: DraftRequest, user: dict = Depends(manager_only)):
     text = ask_llm(
         "تو دستیار مدیر یک دبستان هستی. یک تذکر کتبی کوتاه، رسمی و محترمانه به فارسی برای یک معلم بنویس. "
         "ساختار: «همکار گرامی، خانم ...»، بیان تأخیرها با تاریخ و ساعت دقیق، یادآوری اینکه ساعت حضور ۷:۳۰ است، "
-        "درخواست رعایت در ادامه، و در پایان «با احترام، مدیریت دبستان جاوید». "
+        f"درخواست رعایت در ادامه، و در پایان «{school.signature()}». "
         "فقط از تاریخ‌ها و ساعت‌های داده‌شده استفاده کن. لحن تهدیدآمیز نباشد.",
         f"نام معلم: {alert['name']}\nتعداد تأخیر در ۳۰ روز اخیر: {alert['count']}\nتأخیرها: {alert['dates']}",
         max_tokens=350, temperature=0.3)

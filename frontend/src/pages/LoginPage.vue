@@ -1,11 +1,13 @@
 <script setup>
 // Login: an animated illustration on one side, the demo roles on the other
 import { ref, onMounted, onUnmounted } from "vue"
+import { computed } from "vue"
 import { api, session, store } from "../lib/api.js"
+import { schoolInfo, setupUi } from "../lib/school.js"
 import { gsap, motion } from "../lib/motion.js"
 import Icon from "../components/Icon.vue"
 
-const demo = [
+const ROLES = [
   { u: "modir", role: "مدیر", name: "آقای دکتر انوشه‌پور", desc: "خلاصه روز، هشدارها و تصمیم‌ها", icon: "chart", tone: "primary" },
   { u: "edari", role: "پرسنل اداری", name: "کارمند اداری", desc: "صندوق نامه هوشمند و دستیار پیگیری", icon: "mail", tone: "info" },
   { u: "moalem", role: "آموزگار", name: "سارا احمدی، پایه چهارم", desc: "کلاس و دانش‌آموزان", icon: "book", tone: "success", soon: true },
@@ -14,6 +16,9 @@ const demo = [
   { u: "vali", role: "ولی", name: "رضا محمدی، پدر آوا", desc: "گزارش هفتگی، پیشرفت و فرم‌های سلامت", icon: "user", tone: "danger" },
   { u: "daneshamooz", role: "دانش‌آموز", name: "آوا محمدی", desc: "نمره‌ها و پیشرفت من", icon: "school", tone: "secondary", soon: true },
 ]
+// role cards: what each role does, with the person's name for the school this demo is set up for
+const demo = computed(() => ROLES.map((d) => ({ ...d, name: schoolInfo.names[d.u] || d.name })))
+const school = computed(() => schoolInfo.school)
 const error = ref(""), busy = ref(false), picked = ref(""), root = ref(null)
 // windows of the two school wings in the illustration; a few are "lit" and blink
 const windows = [128, 172, 358, 402].flatMap((x, i) => [230, 300].map((y, j) => ({ x, y, lit: (i + j) % 3 === 0 })))
@@ -82,8 +87,8 @@ onUnmounted(() => ctx?.revert())
 
     <div class="auth-panel">
       <div class="auth-form">
-        <div class="flex items-center gap-3"><span class="logo">ج</span><b class="text-ink text-lg">دبستان جاوید</b></div>
-        <h1>به دستیار هوشمند جاوید خوش آمدید</h1>
+        <div class="flex items-center gap-3"><span class="logo">{{ (school.name || 'ج')[0] }}</span><b class="text-ink text-lg">{{ school.full_name }}</b></div>
+        <h1>به دستیار هوشمند {{ school.name }} خوش آمدید</h1>
         <p class="muted">نسخه آزمایشی. با یکی از نقش‌ها وارد شوید؛ هر نقش پنل و دسترسی‌های خودش را دارد.</p>
         <p v-if="error" class="error-text">{{ error }}</p>
         <div class="role-list">
@@ -97,6 +102,7 @@ onUnmounted(() => ctx?.revert())
           </button>
         </div>
         <p class="auth-note"><Icon name="shield" :size="16" /> همه داده‌های این نسخه ساختگی است.</p>
+        <button type="button" class="link switch-school" @click="setupUi.open = true"><Icon name="school" :size="16" />دموی جدید برای مدرسه دیگر</button>
       </div>
     </div>
   </main>

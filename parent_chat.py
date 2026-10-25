@@ -11,7 +11,7 @@ import re
 from datetime import date, timedelta
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
-import db, checks
+import db, checks, school
 from auth import require_role
 from common import normalize
 from llm import ask_llm, ask_json
@@ -30,9 +30,8 @@ def term_start(t):
 def title(gender):
     return "خانم" if gender == "f" else "آقای"
 
-def counselor_name(c):
-    r = c.execute("SELECT full_name FROM users WHERE role = 'counselor' LIMIT 1").fetchone()
-    return r["full_name"] if r else "مشاور مدرسه"
+def counselor_name(c=None):
+    return school.counselor()
 FA_DIGITS = str.maketrans("۰۱۲۳۴۵۶۷۸۹٠١٢٣٤٥٦٧٨٩", "01234567890123456789")
 WORD_NUMS = {"یک": 1, "یه": 1, "دو": 2, "سه": 3, "چهار": 4, "پنج": 5, "شش": 6, "هفت": 7, "هشت": 8, "نه": 9, "ده": 10}
 SUBJECT_ALIASES = {  # what parents say -> subject name in the database
@@ -270,7 +269,7 @@ def acceptable(draft, facts, others):
 
 def write(first_name, question, facts):
     return ask_llm(
-        f"تو دستیار مدرسه جاوید هستی و به سؤال ولیِ {first_name} جواب می‌دهی.\n"
+        f"تو دستیار {school.full_name()} هستی و به سؤال ولیِ {first_name} جواب می‌دهی.\n"
         "قوانین:\n"
         "- فقط از «اطلاعات» زیر استفاده کن. اگر جواب در اطلاعات نیست، بگو در سامانه ثبت نشده.\n"
         "- عددها و تاریخ‌ها را دقیقا همان‌طور که در اطلاعات آمده بنویس، با رقم.\n"
