@@ -1,7 +1,7 @@
 <script setup>
 // The manager's letters: decide on what the office sent up, mark letters sent for information as seen,
 // and look at what the office still has open. The office writes and sends the formal replies; the manager decides.
-import { ref, computed, watch, onMounted, onUnmounted } from "vue"
+import { ref, reactive, computed, watch, onMounted, onUnmounted } from "vue"
 import { api, fa, lockScroll } from "../lib/api.js"
 import Icon from "./Icon.vue"
 
@@ -12,6 +12,17 @@ const OFFICE_STATUS = { new: "در صف دستیار", processing: "در حال 
 const data = ref(null), open = ref(null), note = ref(""), saving = ref(false)
 const queued = computed(() => data.value ? data.value.office.filter((l) => ["new", "processing"].includes(l.status)).length : 0)
 const load = async () => { data.value = await api("/manager/letters") }
+// Letters reach the manager only after the assistant has read them. If nobody opened the office panel yet,
+// the queue is still full, so this page runs the assistant on it the same way the office panel does.
+const agent = reactive({ running: false, processed: 0, total: 0, error: "" })
+const runAgent = async () => {
+  if (!queued.value) return
+  Object.assign(agent, { running: true, processed: 0, total: queued.value, error: "" })
+  try {
+    while (!(await api("/staff/agent/next", {})).done) { agent.processed++; await load() }
+  } catch { agent.error = "دستیار در دسترس نیست. مدل محلی روشن است؟" }
+  finally { agent.running = false; await load(); emit("changed") }
+}
 const show = (l) => { open.value = l; note.value = "" }
 const done = async () => { open.value = null; await load(); emit("changed") }
 const decide = async (approve) => {
@@ -25,6 +36,7 @@ onMounted(async () => {
   await load()
   const d = data.value, l = props.focus && [...d.decide, ...d.info, ...d.office].find((x) => x.id === props.focus)
   if (l) show(l)
+  runAgent()
 })
 onUnmounted(() => lockScroll(false))
 </script>
@@ -35,6 +47,8 @@ onUnmounted(() => lockScroll(false))
       <h2>نامه‌ها</h2>
       <p class="muted">تصمیم با شماست. پاسخ رسمی را دفتر می‌نویسد و می‌فرستد.</p>
     </section>
+    <p v-if="agent.running" class="check" role="status">دستیار در حال خواندن نامه‌های تازه: {{ fa(agent.processed) }} از {{ fa(agent.total) }}</p>
+    <p v-else-if="agent.error" class="check bad" role="status">{{ agent.error }}</p>
 
     <div v-if="!data" class="card shimmer"><span></span><span></span><span style="width:60%"></span></div>
     <template v-else>
@@ -72,7 +86,7 @@ onUnmounted(() => lockScroll(false))
 
       <section v-reveal class="card">
         <div class="card-head">در دست دفتر <small>فقط برای دیدن؛ کار این نامه‌ها با دفتر است</small></div>
-        <p v-if="queued" class="muted small">{{ fa(queued) }} نامه هنوز در صف بررسی دستیار در دفتر است.</p>
+        <p v-if="queued && !agent.running" class="muted small">{{ fa(queued) }} نامه هنوز در صف بررسی دستیار در دفتر است.</p>
         <p v-if="!data.office.length" class="muted small">دفتر نامه بازی ندارد.</p>
         <ul class="office-list">
           <li v-for="l in data.office" :key="l.id">
