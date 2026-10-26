@@ -38,7 +38,7 @@ Models run in Ollama on the Mac: `qwen3-14b` (chat) and `bge-m3` (embeddings), b
 
 ## Deploy
 
-Live at https://agent.pudineh.com (server in Iran: PyPI through a domestic mirror, models through AvalAI). Every push to a `claude/` branch is merged into `main` by `.github/workflows/deploy.yml`, and every change to `main` updates the server (`deploy/javid-deploy.sh`). So a push is a release: push only finished, built work (`static/` included). Server details and setup in `deploy/README.md`. Commands for the server must work under sanctions (no PyPI, Docker Hub or OpenRouter from there).
+Live at https://agent.pudineh.com (server in Iran: PyPI through a domestic mirror, models through AvalAI). Every push to a `claude/` branch is merged into `main` by `.github/workflows/deploy.yml`, and every change to `main` updates the server (`deploy/after-update.sh`: libraries, document search and demo data only when their files changed; a change to `seed.py` or `db.py` wipes the live demo's data). So a push is a release: push only finished, built work (`static/` included). Server details and setup in `deploy/README.md`. Commands for the server must work under sanctions (no PyPI, Docker Hub or OpenRouter from there).
 
 ## Layout
 

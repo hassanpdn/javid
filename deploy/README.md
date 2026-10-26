@@ -10,7 +10,10 @@ The demo runs on 89.45.89.72 at https://agent.pudineh.com.
 ## Automatic updates
 
 `.github/workflows/deploy.yml`: a push to a `claude/` branch is merged into `main`, and every change to `main`
-runs `javid-deploy.sh` on the server over SSH. No tests run there.
+runs `/usr/local/bin/javid-deploy` on the server over SSH. No tests run there. That script (a copy of
+`deploy/javid-deploy.sh`) only fetches `main` and then runs `deploy/after-update.sh` from the new code: libraries when
+`requirements.txt` changed, the document search when `docs/` changed, the demo data when `seed.py` or `db.py` changed
+(this wipes what was done in the demo so far), then a restart.
 
 One-time server setup, as root:
 
@@ -33,5 +36,5 @@ Then add three repository secrets on GitHub (Settings > Secrets and variables > 
 `DEPLOY_SSH_KEY` = `cat /root/javid-deploy-key`, `DEPLOY_KNOWN_HOSTS` = `ssh-keyscan -t ed25519 89.45.89.72`,
 `DEPLOY_HOST` = `89.45.89.72`. After that, delete `/root/javid-deploy-key` (the private half) from the server.
 
-If `javid-deploy.sh` changes, copy it again (step 1). By hand: `sudo -u javid javid-deploy`. Logs: `journalctl -u javid -f`.
-Demo data is not rebuilt on deploy; it is rebuilt when the day changes or from the setup form.
+Only if `deploy/javid-deploy.sh` itself changes, copy it again (step 1); changes to `after-update.sh` need nothing. By hand: `sudo -u javid javid-deploy`. Logs: `journalctl -u javid -f`.
+Otherwise demo data is rebuilt when the day changes or from the setup form.
