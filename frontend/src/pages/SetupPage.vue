@@ -4,6 +4,7 @@
 import { ref, reactive, nextTick, onMounted, onUnmounted } from "vue"
 import { api } from "../lib/api.js"
 import { schoolInfo, setupUi, loadSchool } from "../lib/school.js"
+import { gate } from "../lib/gate.js"
 import { gsap, motion } from "../lib/motion.js"
 import Icon from "../components/Icon.vue"
 import SchoolCard from "../components/SchoolCard.vue"
@@ -120,7 +121,10 @@ onUnmounted(() => blobs?.revert())
       <form class="setup-form card" @submit.prevent="next" novalidate>
         <div class="setup-top">
           <div><h1>راه‌اندازی دمو برای مدرسه</h1><p class="muted small">چند قدم کوتاه؛ همه صفحه‌ها، نامه‌ها و پیام‌ها با همین نام‌ها ساخته می‌شوند.</p></div>
-          <button v-if="schoolInfo.set_up" type="button" class="link small" @click="setupUi.open = false">بازگشت به ورود</button>
+          <span class="flex flex-col items-end gap-1">
+            <button v-if="gate.hub" type="button" class="link small" @click="gate.app = ''">همه‌ی دستیارها</button>
+            <button v-if="schoolInfo.set_up" type="button" class="link small" @click="setupUi.open = false">بازگشت به ورود</button>
+          </span>
         </div>
 
         <ol class="stepper" aria-label="مراحل">

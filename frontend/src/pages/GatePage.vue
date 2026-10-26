@@ -1,22 +1,24 @@
 <script setup>
 // The site's door on the live demo: one username and password before anything else.
-// Dark on purpose in both themes, so it looks the same for everyone. No school name here: the school is chosen after.
+// Dark on purpose in both themes, so it looks the same for everyone. Not about schools: after the door comes
+// the list of assistants (HubPage), and the school assistant is one of them.
 import { ref, onMounted } from "vue"
 import { enterGate } from "../lib/gate.js"
 import AiOrb from "../components/AiOrb.vue"
+import AuroraBg from "../components/AuroraBg.vue"
 import Icon from "../components/Icon.vue"
 
 const emit = defineEmits(["entered"])
 const username = ref(""), password = ref(""), show = ref(false)
 const error = ref(""), sending = ref(false), shake = ref(false)
 const userEl = ref(null)
-// what the assistant does, floating around the card on wide screens
+// what the assistants do, floating around the card on wide screens
 const CHIPS = [
-  { text: "خلاصه‌ی هر روز برای مدیر", icon: "dashboard", tone: "a" },
-  { text: "نامه‌ها را می‌خواند و جواب می‌نویسد", icon: "mail", tone: "b" },
-  { text: "دانش‌آموزی که کمک لازم دارد را نشان می‌دهد", icon: "heart", tone: "c" },
-  { text: "گزارش هفتگی برای پدر و مادر", icon: "message", tone: "d" },
-  { text: "جواب سؤال‌ها از آیین‌نامه‌ها", icon: "book", tone: "e" },
+  { text: "نامه‌ها را می‌خواند و جواب می‌نویسد", icon: "mail", tone: "a" },
+  { text: "خلاصه‌ی هر روز، بدون گشتن", icon: "dashboard", tone: "b" },
+  { text: "عددها را خودش حساب می‌کند", icon: "chart", tone: "c" },
+  { text: "تصمیم همیشه با شماست", icon: "check", tone: "d" },
+  { text: "جواب از روی مدارک خودتان", icon: "book", tone: "e" },
 ]
 onMounted(() => { if (window.matchMedia("(min-width: 768px)").matches) userEl.value?.focus() })
 
@@ -38,11 +40,7 @@ const fail = (msg) => {
 
 <template>
   <main class="gate">
-    <div class="g-sky" aria-hidden="true">
-      <span class="g-blob b1"></span><span class="g-blob b2"></span><span class="g-blob b3"></span><span class="g-blob b4"></span>
-      <span class="g-grid"></span>
-      <span v-for="n in 18" :key="n" class="g-star" :style="{ '--x': (n * 53) % 100 + '%', '--y': (n * 37) % 100 + '%', '--d': (n % 6) + 's' }"></span>
-    </div>
+    <AuroraBg />
 
     <ul class="g-chips" aria-hidden="true">
       <li v-for="(c, i) in CHIPS" :key="c.text" :class="['g-chip', 'c' + i, 't-' + c.tone]"><Icon :name="c.icon" :size="16" />{{ c.text }}</li>
@@ -50,8 +48,8 @@ const fail = (msg) => {
 
     <section :class="['g-card', { shake }]" @animationend="shake = false">
       <div class="g-orb"><AiOrb :size="104" :busy="sending" /></div>
-      <h1>دستیار هوشمند مدرسه</h1>
-      <p class="g-sub">نسخه‌ی نمایشی. برای دیدن آن وارد شوید.</p>
+      <h1>دستیارهای هوشمند</h1>
+      <p class="g-sub">نسخه‌ی نمایشی. برای دیدن دستیارها وارد شوید.</p>
 
       <form class="g-form" @submit.prevent="submit" novalidate>
         <label class="g-field">
@@ -87,21 +85,8 @@ const fail = (msg) => {
   --g1: #7367f0; --g2: #00bad1; --g3: #ff6fa8; --g4: #ffb057;
   position: relative; min-height: 100vh; min-height: 100dvh; overflow: hidden; isolation: isolate;
   display: grid; grid-template-columns: minmax(0, 1fr); place-items: center; padding: max(24px, env(safe-area-inset-top)) 16px max(24px, env(safe-area-inset-bottom));
-  background: radial-gradient(120% 80% at 50% 0%, #1d1b4b 0%, #0d0c24 55%, #07061a 100%); color: #eceaff;
+  color: #eceaff; background: #07061a;
 }
-
-/* moving colour clouds behind everything */
-.g-sky { position: absolute; inset: 0; z-index: -1; pointer-events: none; }
-.g-blob { position: absolute; width: 46vmax; height: 46vmax; border-radius: 50%; filter: blur(70px); opacity: .5; mix-blend-mode: screen; }
-.b1 { background: var(--g1); top: -14vmax; right: -10vmax; animation: g-float1 18s ease-in-out infinite alternate; }
-.b2 { background: var(--g2); bottom: -18vmax; left: -12vmax; opacity: .38; animation: g-float2 22s ease-in-out infinite alternate; }
-.b3 { background: var(--g3); top: 30%; left: 55%; width: 30vmax; height: 30vmax; opacity: .26; animation: g-float3 26s ease-in-out infinite alternate; }
-.b4 { background: var(--g4); bottom: 8%; right: 30%; width: 20vmax; height: 20vmax; opacity: .18; animation: g-float1 30s ease-in-out infinite alternate-reverse; }
-.g-grid { position: absolute; inset: 0; opacity: .5;
-  background-image: linear-gradient(rgba(255,255,255,.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.05) 1px, transparent 1px);
-  background-size: 48px 48px; mask-image: radial-gradient(70% 60% at 50% 45%, #000 20%, transparent 75%); }
-.g-star { position: absolute; left: var(--x); top: var(--y); width: 3px; height: 3px; border-radius: 50%; background: #fff;
-  box-shadow: 0 0 8px 2px rgba(255,255,255,.5); opacity: 0; animation: g-twinkle 6s ease-in-out var(--d) infinite; }
 
 /* the glass card */
 .g-card { position: relative; width: min(100%, 410px); padding: 36px 30px 30px; border-radius: 28px; text-align: center;
@@ -167,10 +152,6 @@ h1 { margin: 0; font-size: 26px; font-weight: 700; line-height: 1.5;
 
 @keyframes g-in { from { opacity: 0; transform: translateY(26px) scale(.96); filter: blur(6px); } to { opacity: 1; transform: none; filter: none; } }
 @keyframes g-shake { 10%, 90% { transform: translateX(-2px); } 20%, 80% { transform: translateX(4px); } 30%, 50%, 70% { transform: translateX(-8px); } 40%, 60% { transform: translateX(8px); } }
-@keyframes g-float1 { to { transform: translate(-8vmax, 10vmax) scale(1.12); } }
-@keyframes g-float2 { to { transform: translate(10vmax, -8vmax) scale(1.08); } }
-@keyframes g-float3 { to { transform: translate(-18vmax, 6vmax) scale(.9); } }
-@keyframes g-twinkle { 0%, 100% { opacity: 0; transform: scale(.6); } 50% { opacity: .9; transform: scale(1); } }
 @keyframes g-shine { 0% { transform: translateX(120%) skewX(-20deg); } 35%, 100% { transform: translateX(-160%) skewX(-20deg); } }
 @keyframes g-rot { to { transform: rotate(360deg); } }
 @keyframes g-chip-in { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; } }

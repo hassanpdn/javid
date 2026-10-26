@@ -4,6 +4,7 @@ import { ref, onMounted, onUnmounted } from "vue"
 import { computed } from "vue"
 import { api, session, store } from "../lib/api.js"
 import { schoolInfo, setupUi } from "../lib/school.js"
+import { gate } from "../lib/gate.js"
 import FeatureToggles from "../components/FeatureToggles.vue"
 import { gsap, motion } from "../lib/motion.js"
 import Icon from "../components/Icon.vue"
@@ -110,6 +111,7 @@ onUnmounted(() => ctx?.revert())
         <p class="auth-note"><Icon name="shield" :size="16" /> همه داده‌های این نسخه ساختگی است.</p>
         <div class="login-tools">
           <button type="button" class="link switch-school new-demo" @click="setupUi.open = true"><Icon name="school" :size="16" />دموی جدید برای مدرسه دیگر</button>
+          <button v-if="gate.hub" type="button" class="link switch-school" @click="gate.app = ''"><Icon name="dashboard" :size="16" />همه‌ی دستیارها</button>
           <button type="button" class="link switch-school roles-toggle" :aria-expanded="rolesOpen" @click="rolesOpen = !rolesOpen"><Icon name="users" :size="16" />چه کسانی وارد شوند</button>
         </div>
         <div v-if="rolesOpen" v-pop:drop class="roles-panel"><FeatureToggles /></div>

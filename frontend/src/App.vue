@@ -1,11 +1,12 @@
 <script setup>
-// Root: the site's door (live demo only), the school setup form (first run, or when asked for),
+// Root: the site's door and the list of assistants (live demo only), the school setup form (first run, or when asked for),
 // the login page, or the panel for the user's role
 import { computed, watch, onMounted } from "vue"
 import { api, session, clearSession, lockScroll } from "./lib/api.js"
 import { schoolInfo, setupUi, loadSchool } from "./lib/school.js"
 import { gate, checkGate } from "./lib/gate.js"
 import GatePage from "./pages/GatePage.vue"
+import HubPage from "./pages/HubPage.vue"
 import SetupPage from "./pages/SetupPage.vue"
 import LoginPage from "./pages/LoginPage.vue"
 import ManagerPanel from "./pages/ManagerPanel.vue"
@@ -41,6 +42,7 @@ watch(user, () => lockScroll(false))
 <template>
   <template v-if="!gate.checked"></template>
   <GatePage v-else-if="!gate.ok" @entered="entered" />
+  <HubPage v-else-if="gate.hub && !gate.app" @open="(key) => gate.app = key" />
   <template v-else-if="!schoolInfo.loaded"></template>
   <SetupPage v-else-if="!user && (!schoolInfo.set_up || setupUi.open)" />
   <LoginPage v-else-if="!user" />
