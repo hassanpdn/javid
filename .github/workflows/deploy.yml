@@ -1,0 +1,56 @@
+# Every push to a claude/ branch is merged into main, and every change to main goes to the server.
+# No tests run here (this is a demo; tests run by hand when asked).
+#
+# The server side is set up once by hand: see deploy/README.md.
+# Secrets (repo Settings > Secrets and variables > Actions):
+#   DEPLOY_SSH_KEY      private key whose public half is in /home/javid/.ssh/authorized_keys on the server
+#   DEPLOY_KNOWN_HOSTS  output of `ssh-keyscan -t ed25519 <server>`, so the runner only talks to the real server
+#   DEPLOY_HOST         the server's address, e.g. 89.45.89.72
+name: Merge and deploy
+
+on:
+  push:
+    branches: [main, "claude/**"]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+jobs:
+  merge:
+    # A push to main itself has nothing to merge
+    if: github.ref != 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Merge this branch into main
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout main
+          git merge --no-edit "origin/${GITHUB_REF_NAME}"
+          git push origin main
+
+  deploy:
+    needs: merge
+    # Runs after a successful merge, or straight away for a push to main (merge skipped)
+    if: always() && (needs.merge.result == 'success' || needs.merge.result == 'skipped')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Update the server
+        env:
+          KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+          HOST: ${{ secrets.DEPLOY_HOST }}
+        run: |
+          if [ -z "$KEY" ]; then echo "No DEPLOY_SSH_KEY secret yet: server not updated"; exit 0; fi
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$KEY" > ~/.ssh/deploy && chmod 600 ~/.ssh/deploy
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+          # The key may only run the update script on the server (forced command), so no command is sent
+          ssh -i ~/.ssh/deploy -o ConnectTimeout=30 -o BatchMode=yes "javid@$HOST"
