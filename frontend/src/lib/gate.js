@@ -22,9 +22,12 @@ export async function enterGate(username, password) {
     const res = await fetch("/gate/login", {
       method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ username, password }),
     })
+    // the door page is in English, so the messages are too
     if (res.ok) return ""
-    return (await res.json()).detail || "ورود انجام نشد"
-  } catch { return "اتصال برقرار نشد. اینترنت را بررسی کنید." }
+    if (res.status === 401) return "Wrong username or password."
+    if (res.status === 429) return "Too many tries. Please wait a few minutes."
+    return "Sign in failed. Please try again."
+  } catch { return "Can't connect. Check your internet connection." }
 }
 
 // leave the site: the door closes for this browser and the door page comes back

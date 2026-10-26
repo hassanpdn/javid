@@ -16,7 +16,7 @@ const ASSISTANTS = [
     perks: [{ icon: "sparkles", text: "خلاصه‌ی امروز" }, { icon: "mail", text: "نامه‌ی تازه" }, { icon: "heart", text: "کمک به موقع" }],
   },
 ]
-onMounted(() => { document.title = "دستیارهای هوشمند" })
+onMounted(() => { document.title = "Pudineh Agent Center" })
 
 // the light on the card follows the pointer, and the card leans a little toward it
 const move = (e) => {
@@ -32,7 +32,7 @@ const leave = (e) => { e.currentTarget.style.setProperty("--rx", "0deg"); e.curr
   <main class="hub">
     <AuroraBg />
     <header class="h-top">
-      <div class="h-brand"><span class="h-mark"><Icon name="sparkles" :size="20" /></span>دستیارهای هوشمند</div>
+      <div class="h-brand"><span class="h-mark"><Icon name="sparkles" :size="20" /></span><span dir="ltr" lang="en">Pudineh Agent Center</span></div>
       <button class="h-out" @click="leaveGate"><Icon name="logout" :size="17" />خروج</button>
     </header>
 

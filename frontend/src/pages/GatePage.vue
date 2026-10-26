@@ -1,5 +1,6 @@
 <script setup>
 // The site's door on the live demo: one username and password before anything else.
+// In English and left to right: it is the front page of Pudineh Agent Center, not of one assistant.
 // Dark on purpose in both themes, so it looks the same for everyone. Not about schools: after the door comes
 // the list of assistants (HubPage), and the school assistant is one of them.
 import { ref, onMounted } from "vue"
@@ -14,17 +15,20 @@ const error = ref(""), sending = ref(false), shake = ref(false)
 const userEl = ref(null)
 // what the assistants do, floating around the card on wide screens
 const CHIPS = [
-  { text: "نامه‌ها را می‌خواند و جواب می‌نویسد", icon: "mail", tone: "a" },
-  { text: "خلاصه‌ی هر روز، بدون گشتن", icon: "dashboard", tone: "b" },
-  { text: "عددها را خودش حساب می‌کند", icon: "chart", tone: "c" },
-  { text: "تصمیم همیشه با شماست", icon: "check", tone: "d" },
-  { text: "جواب از روی مدارک خودتان", icon: "book", tone: "e" },
+  { text: "Works with your own data", icon: "book", tone: "a" },
+  { text: "Every number checked, never guessed", icon: "chart", tone: "b" },
+  { text: "You make the final call", icon: "check", tone: "c" },
+  { text: "Drafts the routine work for you", icon: "edit", tone: "d" },
+  { text: "One assistant for every role", icon: "users", tone: "e" },
 ]
-onMounted(() => { if (window.matchMedia("(min-width: 768px)").matches) userEl.value?.focus() })
+onMounted(() => {
+  document.title = "Pudineh Agent Center"
+  if (window.matchMedia("(min-width: 768px)").matches) userEl.value?.focus()
+})
 
 const submit = async () => {
   if (sending.value) return
-  if (!username.value.trim() || !password.value) { fail("نام کاربری و رمز عبور را وارد کنید"); return }
+  if (!username.value.trim() || !password.value) { fail("Enter your username and password."); return }
   sending.value = true; error.value = ""
   const msg = await enterGate(username.value, password.value)
   sending.value = false
@@ -39,7 +43,7 @@ const fail = (msg) => {
 </script>
 
 <template>
-  <main class="gate">
+  <main class="gate" dir="ltr" lang="en">
     <AuroraBg />
 
     <ul class="g-chips" aria-hidden="true">
@@ -48,23 +52,23 @@ const fail = (msg) => {
 
     <section :class="['g-card', { shake }]" @animationend="shake = false">
       <div class="g-orb"><AiOrb :size="104" :busy="sending" /></div>
-      <h1>دستیارهای هوشمند</h1>
-      <p class="g-sub">نسخه‌ی نمایشی. برای دیدن دستیارها وارد شوید.</p>
+      <h1>Pudineh Agent Center</h1>
+      <p class="g-sub">Demo access. Sign in to see the assistants.</p>
 
       <form class="g-form" @submit.prevent="submit" novalidate>
         <label class="g-field">
-          <span class="g-label">نام کاربری</span>
+          <span class="g-label">Username</span>
           <span class="g-input">
             <Icon name="user" :size="19" />
             <input ref="userEl" v-model="username" name="username" autocomplete="username" autocapitalize="none" spellcheck="false" dir="ltr" required />
           </span>
         </label>
         <label class="g-field">
-          <span class="g-label">رمز عبور</span>
+          <span class="g-label">Password</span>
           <span class="g-input">
             <Icon name="lock" :size="19" />
             <input v-model="password" name="password" :type="show ? 'text' : 'password'" autocomplete="current-password" dir="ltr" required />
-            <button type="button" class="g-eye" :aria-label="show ? 'پنهان کردن رمز' : 'نشان دادن رمز'" :aria-pressed="show" @click="show = !show">
+            <button type="button" class="g-eye" :aria-label="show ? 'Hide password' : 'Show password'" :aria-pressed="show" @click="show = !show">
               <Icon :name="show ? 'eyeOff' : 'eye'" :size="19" />
             </button>
           </span>
@@ -72,8 +76,8 @@ const fail = (msg) => {
         <p class="g-error" role="alert">{{ error }}</p>
         <button class="g-btn" :disabled="sending">
           <span v-if="sending" class="g-spin" aria-hidden="true"></span>
-          <span>{{ sending ? "در حال ورود" : "ورود" }}</span>
-          <Icon v-if="!sending" name="arrowLeft" :size="18" />
+          <span>{{ sending ? "Signing in" : "Sign in" }}</span>
+          <Icon v-if="!sending" name="arrowRight" :size="18" />
         </button>
       </form>
     </section>
@@ -105,9 +109,9 @@ h1 { margin: 0; font-size: 26px; font-weight: 700; line-height: 1.5;
   background: linear-gradient(90deg, #fff, #c9c3ff 45%, #8fefff); -webkit-background-clip: text; background-clip: text; color: transparent; }
 .g-sub { margin: 4px 0 24px; color: #b7b3d9; font-size: 14px; }
 
-.g-form { display: flex; flex-direction: column; gap: 14px; text-align: right; }
+.g-form { display: flex; flex-direction: column; gap: 14px; text-align: left; }
 .g-field { display: flex; flex-direction: column; gap: 6px; }
-.g-label { font-size: 13px; font-weight: 700; color: #d6d3f5; }
+.g-label { font-size: 13px; font-weight: 700; color: #d6d3f5; letter-spacing: .02em; }
 .g-input { display: flex; align-items: center; gap: 10px; padding: 0 14px; height: 52px; border-radius: 14px;
   background: rgba(10,9,32,.55); border: 1px solid rgba(255,255,255,.14); color: #9a96c4; transition: border-color .2s, box-shadow .2s, background .2s; }
 .g-input:focus-within { border-color: #8f85ff; background: rgba(10,9,32,.75); box-shadow: 0 0 0 4px rgba(143,133,255,.22); color: #c9c3ff; }
