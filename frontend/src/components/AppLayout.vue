@@ -1,6 +1,6 @@
 <script setup>
 // Vuexy vertical layout: sidebar on the right, navbar on top, page content in the slot.
-// nav: [{ header }] or [{ key, label, icon, badge }]. v-model is the key of the open page.
+// nav: [{ header }] or [{ key, label, icon, badge, more }]. v-model is the key of the open page.
 // chat: settings for the floating assistant in the bottom-right corner (endpoint, title, examples, ...).
 // app: "school" (default) or "fabric"; brand: { letter, name, sub } for the sidebar (default: the school).
 import { ref, computed, watch, onMounted, onUnmounted } from "vue"
@@ -26,7 +26,9 @@ const brandInfo = computed(() => props.brand ||
   { letter: (schoolInfo.school.name || "ج")[0], name: schoolInfo.school.full_name, sub: "دستیار هوشمند مدرسه" })
 const menuOpen = ref(false), userOpen = ref(false), wrap = ref(null), side = ref(null), themeIcon = ref(null)
 // phones: the bottom tab bar holds the pages, the assistant, notifications and an account sheet ("me")
-const tabs = computed(() => (props.nav || []).filter((i) => i.key))
+// items marked more: true stay in the sidebar on wide screens but go into the account sheet on phones
+const tabs = computed(() => (props.nav || []).filter((i) => i.key && !i.more))
+const moreItems = computed(() => (props.nav || []).filter((i) => i.key && i.more))
 const meOpen = ref(false)
 watch(meOpen, lockScroll)
 
@@ -122,6 +124,8 @@ onUnmounted(() => { document.removeEventListener("click", outside); lockScroll(f
     <div v-if="phone && meOpen" class="overlay" @click.self="meOpen = false">
       <div class="dialog me-sheet" v-pop>
         <div class="me-head"><Avatar :name="user.full_name" :size="54" /><div><b>{{ user.full_name }}</b><small>{{ user.role_name }} · {{ brandInfo.name }}</small></div></div>
+        <button v-for="m in moreItems" :key="m.key" :class="['me-item', { on: m.key === page }]" @click="meOpen = false; pick(m.key)">
+          <Icon :name="m.icon" :size="22" /><span>{{ m.label }}</span></button>
         <button class="me-item" @click="toggleTheme"><Icon :name="theme.dark ? 'sun' : 'moon'" :size="22" /><span>{{ theme.dark ? 'حالت روشن' : 'حالت تیره' }}</span></button>
         <button class="me-item danger" @click="logout"><Icon name="logout" :size="22" /><span>خروج از حساب</span></button>
       </div>

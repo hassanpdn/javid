@@ -5,6 +5,8 @@ build()       makes a believable four months of business in three workbooks (sto
 import_all()  reads the three workbooks into fabric.db. Like a real office's files they are a little messy
               (a customer written three ways, Persian digits, a hand-typed total row); every fix is noted
               in import_notes so the panel can show what the assistant cleaned up.
+              PLANTED also leaves the marks a theft leaves: an invoice missing from the sales file and a day
+              when less cash reached the bank. facts.reconcile() finds them from the numbers alone.
 add_invoice() a sale confirmed at the phone desk goes into all three files: a row in sales, fewer rolls in
               stock, and the cheque in accounts when it is paid by cheque.
 """
@@ -32,7 +34,8 @@ def path(key):
 # ---------- column names, the same ones a person would type ----------
 
 STOCK_COLS = ["کد کالا", "شرح کالا", "جنس", "رنگ", "عرض (سانتی‌متر)", "تعداد توپ", "متراژ هر توپ", "متراژ موجود",
-              "قیمت خرید هر متر", "قیمت فروش هر متر", "تأمین‌کننده", "تاریخ آخرین ورود"]
+              "موجودی اول دوره (متر)", "قیمت خرید هر متر", "قیمت فروش هر متر", "تأمین‌کننده", "تاریخ آخرین ورود"]
+STOCK_IN_COLS = ["تاریخ", "کد کالا", "شرح کالا", "توپ", "متراژ", "تأمین‌کننده"]
 SALES_COLS = ["شماره فاکتور", "تاریخ", "مشتری", "کد کالا", "شرح کالا", "توپ", "متراژ", "قیمت هر متر", "مبلغ",
               "نوع پرداخت", "فروشنده"]
 CUSTOMER_COLS = ["کد مشتری", "نام", "فروشگاه", "شهر", "تلفن", "سقف اعتبار", "مانده اول دوره"]
@@ -40,7 +43,8 @@ RECEIPT_COLS = ["تاریخ", "مشتری", "مبلغ", "روش"]
 CHEQUE_IN_COLS = ["شماره چک", "بانک", "مشتری", "مبلغ", "تاریخ سررسید", "وضعیت"]
 CHEQUE_OUT_COLS = ["شماره چک", "در وجه", "مبلغ", "تاریخ سررسید", "وضعیت"]
 BANK_COLS = ["تاریخ", "موجودی حساب"]
-MONEY_COLS = {"قیمت خرید هر متر", "قیمت فروش هر متر", "قیمت هر متر", "مبلغ", "سقف اعتبار", "مانده اول دوره", "موجودی حساب"}
+CASH_COLS = ["تاریخ", "واریز فروش نقدی"]
+MONEY_COLS = {"قیمت خرید هر متر", "قیمت فروش هر متر", "قیمت هر متر", "مبلغ", "سقف اعتبار", "مانده اول دوره", "موجودی حساب", "واریز فروش نقدی"}
 
 # ---------- the simulated business ----------
 
@@ -87,6 +91,11 @@ PLANTED = {
     "quiet": "مهدی فرهادی",        # bought every week or two, nothing for two months
     "fast": ("کتان کش", "آبی نفتی"),  # sells fast, about three days of stock left
     "dead": [("پشمی پالتویی", "شتری"), ("مخمل پرده‌ای", "طلایی"), ("ساتن آمریکایی", "زرشکی"), ("ململ", "سفید")],
+    # what the three files show after a theft: an invoice that was written and then removed from the sales file
+    # (its fabric left the warehouse, so stock no longer adds up), and one day when less cash reached the bank
+    "hidden_invoice": {"days_ago": 12, "customer": "رضا احمدی",
+                       "lines": [(("مخمل ساده", "سرمه‌ای"), 2), (("چادری کن‌کن", "مشکی"), 1)]},
+    "cash_short": {"days_ago": 5, "amount": 6_500_000},
 }
 
 def _round(v, step=1000):
@@ -122,8 +131,19 @@ def simulate():
     sales, cheques_in, receipts = [], [], []
     number = 1400
     day = start
+    hidden = PLANTED["hidden_invoice"]
+    hidden_done = False
     while day <= t:
         wd = day.weekday()                       # Monday = 0 ... Friday = 4 (closed)
+        if wd not in (3, 4) and not hidden_done and (t - day).days <= hidden["days_ago"]:
+            # the invoice that will be missing from the sales file: written first thing that day, paid in cash
+            hidden_done = True
+            number += 1
+            for key, rolls in hidden["lines"]:
+                p = by_key[key]
+                sales.append({"no": number, "date": day, "customer": hidden["customer"], "p": p, "rolls": rolls,
+                              "meters": rolls * p["roll_meters"], "price": p["sell"], "amount": _round(rolls * p["roll_meters"] * p["sell"]),
+                              "payment": "نقد", "seller": seller, "hidden": True})
         if wd != 4:
             count = rnd.randint(1, 3) if wd == 3 else rnd.randint(3, 6)
             if day == t:
@@ -206,6 +226,30 @@ def simulate():
     for p in products:
         p["meters"] = p["rolls"] * p["roll_meters"]
 
+    # deliveries from suppliers over the four months, and the stock at the start of the period, chosen so that
+    # start + deliveries - everything that really left = what is on the shelves now
+    stock_in = []
+    for p in products:
+        left = sum(x["meters"] for x in sales if x["p"] is p)
+        rolls_in = min(int(left * rnd.uniform(.65, .95) / p["roll_meters"]), int((left + p["meters"]) / p["roll_meters"]))
+        p["opening"] = p["meters"] + left - rolls_in * p["roll_meters"]
+        parts = sorted(rnd.sample(range(8, 110), k=min(3, rolls_in)), reverse=True) if rolls_in else []
+        for i, ago in enumerate(parts):
+            n = rolls_in // len(parts) + (1 if i < rolls_in % len(parts) else 0)
+            stock_in.append({"date": t - timedelta(days=ago), "p": p, "rolls": n, "meters": n * p["roll_meters"]})
+        if parts:
+            p["received"] = t - timedelta(days=parts[-1])
+    stock_in.sort(key=lambda r: r["date"])
+
+    # cash sales are taken to the bank every evening; one evening less arrived than was sold
+    cash = {}
+    for x in sales:
+        if x["payment"] == "نقد" and not x.get("hidden") and x["date"] < t:
+            cash[x["date"]] = cash.get(x["date"], 0) + x["amount"]
+    short = PLANTED["cash_short"]
+    short_day = min((d for d in cash if cash[d] > short["amount"] * 2), key=lambda d: abs((t - d).days - short["days_ago"]))
+    deposits = [{"date": d, "amount": v - (short["amount"] if d == short_day else 0)} for d, v in sorted(cash.items())]
+
     # the wholesaler's own cheques to suppliers. Next week more goes out than comes in plus what is in the bank.
     incoming_week = sum(q["amount"] for q in cheques_in if q["status"] == "در جریان" and 0 <= (q["due"] - t).days <= 7)
     bank = 210_000_000
@@ -221,7 +265,7 @@ def simulate():
     cheques_out.append({"number": str(rnd.randint(100000, 999999)), "payee": "ریسندگی بروجرد", "amount": 180_000_000,
                         "due": t + timedelta(days=24), "status": "در جریان"})
     return {"products": products, "customers": customers, "sales": sales, "receipts": receipts,
-            "cheques_in": cheques_in, "cheques_out": cheques_out, "bank": bank}
+            "cheques_in": cheques_in, "cheques_out": cheques_out, "bank": bank, "stock_in": stock_in, "deposits": deposits}
 
 # ---------- writing the workbooks ----------
 
@@ -256,13 +300,17 @@ def write_workbooks(data):
     wb = openpyxl.Workbook()
     ws = wb.active; ws.title = "انبار"
     _sheet(ws, STOCK_COLS, [[p["code"], f"{p['name']} {p['color']}", p["material"], p["color"], p["width"], p["rolls"],
-                             p["roll_meters"], p["meters"], p["buy"], p["sell"], p["supplier"], jstr(p["received"])]
+                             p["roll_meters"], p["meters"], p["opening"], p["buy"], p["sell"], p["supplier"], jstr(p["received"])]
                             for p in data["products"]])
+    _sheet(wb.create_sheet("ورود کالا"), STOCK_IN_COLS, [[jstr(r["date"]), r["p"]["code"], f"{r['p']['name']} {r['p']['color']}", r["rolls"],
+                                                       r["meters"], r["p"]["supplier"]] for r in data["stock_in"]])
     wb.save(path("stock"))
 
     rows = []
     bounced = PLANTED["bounced"]
     for s in data["sales"]:
+        if s.get("hidden"):
+            continue
         name = s["customer"]
         if name == bounced:   # the same customer, typed three ways over the months
             name = rnd.choices([name, "حاج " + name, "حاج " + name.split()[-1]], [.6, .25, .15])[0]
@@ -271,7 +319,7 @@ def write_workbooks(data):
             meters = _fa(meters)
         rows.append([s["no"], jstr(s["date"]), name, s["p"]["code"], f"{s['p']['name']} {s['p']['color']}", s["rolls"],
                      meters, s["price"], s["amount"], s["payment"], s["seller"]])
-    rows.append(["جمع کل", "", "", "", "", "", "", "", sum(s["amount"] for s in data["sales"]), "", ""])   # a hand-typed total
+    rows.append(["جمع کل", "", "", "", "", "", "", "", sum(s["amount"] for s in data["sales"] if not s.get("hidden")), "", ""])   # a hand-typed total
     wb = openpyxl.Workbook()
     ws = wb.active; ws.title = "فروش"
     _sheet(ws, SALES_COLS, rows)
@@ -285,6 +333,7 @@ def write_workbooks(data):
            [[q["number"], q["bank"], q["customer"], q["amount"], jstr(q["due"]), q["status"]] for q in sorted(data["cheques_in"], key=lambda q: q["due"])])
     _sheet(wb.create_sheet("چک‌های پرداختی"), CHEQUE_OUT_COLS,
            [[q["number"], q["payee"], q["amount"], jstr(q["due"]), q["status"]] for q in sorted(data["cheques_out"], key=lambda q: q["due"])])
+    _sheet(wb.create_sheet("صندوق"), CASH_COLS, [[jstr(r["date"]), r["amount"]] for r in data["deposits"]])
     _sheet(wb.create_sheet("بانک"), BANK_COLS, [[jstr(today()), data["bank"]]])
     wb.save(path("accounts"))
 
@@ -356,11 +405,18 @@ def import_all():
         rolls = number(r["تعداد توپ"], fixes) or 0
         roll_m = number(r["متراژ هر توپ"], fixes) or 0
         meters = number(r["متراژ موجود"], fixes)
+        opening = number(r["موجودی اول دوره (متر)"], fixes)
         products.append((str(r["کد کالا"]).strip(), normal(r["شرح کالا"]).replace(" " + normal(r["رنگ"]), "") if r["رنگ"] else normal(r["شرح کالا"]),
                          normal(r["جنس"]), normal(r["رنگ"]), number(r["عرض (سانتی‌متر)"], fixes) or 0, rolls, roll_m,
                          meters if meters is not None else rolls * roll_m, number(r["قیمت خرید هر متر"], fixes) or 0,
-                         number(r["قیمت فروش هر متر"], fixes) or 0, normal(r["تأمین‌کننده"]), (jdate(r["تاریخ آخرین ورود"]) or today()).isoformat()))
+                         number(r["قیمت فروش هر متر"], fixes) or 0, normal(r["تأمین‌کننده"]), (jdate(r["تاریخ آخرین ورود"]) or today()).isoformat(),
+                         opening or 0))
     codes = {p[0] for p in products}
+    stock_in = []
+    for r in _rows(_sheet_of(stock, "ورود کالا"), STOCK_IN_COLS):
+        d = jdate(r["تاریخ"])
+        if d and r["کد کالا"]:
+            stock_in.append((d.isoformat(), str(r["کد کالا"]).strip(), number(r["توپ"], fixes) or 0, number(r["متراژ"], fixes) or 0, normal(r["تأمین‌کننده"])))
 
     customers = []
     for r in _rows(_sheet_of(acc, "مشتریان"), CUSTOMER_COLS):
@@ -419,6 +475,11 @@ def import_all():
         d = jdate(r["تاریخ سررسید"])
         if d:
             cheques_out.append((str(r["شماره چک"] or ""), normal(r["در وجه"]), number(r["مبلغ"], fixes) or 0, d.isoformat(), normal(r["وضعیت"])))
+    deposits = []
+    for r in _rows(_sheet_of(acc, "صندوق"), CASH_COLS):
+        d = jdate(r["تاریخ"])
+        if d:
+            deposits.append((d.isoformat(), number(r["واریز فروش نقدی"], fixes) or 0))
     bank_rows = list(_rows(_sheet_of(acc, "بانک"), BANK_COLS))
     bank = number(bank_rows[-1]["موجودی حساب"], fixes) if bank_rows else 0
 
@@ -440,7 +501,10 @@ def import_all():
     with store.conn() as c:
         for t in store.DATA_TABLES:
             c.execute(f"DELETE FROM {t}")
-        c.executemany("INSERT INTO products VALUES (?,?,?,?,?,?,?,?,?,?,?,?)", products)
+        c.executemany("""INSERT INTO products (code, name, material, color, width, rolls, roll_meters, meters, buy_price, sell_price,
+                         supplier, received, opening) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)""", products)
+        c.executemany("INSERT INTO stock_in (date, code, rolls, meters, supplier) VALUES (?,?,?,?,?)", stock_in)
+        c.executemany("INSERT INTO cash_deposits (date, amount) VALUES (?,?)", deposits)
         c.executemany("INSERT INTO customers VALUES (?,?,?,?,?,?,?)", customers)
         c.executemany("INSERT INTO invoices (id, date, customer_id, seller, payment, total, source) VALUES (?,?,?,?,?,?, 'excel')",
                       [(no, i["date"], i["customer_id"], i["seller"], i["payment"], i["total"]) for no, i in invoices.items()])
@@ -466,7 +530,14 @@ def build():
                       (username, store.school_db.hash_password("1234"), business.person(role, s), role))
         store.set_meta(c, "built_for", today().isoformat())
     write_workbooks(simulate())
-    return import_all()
+    result = import_all()
+    with store.conn() as c:   # the log starts with the files being read, and this morning's invoices from the sales file
+        store.log(c, None, "import", "سه فایل اکسل خوانده شد", {"files": ["انبار", "فروش", "حسابداری"]})
+        seller = {"full_name": business.person("seller", s), "role": "seller"}
+        for inv in c.execute("SELECT i.id, i.total, cu.name FROM invoices i JOIN customers cu ON cu.id = i.customer_id WHERE i.date = ? ORDER BY i.id",
+                             (today().isoformat(),)).fetchall():
+            store.log(c, seller, "invoice", f"فاکتور {inv['id']} برای {inv['name']} در فایل فروش ثبت شده", {"files": ["فروش", "انبار"]})
+    return result
 
 # ---------- a sale from the phone desk goes into the files ----------
 

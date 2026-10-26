@@ -5,10 +5,11 @@ Roles: owner (صاحب کار) sees everything; seller (فروشنده) works th
 accountant (حسابدار) works cheques, debts and reminder messages. The model writes text only: every
 number in what it writes is checked against facts computed by code, with a code-written fallback.
 """
-import base64, os, re, shutil, threading
+import base64, io, json, os, re, shutil, threading
 from datetime import date, timedelta
+from urllib.parse import quote
 from fastapi import APIRouter, Depends, Header, HTTPException
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, StreamingResponse
 from pydantic import BaseModel, Field
 from llm import ask_llm, ask_json
 from checks import only_known_numbers, numbers
@@ -49,6 +50,8 @@ def login(req: Login):
     if not result:
         raise HTTPException(status_code=401, detail="نام کاربری یا رمز عبور اشتباه است")
     token, user = result
+    with store.conn() as c:
+        store.log(c, user, "login", "وارد شد")
     return {"token": token, "user": store.public_user(user)}
 
 @router.get("/me")
@@ -131,7 +134,8 @@ def _written(prompt, data, fallback, max_tokens=350):
 @router.get("/overview")
 def overview(user: dict = Depends(OWNER)):
     with store.conn() as c:
-        return facts.overview(c)
+        o = facts.overview(c)
+        return o | {"how": facts.overview_how(c, o)}
 
 @router.get("/brief")
 def brief(user: dict = Depends(OWNER)):
@@ -317,9 +321,17 @@ def order_confirm(req: Confirm, user: dict = Depends(DESK)):
                 c.execute("INSERT INTO cheques_in (number, bank, customer_id, amount, due, status) VALUES (?,?,?,?,?, 'در جریان')",
                           (cheque["number"], cheque["bank"], cust["id"], total, cheque["due"].isoformat()))
         excel.add_invoice(no, d, cust["name"], lines, req.payment, seller, cheque)
+        # what changed where, one line per file: shown to the seller now and kept in the event log
+        rolls = sum(l["rolls"] for l in lines)
+        steps = [{"file": "فروش", "text": f"{len(lines)} ردیف برای فاکتور {no} اضافه شد"},
+                 {"file": "انبار", "text": (f"{rolls} توپ، " if rolls else "") + f"{meters(sum(l['meters'] for l in lines))} از موجودی کم شد"}]
+        if cheque:
+            steps.append({"file": "حسابداری", "text": f"چک {money(total)} با سررسید {jday(cheque['due'].isoformat())} ثبت شد"})
+        with store.conn() as c:
+            store.log(c, user, "invoice", f"فاکتور {no} برای {cust['name']} ثبت شد · {money(total)} · {req.payment}",
+                      {"files": [x["file"] for x in steps], "steps": steps})
         _cache.clear()
-    files = ["فروش", "انبار"] + (["حسابداری"] if cheque else [])
-    return {"invoice": no, "total": total, "files": files}
+    return {"invoice": no, "total": total, "files": [x["file"] for x in steps], "steps": steps}
 
 # ---------- stock ----------
 
@@ -385,6 +397,8 @@ def reminder_sent(req: ReminderSent, user: dict = Depends(BOOKS)):
     """The accountant sent it (the demo sends nothing out); we note when, so the list shows it."""
     with store.conn() as c:
         c.execute("INSERT INTO reminders (customer_id, text, sent_at) VALUES (?,?,?)", (req.customer_id, req.text, store.stamp()))
+        who = c.execute("SELECT name FROM customers WHERE id = ?", (req.customer_id,)).fetchone()
+        store.log(c, user, "reminder", f"پیامک یادآوری برای {who['name'] if who else 'مشتری'} فرستاد")
     return {"ok": True}
 
 # ---------- the three Excel files ----------
@@ -430,7 +444,13 @@ def file_upload(key: str, req: Upload, user: dict = Depends(require("owner", "ac
     if not raw.startswith(b"PK"):
         raise HTTPException(status_code=400, detail="فقط فایل اکسل (xlsx) قبول می‌شود")
     p = excel.path(key)
+    tables = {"products": "جنس", "invoices": "فاکتور", "customers": "مشتری", "receipts": "دریافتی",
+              "cheques_in": "چک دریافتی", "cheques_out": "چک پرداختی", "stock_in": "ورود کالا", "cash_deposits": "واریز صندوق"}
+    def counts():
+        with store.conn() as c:
+            return {t: c.execute(f"SELECT COUNT(*) FROM {t}").fetchone()[0] for t in tables}
     with _lock:
+        before = counts()
         shutil.copy(p, p + ".bak")
         with open(p, "wb") as f:
             f.write(raw)
@@ -440,8 +460,70 @@ def file_upload(key: str, req: Upload, user: dict = Depends(require("owner", "ac
             shutil.move(p + ".bak", p)
             raise HTTPException(status_code=400, detail=str(e) if isinstance(e, ValueError) else "این فایل خوانده نشد")
         os.remove(p + ".bak")
+        after = counts()
+        changes = [f"{tables[t]}: {before[t]} ← {after[t]}" for t in tables if before[t] != after[t]]
+        name = excel.FILES[key][1].replace(".xlsx", "")
+        with store.conn() as c:
+            store.log(c, user, "upload", f"فایل {name} را با نسخه‌ی خودش عوض کرد" + ("" if changes else " (تعداد ردیف‌ها همان ماند)"),
+                      {"files": [name], "changes": changes})
         _cache.clear()
-    return result
+    return result | {"changes": changes}
+
+# ---------- do the files agree, who did what, reports ----------
+
+@router.get("/reconcile")
+def reconcile(user: dict = Depends(BOOKS)):
+    with store.conn() as c:
+        return facts.reconcile(c)
+
+@router.get("/events")
+def events(after: int = 0, user: dict = Depends(OWNER)):
+    """The event log, newest first. after: only events newer than this id (the dashboard asks every few seconds)."""
+    with store.conn() as c:
+        rows = c.execute("SELECT * FROM events WHERE id > ? ORDER BY id DESC LIMIT 60", (after,)).fetchall()
+    out = []
+    for r in rows:
+        day, _, time = r["at"].partition(" ")
+        out.append({"id": r["id"], "time": time, "day": jday(day), "today": day == excel.today().isoformat() or day == store.stamp()[:10],
+                    "who": r["who"], "role": store.ROLE_NAMES.get(r["role"], ""), "kind": r["kind"], "text": r["text"],
+                    "detail": json.loads(r["detail"]) if r["detail"] else None})
+    return out
+
+def _period(period):
+    if period not in facts.PERIODS:
+        raise HTTPException(status_code=400, detail="دوره‌ی گزارش درست نیست")
+    return period
+
+@router.get("/report")
+def report(period: str = "month", user: dict = Depends(BOOKS)):
+    with store.conn() as c:
+        return facts.report(c, _period(period))
+
+@router.get("/report/download")
+def report_download(period: str = "month", user: dict = Depends(BOOKS)):
+    """The same report as an Excel file: a summary sheet with where each figure comes from, and the invoices."""
+    with store.conn() as c:
+        r = facts.report(c, _period(period))
+        checks = facts.reconcile(c)
+    wb = excel.openpyxl.Workbook()
+    ws = wb.active; ws.title = "خلاصه"
+    rows = [[business.current()["name"], f"گزارش {r['label']}", r["span"]], []]
+    for sec in r["sections"]:
+        rows.append([sec["title"]])
+        rows += [[row["label"], row["value"], row["how"]] for row in sec["rows"]]
+        rows.append([])
+    rows.append(["تطبیق سه فایل"])
+    rows += [[ch["title"], "جور است" if ch["ok"] else "مغایرت دارد", ch["text"]] for ch in checks["checks"]]
+    rows += [["مغایرت", i["title"], " | ".join(i["how"])] for i in checks["issues"]]
+    excel._sheet(ws, ["عنوان", "مقدار", "از کجا آمده"], [(r + ["", "", ""])[:3] for r in rows])
+    excel._sheet(wb.create_sheet("فاکتورها"), ["شماره فاکتور", "تاریخ", "مشتری", "شهر", "نوع پرداخت", "مبلغ"],
+                 [[i["id"], jday(i["date"]), i["customer"], i["city"], i["payment"], i["total"]] for i in r["invoices"]])
+    for cell in wb["فاکتورها"]["F"][1:]:
+        cell.number_format = "#,##0"
+    buf = io.BytesIO(); wb.save(buf); buf.seek(0)
+    name = f"گزارش {r['label']}.xlsx"
+    return StreamingResponse(buf, media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                             headers={"Content-Disposition": f"attachment; filename*=UTF-8''{quote(name)}"})
 
 # ---------- questions about the business ----------
 

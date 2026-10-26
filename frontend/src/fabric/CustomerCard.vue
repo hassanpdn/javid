@@ -7,6 +7,7 @@ import { money, meters } from "./lib.js"
 import Icon from "../components/Icon.vue"
 import Avatar from "../components/Avatar.vue"
 import Skeleton from "../components/Skeleton.vue"
+import HowTip from "./HowTip.vue"
 
 const props = defineProps({ id: Number, compact: { type: Boolean, default: false } })
 const emit = defineEmits(["loaded"])
@@ -38,7 +39,7 @@ const pct = (k) => k.credit_limit ? Math.min(100, Math.round(100 * k.exposure / 
 
     <section class="card">
       <div class="fc-nums">
-        <div><small>بدهی</small><b :class="{ 't-bad': k.debt > 0 }">{{ money(k.debt) }}</b></div>
+        <div><small>بدهی <HowTip :lines="k.debt_parts" label="" /></small><b :class="{ 't-bad': k.debt > 0 }">{{ money(k.debt) }}</b></div>
         <div><small>چک در جریان</small><b>{{ money(k.open_cheques) }}</b></div>
         <div><small>سقف اعتبار</small><b>{{ money(k.credit_limit) }}</b></div>
       </div>

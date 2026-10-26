@@ -30,6 +30,10 @@ def money(v):
         return f"{sign}{round(v / 1000)} هزار تومان"
     return f"{sign}{v} تومان"
 
+def toman(v):
+    """The exact amount with separators, for sums someone will check by hand: 6٬500٬000 تومان"""
+    return f"{int(round(v or 0)):,}".replace(",", "٬") + " تومان"
+
 def jday(iso):
     """'2026-10-16' -> '24 مهر'"""
     y, m, d = to_jalali(date.fromisoformat(iso))
@@ -185,7 +189,7 @@ def card(c, cid):
         """SELECT l.product_code code, p.name, p.color, SUM(l.meters) m FROM invoice_lines l
            JOIN invoices i ON i.id = l.invoice_id LEFT JOIN products p ON p.code = l.product_code
            WHERE i.customer_id = ? GROUP BY l.product_code ORDER BY m DESC LIMIT 3""", (cid,))]
-    return {**row, "cheques": cheques, "recent": recent,
+    return {**row, "cheques": cheques, "recent": recent, "debt_parts": debt_parts(c, cid),
             "usual": [{"code": u["code"], "title": f"{u['name']} {u['color']}", "meters": round(u["m"])} for u in usual],
             "warnings": customer_warnings(row, cheques)}
 
@@ -302,7 +306,7 @@ def overview(c):
         "week": {k: w[k] for k in ("days", "bank", "in_total", "out_total", "left")},
         "alerts": alerts(c), "trend": trend(c), "top": top(c),
         "notes": [r["note"] for r in c.execute("SELECT note FROM import_notes ORDER BY id")],
-    }
+    } | {"glance": reconcile(c)}
 
 def brief_facts(o):
     """The owner's morning in numbered lines, for the model to turn into two or three sentences."""
@@ -312,3 +316,198 @@ def brief_facts(o):
              f"طلب از مشتری‌ها: {money(o['receivable'])} از {o['debtors']} مشتری"]
     lines += [f"{i + 1}. {a['title']}: {a['detail']}" for i, a in enumerate(o["alerts"][:5])]
     return "\n".join(lines)
+
+# ---------- do the three files agree? ----------
+# A theft or a mistake shows up where the files stop agreeing: fabric that left the warehouse without a sale,
+# an invoice number that is missing, cash from sales that never reached the bank, a cheque sale with no cheque.
+# Every finding carries the sum that produced it, so anyone can check it against the Excel files by hand.
+
+def stock_check(c):
+    sold = {r["code"]: r["m"] for r in c.execute("SELECT product_code code, SUM(meters) m FROM invoice_lines GROUP BY product_code")}
+    got = {r["code"]: r["m"] for r in c.execute("SELECT code, SUM(meters) m FROM stock_in GROUP BY code")}
+    rows, issues = list(c.execute("SELECT * FROM products ORDER BY code")), []
+    for p in rows:
+        expected = (p["opening"] or 0) + got.get(p["code"], 0) - sold.get(p["code"], 0)
+        diff = round(p["meters"] - expected, 1)
+        if abs(diff) >= .5:
+            title = f"{p['name']} {p['color']}"
+            issues.append({
+                "kind": "stock", "code": p["code"], "diff": diff, "value": round(abs(diff) * p["buy_price"]),
+                "title": f"{title}: {meters(abs(diff))} {'کمتر' if diff < 0 else 'بیشتر'} از حساب",
+                "detail": f"به قیمت خرید {money(abs(diff) * p['buy_price'])}. موجودی ثبت‌شده با «اول دوره + ورود کالا − فروش» جور نیست.",
+                "how": [f"موجودی اول دوره (انبار › ستون موجودی اول دوره): {meters(p['opening'])}",
+                        f"+ ورود کالا (انبار › برگه ورود کالا): {meters(got.get(p['code'], 0))}",
+                        f"− فروخته‌شده (فروش › ستون متراژ): {meters(sold.get(p['code'], 0))}",
+                        f"= باید در انبار باشد: {meters(expected)}",
+                        f"در فایل انبار ثبت شده: {meters(p['meters'])}"]})
+    return {"checked": len(rows), "ok": len(rows) - len(issues), "issues": issues}
+
+def invoice_check(c):
+    rows = list(c.execute("SELECT id, date FROM invoices ORDER BY id"))
+    if not rows:
+        return {"checked": 0, "first": None, "last": None, "issues": []}
+    have = {r["id"]: r["date"] for r in rows}
+    ids = sorted(have)
+    issues = []
+    for no in range(ids[0], ids[-1] + 1):
+        if no in have:
+            continue
+        before = max(i for i in ids if i < no); after = min(i for i in ids if i > no)
+        issues.append({"kind": "invoice", "no": no,
+                       "title": f"فاکتور شماره {no} در فایل فروش نیست",
+                       "detail": "فاکتوری با این شماره نوشته و بعد پاک شده، یا شماره‌ای جا افتاده است. اگر جنسش از انبار رفته باشد، در کسری انبار هم پیداست.",
+                       "how": [f"فاکتورهای فایل فروش از شماره {ids[0]} تا {ids[-1]} پشت سر هم‌اند.",
+                               f"بین فاکتور {before} ({jday(have[before])}) و فاکتور {after} ({jday(have[after])}) شماره {no} نیست."]})
+    return {"checked": len(ids), "first": ids[0], "last": ids[-1], "issues": issues}
+
+def cash_check(c, days=30):
+    """Cash sales of each past day against what was deposited that day (accounts › صندوق)."""
+    t = today()
+    start = (t - timedelta(days=days)).isoformat()
+    sold = {r["date"]: r["s"] for r in c.execute(
+        "SELECT date, SUM(total) s FROM invoices WHERE payment = 'نقد' AND date >= ? AND date < ? GROUP BY date", (start, t.isoformat()))}
+    dep = {r["date"]: r["s"] for r in c.execute(
+        "SELECT date, SUM(amount) s FROM cash_deposits WHERE date >= ? AND date < ? GROUP BY date", (start, t.isoformat()))}
+    all_days = sorted(set(sold) | set(dep))
+    issues = []
+    for d in all_days:
+        diff = dep.get(d, 0) - sold.get(d, 0)
+        if diff:
+            issues.append({"kind": "cash", "date": d, "diff": diff,
+                           "title": f"{jday(d)}: {toman(abs(diff))} {'از فروش نقدی به بانک نرسید' if diff < 0 else 'بیشتر از فروش نقدی واریز شد'}",
+                           "detail": "فروش نقدی آن روز با واریز صندوق همان روز جور نیست.",
+                           "how": [f"فروش نقدی آن روز (فروش › نوع پرداخت «نقد»): {toman(sold.get(d, 0))}",
+                                   f"− واریز همان روز (حسابداری › برگه صندوق): {toman(dep.get(d, 0))}",
+                                   f"= {toman(abs(diff))} {'کم' if diff < 0 else 'زیاد'}"]})
+    return {"checked": len(all_days), "ok": len(all_days) - len(issues), "issues": issues}
+
+def cheque_check(c):
+    """Every sale paid by cheque should have that cheque in accounts: same customer, same amount."""
+    names = {r["id"]: r["name"] for r in c.execute("SELECT id, name FROM customers")}
+    pool = defaultdict(list)
+    for q in c.execute("SELECT customer_id, amount FROM cheques_in"):
+        pool[(q["customer_id"], q["amount"])].append(1)
+    sales = list(c.execute("SELECT id, date, customer_id, total FROM invoices WHERE payment = 'چک' ORDER BY id"))
+    issues = []
+    for s in sales:
+        key = (s["customer_id"], s["total"])
+        if pool[key]:
+            pool[key].pop()
+        else:
+            issues.append({"kind": "cheque", "no": s["id"],
+                           "title": f"چک فاکتور {s['id']} ({names.get(s['customer_id'], '')}) در حسابداری نیست",
+                           "detail": "فروش با چک ثبت شده ولی چکی با همین مبلغ برای این مشتری در برگه چک‌های دریافتی نیست.",
+                           "how": [f"فروش › فاکتور {s['id']}، {jday(s['date'])}، نوع پرداخت چک، {money(s['total'])}",
+                                   "حسابداری › چک‌های دریافتی: چکی از همین مشتری با همین مبلغ پیدا نشد"]})
+    return {"checked": len(sales), "ok": len(sales) - len(issues), "issues": issues}
+
+FILE_NAMES = {"stock": "انبار", "sales": "فروش", "accounts": "حسابداری"}
+
+def last_change(c, name):
+    row = c.execute("SELECT at, who, text FROM events WHERE detail LIKE ? ORDER BY id DESC LIMIT 1", (f'%"{name}"%',)).fetchone()
+    return dict(row) if row else None
+
+def reconcile(c):
+    """All four checks, and the three files with the links between them, for the one-glance picture."""
+    s, i, k, q = stock_check(c), invoice_check(c), cash_check(c), cheque_check(c)
+    issues = s["issues"] + i["issues"] + k["issues"] + q["issues"]
+    counts = {"stock": c.execute("SELECT COUNT(*) FROM products").fetchone()[0],
+              "sales": c.execute("SELECT COUNT(*) FROM invoices").fetchone()[0],
+              "accounts": c.execute("SELECT COUNT(*) FROM customers").fetchone()[0]}
+    files = [{"key": key, "name": name, "count": counts[key], "last": last_change(c, name),
+              "unit": {"stock": "جنس", "sales": "فاکتور", "accounts": "مشتری"}[key]} for key, name in FILE_NAMES.items()]
+    checks = [
+        {"key": "stock", "link": "sales_stock", "title": "فروش و انبار", "ok": not s["issues"],
+         "text": f"{s['ok']} از {s['checked']} جنس: اول دوره + ورود کالا − فروش = موجودی انبار"},
+        {"key": "invoice", "link": "sales", "title": "شماره فاکتورها", "ok": not i["issues"],
+         "text": f"{i['checked']} فاکتور" + (f"، از {i['first']} تا {i['last']}" if i["first"] else "") + (f"؛ {len(i['issues'])} شماره نیست" if i["issues"] else "، پشت سر هم")},
+        {"key": "cash", "link": "sales_money", "title": "فروش نقدی و صندوق", "ok": not k["issues"],
+         "text": f"{k['ok']} از {k['checked']} روز در سی روز اخیر: فروش نقدی = واریز صندوق"},
+        {"key": "cheque", "link": "sales_money", "title": "فروش چکی و چک‌ها", "ok": not q["issues"],
+         "text": f"{q['ok']} از {q['checked']} فاکتور چکی: چکش در حسابداری هست"},
+    ]
+    return {"issues": issues, "checks": checks, "files": files,
+            "links": {l: all(ch["ok"] for ch in checks if ch["link"] == l) for l in ("sales_stock", "sales_money", "sales")}}
+
+# ---------- where each number on the dashboard comes from ----------
+
+def debt_parts(c, cid):
+    """A customer's debt as the sum that makes it, each part with the sheet it comes from."""
+    row = c.execute("SELECT opening FROM customers WHERE id = ?", (cid,)).fetchone()
+    credit = c.execute("SELECT COALESCE(SUM(total), 0) FROM invoices WHERE customer_id = ? AND payment = 'نسیه'", (cid,)).fetchone()[0]
+    paid = c.execute("SELECT COALESCE(SUM(amount), 0) FROM receipts WHERE customer_id = ?", (cid,)).fetchone()[0]
+    back = c.execute("SELECT COALESCE(SUM(amount), 0) FROM cheques_in WHERE customer_id = ? AND status = 'برگشتی'", (cid,)).fetchone()[0]
+    return [f"مانده اول دوره (حسابداری › مشتریان): {money(row['opening'])}",
+            f"+ خرید نسیه (فروش › نوع پرداخت نسیه): {money(credit)}",
+            f"− پرداختی‌ها (حسابداری › دریافتی‌ها): {money(paid)}",
+            f"+ چک برگشتی (حسابداری › چک‌های دریافتی): {money(back)}",
+            f"= بدهی: {money(max(row['opening'] + credit - paid + back, 0))}"]
+
+def overview_how(c, o):
+    t = today()
+    start, _ = period_range("month")
+    rows_today = c.execute("SELECT COUNT(*) FROM invoice_lines l JOIN invoices i ON i.id = l.invoice_id WHERE i.date = ?", (t.isoformat(),)).fetchone()[0]
+    opening = c.execute("SELECT COALESCE(SUM(opening), 0) FROM customers").fetchone()[0]
+    credit = c.execute("SELECT COALESCE(SUM(total), 0) FROM invoices WHERE payment = 'نسیه'").fetchone()[0]
+    paid = c.execute("SELECT COALESCE(SUM(amount), 0) FROM receipts").fetchone()[0]
+    back = c.execute("SELECT COALESCE(SUM(amount), 0) FROM cheques_in WHERE status = 'برگشتی'").fetchone()[0]
+    w = o["week"]
+    end = jday((t + timedelta(days=w["days"])).isoformat())
+    return {
+        "sales_today": [f"فایل فروش، ردیف‌های تاریخ {jday(t.isoformat())}: {o['sales_today']['invoices']} فاکتور، {rows_today} ردیف",
+                        f"جمع ستون «مبلغ»: {money(o['sales_today']['amount'])}"],
+        "sales_month": [f"فایل فروش، از ۱ {jday(start.isoformat()).split(' ')[1]} تا امروز: {money(o['sales_month']['amount'])}",
+                        f"همین تعداد روز از ماه قبل: {money(o['sales_prev']['amount'])}"],
+        "receivable": [f"مانده اول دوره همه‌ی مشتری‌ها (حسابداری › مشتریان): {money(opening)}",
+                       f"+ فروش نسیه (فروش): {money(credit)}", f"− دریافتی‌ها (حسابداری › دریافتی‌ها): {money(paid)}",
+                       f"+ چک‌های برگشتی (حسابداری › چک‌های دریافتی): {money(back)}",
+                       "مشتری‌هایی که بیش از بدهی پرداخته‌اند صفر حساب شده‌اند."],
+        "week": [f"موجودی بانک (حسابداری › بانک): {money(w['bank'])}",
+                 f"+ چک مشتری‌ها با سررسید تا {end} (حسابداری › چک‌های دریافتی، در جریان): {money(w['in_total'])}",
+                 f"− چک‌های خودمان تا {end} (حسابداری › چک‌های پرداختی، در جریان): {money(w['out_total'])}",
+                 f"= {money(w['left'])}"],
+    }
+
+# ---------- reports ----------
+
+def report(c, period="month"):
+    """A period's figures in sections, every line with the sum behind it. Same data for the page and the Excel download."""
+    start, end = period_range(period)
+    a, b = start.isoformat(), end.isoformat()
+    span = f"{jday(a)} تا {jday(b)}" if a != b else jday(a)
+    by_pay = {r["payment"]: dict(r) for r in c.execute(
+        "SELECT payment, COUNT(*) n, COALESCE(SUM(total), 0) s FROM invoices WHERE date BETWEEN ? AND ? GROUP BY payment", (a, b))}
+    total = sum(x["s"] for x in by_pay.values()); count = sum(x["n"] for x in by_pay.values())
+    out_m = c.execute("""SELECT COALESCE(SUM(l.meters), 0) FROM invoice_lines l JOIN invoices i ON i.id = l.invoice_id
+                         WHERE i.date BETWEEN ? AND ?""", (a, b)).fetchone()[0]
+    inn = c.execute("SELECT COALESCE(SUM(meters), 0) m, COALESCE(SUM(rolls), 0) r FROM stock_in WHERE date BETWEEN ? AND ?", (a, b)).fetchone()
+    receipts = c.execute("SELECT COALESCE(SUM(amount), 0) FROM receipts WHERE date BETWEEN ? AND ?", (a, b)).fetchone()[0]
+    deposits = c.execute("SELECT COALESCE(SUM(amount), 0) FROM cash_deposits WHERE date BETWEEN ? AND ?", (a, b)).fetchone()[0]
+    cleared = c.execute("SELECT COUNT(*), COALESCE(SUM(amount), 0) FROM cheques_in WHERE status = 'وصول شد' AND due BETWEEN ? AND ?", (a, b)).fetchone()
+    paid_out = c.execute("SELECT COUNT(*), COALESCE(SUM(amount), 0) FROM cheques_out WHERE status = 'پاس شد' AND due BETWEEN ? AND ?", (a, b)).fetchone()
+    pay = lambda k: by_pay.get(k, {"n": 0, "s": 0})
+    t = top(c, period)
+    sections = [
+        {"title": "فروش", "rows": [
+            {"label": "کل فروش", "value": money(total), "how": f"فروش › جمع مبلغ {count} فاکتور، {span}"},
+            {"label": "نقد", "value": money(pay("نقد")["s"]), "how": f"{pay('نقد')['n']} فاکتور با نوع پرداخت نقد"},
+            {"label": "چک", "value": money(pay("چک")["s"]), "how": f"{pay('چک')['n']} فاکتور با نوع پرداخت چک"},
+            {"label": "نسیه", "value": money(pay("نسیه")["s"]), "how": f"{pay('نسیه')['n']} فاکتور با نوع پرداخت نسیه"},
+        ]},
+        {"title": "انبار", "rows": [
+            {"label": "پارچه‌ی فروخته‌شده", "value": meters(out_m), "how": f"فروش › جمع ستون متراژ، {span}"},
+            {"label": "ورود کالا", "value": f"{int(inn['r'])} توپ، {meters(inn['m'])}", "how": f"انبار › برگه ورود کالا، {span}"},
+        ]},
+        {"title": "پول", "rows": [
+            {"label": "واریز فروش نقدی", "value": money(deposits), "how": f"حسابداری › صندوق، {span}"},
+            {"label": "دریافت از بدهکارها", "value": money(receipts), "how": f"حسابداری › دریافتی‌ها، {span}"},
+            {"label": "چک‌های وصول‌شده", "value": money(cleared[1]), "how": f"{cleared[0]} چک با سررسید در این دوره و وضعیت «وصول شد»"},
+            {"label": "چک‌های پاس‌شده‌ی خودمان", "value": money(paid_out[1]), "how": f"{paid_out[0]} چک در حسابداری › چک‌های پرداختی"},
+        ]},
+        {"title": "پرفروش‌ها", "rows": [{"label": r["title"], "value": money(r["amount"]), "how": f"{meters(r['meters'])} در این دوره"} for r in t["products"]]},
+        {"title": "بهترین مشتری‌ها", "rows": [{"label": f"{r['name']} ({r['city']})", "value": money(r["amount"]), "how": f"{r['invoices']} فاکتور در این دوره"} for r in t["customers"]]},
+    ]
+    invoices = [dict(r) for r in c.execute(
+        """SELECT i.id, i.date, cu.name customer, cu.city, i.payment, i.total FROM invoices i JOIN customers cu ON cu.id = i.customer_id
+           WHERE i.date BETWEEN ? AND ? ORDER BY i.id""", (a, b))]
+    return {"period": period, "label": PERIODS[period], "span": span, "sections": sections, "invoices": invoices}

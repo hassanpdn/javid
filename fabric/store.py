@@ -3,7 +3,7 @@
 Users and sessions live only here. Everything else is a copy of the three Excel files (excel.import_all
 fills it), plus what the app adds: invoices confirmed at the phone desk, reminder messages, import notes.
 """
-import os, sqlite3, secrets
+import json, os, sqlite3, secrets
 from datetime import datetime
 import db as school_db   # only for its password hashing
 
@@ -23,7 +23,11 @@ CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT);
 CREATE TABLE IF NOT EXISTS products (
     code TEXT PRIMARY KEY, name TEXT, material TEXT, color TEXT, width INTEGER,
     rolls INTEGER, roll_meters INTEGER, meters REAL, buy_price INTEGER, sell_price INTEGER,
-    supplier TEXT, received TEXT);
+    supplier TEXT, received TEXT, opening REAL DEFAULT 0);
+CREATE TABLE IF NOT EXISTS stock_in (id INTEGER PRIMARY KEY, date TEXT, code TEXT, rolls INTEGER, meters REAL, supplier TEXT);
+CREATE TABLE IF NOT EXISTS cash_deposits (id INTEGER PRIMARY KEY, date TEXT, amount INTEGER);
+CREATE TABLE IF NOT EXISTS events (           -- who did what and when; nothing in the app changes without a line here
+    id INTEGER PRIMARY KEY, at TEXT, who TEXT, role TEXT, kind TEXT, text TEXT, detail TEXT);
 CREATE TABLE IF NOT EXISTS customers (
     id INTEGER PRIMARY KEY, name TEXT, shop TEXT, city TEXT, phone TEXT, credit_limit INTEGER, opening INTEGER);
 CREATE TABLE IF NOT EXISTS invoices (
@@ -37,11 +41,15 @@ CREATE TABLE IF NOT EXISTS cheques_out (id INTEGER PRIMARY KEY, number TEXT, pay
 CREATE TABLE IF NOT EXISTS reminders (id INTEGER PRIMARY KEY, customer_id INTEGER, text TEXT, sent_at TEXT);
 CREATE TABLE IF NOT EXISTS import_notes (id INTEGER PRIMARY KEY, file TEXT, note TEXT);
 """
-DATA_TABLES = ("products", "customers", "invoices", "invoice_lines", "receipts", "cheques_in", "cheques_out", "import_notes")
+DATA_TABLES = ("products", "customers", "invoices", "invoice_lines", "receipts", "cheques_in", "cheques_out", "import_notes",
+               "stock_in", "cash_deposits")
 
 def init():
     with conn() as c:
         c.executescript(SCHEMA)
+        # a fabric.db made before the opening-stock column gets it (CREATE TABLE IF NOT EXISTS keeps old tables)
+        if "opening" not in [r["name"] for r in c.execute("PRAGMA table_info(products)")]:
+            c.execute("ALTER TABLE products ADD COLUMN opening REAL DEFAULT 0")
 
 def get_meta(key, default=None):
     with conn() as c:
@@ -81,6 +89,12 @@ def logout_all():
 def public_user(u):
     return {"id": u["id"], "username": u["username"], "full_name": u["full_name"], "role": u["role"],
             "role_name": ROLE_NAMES.get(u["role"], u["role"])}
+
+def log(c, user, kind, text, detail=None):
+    """One line in the event log. user is the logged-in user (dict) or None for the system itself."""
+    c.execute("INSERT INTO events (at, who, role, kind, text, detail) VALUES (?,?,?,?,?,?)",
+              (stamp(), user["full_name"] if user else "سیستم", user["role"] if user else "system", kind, text,
+               json.dumps(detail, ensure_ascii=False) if detail is not None else None))
 
 def stamp():
     return datetime.now().strftime("%Y-%m-%d %H:%M")

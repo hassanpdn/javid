@@ -10,16 +10,20 @@ import Skeleton from "../components/Skeleton.vue"
 import MoneyView from "./MoneyView.vue"
 import ExcelFiles from "./ExcelFiles.vue"
 import CustomerDrawer from "./CustomerDrawer.vue"
+import ReconcileView from "./ReconcileView.vue"
+import ReportView from "./ReportView.vue"
 import { CHAT } from "./chat.js"
 
 const view = ref("money"), q = ref(""), list = ref(null), openId = ref(null)
 const nav = computed(() => [
   { header: "حساب‌ها" },
   { key: "money", label: "چک و طلب", icon: "calendar" },
-  { key: "customers", label: "مشتری‌ها", icon: "users" },
-  { key: "files", label: "اکسل‌ها", icon: "file" },
+  { key: "check", label: "تطبیق", icon: "shield" },
+  { key: "report", label: "گزارش", icon: "chart" },
+  { key: "customers", label: "مشتری‌ها", icon: "users", more: true },
+  { key: "files", label: "اکسل‌ها", icon: "file", more: true },
 ])
-const TITLES = { money: "چک و طلب", customers: "مشتری‌ها", files: "فایل‌های اکسل" }
+const TITLES = { money: "چک و طلب", check: "تطبیق سه فایل", report: "گزارش", customers: "مشتری‌ها", files: "فایل‌های اکسل" }
 const load = async () => { list.value = await api("/fabric/customers?q=" + encodeURIComponent(q.value)) }
 let timer
 watch(q, () => { clearTimeout(timer); timer = setTimeout(load, 250) })
@@ -29,6 +33,8 @@ watch(view, (v) => { if (v === "customers" && !list.value) load() })
 <template>
   <AppLayout app="fabric" :brand="brand()" :chat="CHAT.accountant" :title="TITLES[view]" subtitle="چک‌ها، طلب‌ها و یادآوری" :nav="nav" v-model="view">
     <ExcelFiles v-if="view === 'files'" />
+    <ReconcileView v-else-if="view === 'check'" />
+    <ReportView v-else-if="view === 'report'" />
     <section v-else-if="view === 'customers'" class="card">
       <label class="fs-search"><Icon name="search" :size="18" />
         <input v-model="q" class="search" placeholder="نام، فروشگاه یا شهر" aria-label="جستجوی مشتری"></label>

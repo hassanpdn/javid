@@ -106,10 +106,18 @@ const confirm = async () => {
         </section>
 
         <section v-if="saved" v-pop class="card desk-saved">
-          <span class="tint lg t-success"><Icon name="check" :size="26" /></span>
-          <div class="grow"><b>فاکتور {{ fa(saved.invoice) }} ثبت شد · {{ money(saved.total) }}</b>
-            <small class="muted">به فایل‌های {{ saved.files.join("، ") }} اضافه شد.</small></div>
-          <button class="btn sm ghost" @click="emit('files')">دیدن در اکسل</button>
+          <div class="desk-saved-head">
+            <span class="tint lg t-success"><Icon name="check" :size="26" /></span>
+            <div class="grow"><b>فاکتور {{ fa(saved.invoice) }} ثبت شد · {{ money(saved.total) }}</b>
+              <small class="muted">{{ saved.steps.length === 3 ? 'هر سه فایل' : 'فایل‌های ' + saved.files.join(' و ') }} با هم به‌روز شد و در دفتر رویدادها با نام شما ثبت شد.</small></div>
+            <button class="btn sm ghost" @click="emit('files')">دیدن در اکسل</button>
+          </div>
+          <ol class="desk-flow">
+            <li v-for="(st, i) in saved.steps" :key="st.file" :style="{ '--d': i * .35 + 's' }">
+              <span class="df-dot"><Icon name="check" :size="14" /></span>
+              <b>{{ st.file }}</b><small>{{ fa(st.text) }}</small>
+            </li>
+          </ol>
         </section>
 
         <section v-if="draft" v-reveal class="card desk-draft">

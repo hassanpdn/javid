@@ -93,3 +93,27 @@ def test_a_broken_upload_changes_nothing(tokens):
     assert r.status_code == 400
     assert httpx.get(base("/files"), headers=h).json()["files"] == before
     assert httpx.post(base("/files/accounts"), json={"data": bad}, headers=tokens["forooshande"]).status_code == 403
+
+def test_the_three_files_are_checked_against_each_other(tokens):
+    r = httpx.get(base("/reconcile"), headers=tokens["hesabdar"]).json()
+    kinds = sorted(i["kind"] for i in r["issues"])
+    assert kinds == ["cash", "invoice", "stock", "stock"]          # the marks the planted theft left, and nothing else
+    assert all(i["how"] for i in r["issues"])                      # every finding shows the sum behind it
+    cheque = next(ch for ch in r["checks"] if ch["key"] == "cheque")
+    assert cheque["ok"]                                             # cheque sales, including the one confirmed above
+    assert httpx.get(base("/reconcile"), headers=tokens["forooshande"]).status_code == 403
+
+def test_every_change_is_in_the_event_log(tokens):
+    ev = httpx.get(base("/events"), headers=tokens["sahebkar"]).json()
+    texts = " ".join(e["text"] for e in ev)
+    assert "وارد شد" in texts and "ثبت شد" in texts
+    confirmed = next(e for e in ev if e["kind"] == "invoice" and e["detail"] and e["detail"].get("steps"))
+    assert [s["file"] for s in confirmed["detail"]["steps"]] == ["فروش", "انبار", "حسابداری"]
+    assert httpx.get(base("/events"), headers=tokens["hesabdar"]).status_code == 403
+
+def test_report_lines_say_where_they_come_from_and_download(tokens):
+    r = httpx.get(base("/report?period=last_30"), headers=tokens["hesabdar"]).json()
+    assert all(row["how"] for sec in r["sections"] for row in sec["rows"])
+    d = httpx.get(base("/report/download?period=last_30"), headers=tokens["sahebkar"])
+    assert d.status_code == 200 and d.content.startswith(b"PK")
+    assert httpx.get(base("/report?period=forever"), headers=tokens["sahebkar"]).status_code == 400
