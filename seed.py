@@ -86,17 +86,19 @@ def run():
                       (first_names[i], LAST[i], student_gender, class_id, f"{random.choice(FATHERS)} {LAST[i]}", phone))
         students = c.execute("SELECT id, class_id FROM students").fetchall()
 
-        # Assessments: about one every five school days per subject (at least three), descriptive level 1..4
+        # Assessments: about one every five school days per subject (at least four once there are four days), level 1..4
         past = SCHOOL_DAYS[:-1] or SCHOOL_DAYS
-        step = max(1, min(5, len(past) // 3))
+        step = max(1, min(5, len(past) // 4))
         assess_days = past[step - 1::step][-8:]
         for s in students:
             base = {sub: random.choice([3, 3, 4, 4, 2]) for sub in HOMEROOM_SUBJECTS + list(SPECIAL_SUBJECTS)}
             for n, d in enumerate(assess_days):
                 for sub, lvl in base.items():
                     level = max(1, min(4, lvl + random.choice([0, 0, 0, 1, -1])))
-                    if s["id"] == DECLINING_STUDENT and sub == "ریاضی":   # from 4 at the start down to 2 now
-                        level = round(4 - 2 * n / max(1, len(assess_days) - 1))
+                    if s["id"] == DECLINING_STUDENT and sub == "ریاضی":
+                        # 4 in the first two, 2 in the last two: the counselor's decline rule (students.DROP) compares
+                        # those two averages, so the story shows up however few assessments there are yet
+                        level = 4 if n < 2 else 2 if n >= len(assess_days) - 2 else 3
                     teacher = s["class_id"] if sub in HOMEROOM_SUBJECTS else SPECIAL_SUBJECTS[sub]
                     note = "در حل مسائل کسری و تقسیم دچار اشکال شده است." if (
                         s["id"] == DECLINING_STUDENT and sub == "ریاضی" and level == 2) else None
