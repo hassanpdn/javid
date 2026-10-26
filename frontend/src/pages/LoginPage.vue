@@ -102,7 +102,7 @@ onUnmounted(() => ctx?.revert())
                   :disabled="busy" @click="login(d.u, '1234')">
             <span :class="['tint', 't-' + d.tone]"><Icon :name="d.icon" :size="20" /></span>
             <span class="role-text"><b>{{ d.role }}</b><span>{{ d.name ? d.name + ' · ' : '' }}{{ d.desc }}</span></span>
-            <span v-if="d.soon" class="soon">فعلا: چت اسناد</span>
+            <span v-if="d.soon" class="soon">فعلاً فقط پرسش از آیین‌نامه‌ها</span>
             <span v-if="busy && picked === d.u" class="dots go"><i></i><i></i><i></i></span>
             <Icon v-else name="chevron" :size="18" class="go" />
           </button>
@@ -110,7 +110,7 @@ onUnmounted(() => ctx?.revert())
         <p class="auth-note"><Icon name="shield" :size="16" /> همه داده‌های این نسخه ساختگی است.</p>
         <div class="login-tools">
           <button type="button" class="link switch-school new-demo" @click="setupUi.open = true"><Icon name="school" :size="16" />دموی جدید برای مدرسه دیگر</button>
-          <button type="button" class="link switch-school roles-toggle" :aria-expanded="rolesOpen" @click="rolesOpen = !rolesOpen"><Icon name="users" :size="16" />نقش‌های فعال</button>
+          <button type="button" class="link switch-school roles-toggle" :aria-expanded="rolesOpen" @click="rolesOpen = !rolesOpen"><Icon name="users" :size="16" />چه کسانی وارد شوند</button>
         </div>
         <div v-if="rolesOpen" v-pop:drop class="roles-panel"><FeatureToggles /></div>
       </div>

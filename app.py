@@ -3,11 +3,13 @@ from fastapi import FastAPI, Depends, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.staticfiles import StaticFiles
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from common import normalize, embed, collection
 from llm import ask_llm
 from auth import get_token, current_user
 import db
+import gate
 import school
 import seed
 import manager
@@ -29,6 +31,18 @@ origins = [o.strip() for o in os.getenv("ALLOWED_ORIGINS", "").split(",") if o.s
 if origins:
     app.add_middleware(CORSMiddleware, allow_origins=origins, allow_methods=["*"], allow_headers=["*"])
 app.add_middleware(GZipMiddleware, minimum_size=1000)   # compresses the JS/CSS bundle and big JSON replies
+
+# The site's front door (gate.py, on only when SITE_PASSWORD is set). The page itself and its files load
+# without it, so the browser can show the door; every API call needs the door's cookie.
+STATIC_TOP = set(os.listdir("static")) if os.path.isdir("static") else set()
+
+@app.middleware("http")
+async def site_gate(request: Request, call_next):
+    path = request.url.path
+    first = path.strip("/").split("/")[0]
+    if path == "/" or first in STATIC_TOP or first == "gate" or gate.allowed(request):
+        return await call_next(request)
+    return JSONResponse({"detail": "site"}, status_code=401)
 
 @app.middleware("http")
 async def cache_assets(request: Request, call_next):
@@ -119,6 +133,19 @@ def setup(req: SetupRequest):
         manager._briefing_cache.clear(); parent._reports.clear(); counselor._insights.clear()
     return {"ok": True, "school": school.public()}
 
+@app.post("/setup/reset")
+def setup_reset():
+    """Forget the school, so the next visit starts on an empty setup form (only with RESET_ON_LOAD=1,
+    which the live demo uses: every reload of the page is a fresh start). Everyone is logged out."""
+    if os.getenv("RESET_ON_LOAD") != "1":
+        raise HTTPException(status_code=404)
+    with _setup_lock:
+        school.forget()
+        with db.conn() as c:
+            c.execute("DELETE FROM sessions")
+        manager._briefing_cache.clear(); parent._reports.clear(); counselor._insights.clear()
+    return {"ok": True}
+
 @app.get("/me")
 def me(user: dict = Depends(current_user)):
     return db.public_user(user)
@@ -201,6 +228,7 @@ app.include_router(staff.router)
 app.include_router(counselor.router)
 app.include_router(parent.router)
 app.include_router(parent_chat.router)
+app.include_router(gate.router)
 
 # Serve the built frontend (frontend/ -> npm run build -> static/) at http://localhost:8000. Must come after the API routes
 app.mount("/", StaticFiles(directory="static", html=True), name="static")

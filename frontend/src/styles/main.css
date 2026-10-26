@@ -906,6 +906,17 @@ details summary { cursor: pointer; color: var(--primary-ink); }
   /* lists in drawers keep the tag on the same line as the name */
   .list-card .student-row { flex-wrap: nowrap; }
   .list-card .sr-main { min-width: 0; }
+  /* a card title's note goes on its own line, so the title keeps the full width */
+  .card-head { flex-wrap: wrap; }
+  .card-head > small { flex-basis: 100%; line-height: 1.8; }
+  /* office letters: subject on its own line, status and deadline under it */
+  .office-row { gap: 6px 8px; }
+  .office-row .grow { flex-basis: 100%; min-width: 0; }
+  /* counselor's list: avatar, name and arrow on one line, the signal tags on the line under the name */
+  .student-row:has(> .chips) { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 8px 12px; }
+  .student-row > .chips { grid-column: 2 / 4; grid-row: 2; display: flex; flex-wrap: wrap; gap: 6px; }
+  .student-row > .chips:empty { display: none; }
+  .student-row > .chev { grid-column: 3; grid-row: 1; }
 }
 /* touch screens have no hover: no lifting cards that stay lifted after a tap */
 @media (hover: none) {

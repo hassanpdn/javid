@@ -10,7 +10,7 @@ import Skeleton from "../components/Skeleton.vue"
 const props = defineProps({ focus: { default: null } })   // id of a letter to open right away (from a dashboard alert)
 const emit = defineEmits(["changed"])
 // the office's statuses, worded for the manager ("waiting for you" in the office panel means the office)
-const OFFICE_STATUS = { new: "در صف دستیار", processing: "در حال بررسی", awaiting_approval: "پاسخ آماده، منتظر تأیید دفتر", todo: "در دست اقدام دفتر" }
+const OFFICE_STATUS = { new: "هنوز خوانده نشده", processing: "دستیار در حال خواندن", awaiting_approval: "پاسخ آماده است، دفتر باید تأیید کند", todo: "دفتر در حال انجام کار" }
 const data = ref(null), open = ref(null), note = ref(""), saving = ref(false)
 const queued = computed(() => data.value ? data.value.office.filter((l) => ["new", "processing"].includes(l.status)).length : 0)
 const load = async () => { data.value = await api("/manager/letters") }
@@ -25,11 +25,11 @@ const runAgent = async () => {
   label()
   try {
     while (!(await api("/staff/agent/next", {})).done) { agent.processed++; label(); await load() }
-  } catch { agent.error = "دستیار در دسترس نیست. مدل محلی روشن است؟" }
+  } catch { agent.error = "دستیار الان جواب نمی‌دهد. چند لحظه بعد دوباره امتحان کنید." }
   finally {
     agent.running = false; idle("agent"); await load(); emit("changed")
     const added = data.value.decide.length + data.value.info.length - before
-    if (added > 0) toast({ tone: "primary", title: `${fa(added)} نامه‌ی تازه برای شما`, body: "دستیار نامه‌ها را خواند؛ تصمیم و رؤیت با شماست." })
+    if (added > 0) toast({ tone: "primary", title: `${fa(added)} نامه‌ی تازه برای شما`, body: "دستیار نامه‌ها را خواند. حالا نوبت شماست که ببینید و تصمیم بگیرید." })
   }
 }
 const show = (l) => { open.value = l; note.value = "" }
@@ -45,7 +45,7 @@ const decide = async (approve) => {
 }
 const markSeen = async (l) => {
   await api(`/manager/letters/${l.id}/seen`, {})
-  toast({ tone: "success", title: "رؤیت شد", body: "نامه بسته شد و دفتر در جریان قرار گرفت." })
+  toast({ tone: "success", title: "دیده شد", body: "نامه بسته شد و دفتر در جریان قرار گرفت." })
   await done()
 }
 watch(() => !!open.value, lockScroll)
@@ -89,7 +89,7 @@ onUnmounted(() => { lockScroll(false); idle("agent") })
         <article v-for="l in data.info" :key="l.id" v-reveal :class="['letter-card', 'card', 'st-' + l.status]">
           <div class="lc-top">
             <b>{{ fa(l.subject) }}</b>
-            <span v-if="l.manager_seen_at" class="tag st-done">دیدید · {{ fa(l.manager_seen_at) }}</span>
+            <span v-if="l.manager_seen_at" class="tag st-done">دیده شد · {{ fa(l.manager_seen_at) }}</span>
           </div>
           <div class="lc-meta"><Icon name="mail" :size="15" />{{ l.sender }} · {{ fa(l.received_short) }}</div>
           <p v-if="l.summary" class="lc-summary">{{ fa(l.summary) }}</p>
@@ -101,8 +101,8 @@ onUnmounted(() => { lockScroll(false); idle("agent") })
       </section>
 
       <section v-reveal class="card">
-        <div class="card-head">در دست دفتر <small>فقط برای دیدن؛ کار این نامه‌ها با دفتر است</small></div>
-        <p v-if="queued && !agent.running" class="muted small">{{ fa(queued) }} نامه هنوز در صف بررسی دستیار در دفتر است.</p>
+        <div class="card-head">در حال پیگیری در دفتر <small>دفتر مدرسه این نامه‌ها را پیگیری می‌کند. اینجا فقط وضعیتشان را می‌بینید.</small></div>
+        <p v-if="queued && !agent.running" class="muted small">{{ fa(queued) }} نامه هنوز خوانده نشده است.</p>
         <p v-if="!data.office.length" class="muted small">دفتر نامه بازی ندارد.</p>
         <ul class="office-list">
           <li v-for="l in data.office" :key="l.id">

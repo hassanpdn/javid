@@ -45,7 +45,7 @@ def test_warning_issue_ack_and_no_second_warning():
     assert len(n) == 1
     teacher = "karimi" if tid == 3 else f"teacher{tid}"
     assert Client(teacher).post(f"/notifications/{n[0][0]}/ack").status_code == 200
-    assert any("رؤیت کرد" in x["title"] for x in Client("modir").get("/notifications").json()["items"])
+    assert any(" را دید" in x["title"] for x in Client("modir").get("/notifications").json()["items"])
 
 def test_late_alert_uses_last_30_days():
     titles = [a["title"] for a in Client("modir").get("/manager/overview").json()["alerts"] if a["type"] == "teacher_late"]

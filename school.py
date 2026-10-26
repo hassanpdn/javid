@@ -85,6 +85,10 @@ def save(settings):
     """Make these settings the active school (the previous school is forgotten; the role switches stay)."""
     _write({"current": settings, "features": features()})
 
+def forget():
+    """Back to the first run: no school set up (the role switches stay)."""
+    _write({"features": features()})
+
 # ---------- names used across the app ----------
 
 def full_name(s=None):

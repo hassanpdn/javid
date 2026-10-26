@@ -15,7 +15,7 @@ const items = ref([]), unread = ref(0), open = ref(false), current = ref(null), 
 const filters = computed(() => [
   { key: "all", label: "همه" },
   { key: "unread", label: "خوانده‌نشده", n: unread.value },
-  { key: "ack", label: "نیاز به رؤیت", n: items.value.filter((n) => n.needs_ack && !n.ack_at).length },
+  { key: "ack", label: "باید دیده شود", n: items.value.filter((n) => n.needs_ack && !n.ack_at).length },
 ])
 const visible = computed(() => items.value.filter((n) =>
   filter.value === "unread" ? !n.read_at : filter.value === "ack" ? n.needs_ack && !n.ack_at : true))
@@ -92,8 +92,8 @@ watch(current, lockScroll)
               <span>{{ (KINDS[n.kind] || KINDS.info).label }}</span>
               <span class="sep">·</span>
               <span>{{ fa(n.created_at) }}</span>
-              <span v-if="n.needs_ack && !n.ack_at" class="bp-pill">نیاز به رؤیت</span>
-              <span v-else-if="n.ack_at" class="bp-pill ok">رؤیت شد</span>
+              <span v-if="n.needs_ack && !n.ack_at" class="bp-pill">باید دیده شود</span>
+              <span v-else-if="n.ack_at" class="bp-pill ok">دیده شد</span>
             </span>
           </span>
           <span v-if="!n.read_at" class="bp-dot" aria-label="خوانده‌نشده"></span>
@@ -107,9 +107,9 @@ watch(current, lockScroll)
         <h3>{{ fa(current.title) }}</h3>
         <p class="muted small">{{ fa(current.created_at) }}</p>
         <div v-if="current.body" class="letter">{{ fa(current.body) }}</div>
-        <p v-if="current.ack_at" class="check ok">✓ رؤیت شد: {{ fa(current.ack_at) }}</p>
+        <p v-if="current.ack_at" class="check ok">✓ دیده شد: {{ fa(current.ack_at) }}</p>
         <div class="dialog-actions">
-          <button v-if="current.needs_ack && !current.ack_at" class="btn primary" @click="ack"><Icon name="check" :size="18" />رؤیت شد</button>
+          <button v-if="current.needs_ack && !current.ack_at" class="btn primary" @click="ack"><Icon name="check" :size="18" />دیدم</button>
           <button class="btn ghost" @click="current = null">بستن</button>
         </div>
       </div>

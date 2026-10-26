@@ -13,13 +13,13 @@ staff_or_manager = require_role("staff", "manager")
 _lock = threading.Lock()   # two browsers must never process the same letter
 
 CATEGORIES = {
-    "ack": "اعلام وصول", "stats": "درخواست آمار", "meeting": "دعوت به جلسه",
-    "info": "برای اطلاع", "decision": "نیازمند تصمیم مدیر", "request": "نیازمند اقدام",
+    "ack": "تأیید دریافت", "stats": "درخواست آمار", "meeting": "دعوت به جلسه",
+    "info": "برای اطلاع", "decision": "تصمیم با مدیر", "request": "کار لازم دارد",
 }
 STATUS = {
-    "new": "در صف", "processing": "در حال بررسی", "done": "بسته شد",
-    "awaiting_approval": "منتظر تأیید شما", "todo": "نیازمند اقدام شما",
-    "needs_manager": "ارجاع به مدیر", "forwarded": "ارسال به مدیر",
+    "new": "هنوز خوانده نشده", "processing": "در حال بررسی", "done": "بسته شد",
+    "awaiting_approval": "منتظر تأیید شما", "todo": "منتظر کار شما",
+    "needs_manager": "فرستاده‌شده برای مدیر", "forwarded": "برای اطلاع مدیر",
 }
 
 CLASSIFY = """تو دستیار دفتر اداری یک دبستان هستی. یک نامه رسیده را بخوان و دسته‌بندی کن.
@@ -118,13 +118,13 @@ def handle(letter):
         if category == "ack":
             reply = f"با سلام و احترام\nوصول «{letter['subject']}» بدین‌وسیله اعلام می‌گردد.\n{school.signature()}"
             status = "done"
-            log(c, lid, "پاسخ اعلام وصول را خودکار ثبت کرد و نامه را بست",
-                "اعلام وصول کاری تکراری و بدون ریسک است و تأیید انسانی لازم ندارد.")
+            log(c, lid, "تأیید دریافت را خودکار فرستاد و نامه را بست",
+                "تأیید دریافت کاری تکراری و بی‌خطر است و لازم نیست کسی آن را تأیید کند.")
         elif category == "stats":
             reply, why = draft_stats_reply(c, letter)
             status = "awaiting_approval"
             log(c, lid, "عددها را از پایگاه داده حساب کرد و پیش‌نویس پاسخ نوشت", why)
-            notify(staff_ids, "letter", f"پیش‌نویس پاسخ «{letter['subject']}» آماده تأیید است", summary)
+            notify(staff_ids, "letter", f"پاسخ «{letter['subject']}» آماده است و باید تأیید شود", summary)
         elif category == "meeting":
             status = "forwarded"
             log(c, lid, "دعوت را برای مدیر فرستاد", "حضور در جلسه با مدیر است.")
@@ -134,7 +134,7 @@ def handle(letter):
             log(c, lid, "خلاصه را ثبت و نامه را بایگانی کرد", "نامه فقط برای اطلاع است و اقدامی نمی‌خواهد.")
         elif category == "decision":
             status = "needs_manager"
-            log(c, lid, "نامه را با خلاصه و پیشنهاد به مدیر ارجاع داد",
+            log(c, lid, "نامه را با خلاصه و پیشنهاد برای مدیر فرستاد",
                 "تصمیم‌های مالی و اداری فقط با مدیر است؛ دستیار فقط پیشنهاد می‌دهد.")
             notify(manager_ids, "letter", f"نیاز به تصمیم شما: {letter['subject']}", f"{summary}\nپیشنهاد دستیار: {action}")
         else:
@@ -360,7 +360,7 @@ def refer(lid: int, req: ReferRequest, user: dict = Depends(staff_or_manager)):
     note = req.note.strip()
     if other_ids:   # staff and teachers get the original letter plus the note
         body = (f"یادداشت {user['full_name']}: {note}\n\n" if note else "") + f"متن نامه:\n{l['body']}"
-        db.notify(other_ids, "referral", f"ارجاع نامه: {l['subject']}", body, ref_type="letter", ref_id=lid, needs_ack=req.needs_ack)
+        db.notify(other_ids, "referral", f"نامه برای شما: {l['subject']}", body, ref_type="letter", ref_id=lid, needs_ack=req.needs_ack)
     if parent_ids:  # parents get the friendly version only, never the raw administrative letter
         db.notify(parent_ids, "referral", f"پیام مدرسه: {l['subject']}", req.parent_text.strip(),
                   ref_type="letter", ref_id=lid, needs_ack=req.needs_ack)
@@ -370,7 +370,7 @@ def refer(lid: int, req: ReferRequest, user: dict = Depends(staff_or_manager)):
             who.append(f"{len(other_ids)} نفر از کارکنان و معلمان")
         if parent_ids:
             who.append(f"{len(parent_ids)} نفر از اولیا")
-        log(c, lid, f"{user['full_name']} نامه را به {' و '.join(who)} ارجاع داد", note or "ارجاع دستی")
+        log(c, lid, f"{user['full_name']} نامه را برای {' و '.join(who)} فرستاد", note or "فرستادن دستی")
         if l["status"] in ("new", "todo"):
             c.execute("UPDATE letters SET status = 'todo' WHERE id = ?", (lid,))
     return {"ok": True, "sent": len(parent_ids) + len(other_ids)}
@@ -393,6 +393,6 @@ def change_category(lid: int, req: CategoryRequest, user: dict = Depends(staff_o
         log(c, lid, f"{user['full_name']} دسته را از «{old}» به «{CATEGORIES[req.category]}» تغییر داد",
             "این نامه از این به بعد به عنوان نمونه به دستیار نشان داده می‌شود.")
     if req.category in ("decision", "meeting"):
-        db.notify(db.users_with("manager"), "letter", f"ارجاع به شما: {l['subject']}", l["summary"] or "")
+        db.notify(db.users_with("manager"), "letter", f"نامه برای شما: {l['subject']}", l["summary"] or "")
     _briefing_cache.clear()
     return {"ok": True}

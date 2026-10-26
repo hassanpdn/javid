@@ -55,7 +55,7 @@ onMounted(async () => {
   <div class="overlay" @click.self="$emit('close')">
     <form class="dialog wide" v-pop @submit.prevent="send">
       <div class="dialog-head">
-        <div><h3>ارجاع نامه</h3><p class="muted small">{{ fa(letter.subject) }}</p></div>
+        <div><h3>فرستادن نامه برای دیگران</h3><p class="muted small">{{ fa(letter.subject) }}</p></div>
         <button type="button" class="icon-btn" @click="$emit('close')" aria-label="بستن"><Icon name="x" /></button>
       </div>
 
@@ -97,11 +97,11 @@ onMounted(async () => {
         <textarea v-else v-model="parent.text" rows="5" class="ai-draft" aria-label="پیام برای اولیا"></textarea>
       </div>
 
-      <label class="ack-row"><input type="checkbox" v-model="needsAck"> گیرندگان باید «رؤیت شد» را بزنند</label>
+      <label class="ack-row"><input type="checkbox" v-model="needsAck"> گیرندگان باید «دیدم» را بزنند</label>
       <p v-if="error" class="error-text">{{ error }}</p>
       <div class="dialog-actions">
         <button class="btn primary" type="submit" :disabled="!picked.length || sending || (hasParents && !parent.text.trim())">
-          <Icon name="send" :size="18" />ارجاع به {{ fa(estimate) }} نفر</button>
+          <Icon name="send" :size="18" />فرستادن برای {{ fa(estimate) }} نفر</button>
         <button class="btn ghost" type="button" @click="$emit('close')">انصراف</button>
       </div>
     </form>

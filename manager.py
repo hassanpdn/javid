@@ -60,7 +60,7 @@ def collect(c):
         done_text = None
         if issued:
             done_text = f"تذکر کتبی در {jdate_short(date.fromisoformat(issued['date']))} صادر شد. "
-            done_text += f"رؤیت شد: {issued['acknowledged_at']}" if issued["acknowledged_at"] else "هنوز رؤیت نشده"
+            done_text += f"دیده شد: {issued['acknowledged_at']}" if issued["acknowledged_at"] else "هنوز دیده نشده"
         alerts.append({
             "type": "teacher_late", "teacher_id": tid,
             "title": f"{r0['full_name']} در ۳۰ روز اخیر {len(rows)} بار دیر آمده است",
@@ -79,7 +79,7 @@ def collect(c):
                        (since, ABSENCE_LIMIT)).fetchall():
         alerts.append({
             "type": "student_absent", "title": f"{r['name']} در دو هفته اخیر {r['n']} غیبت غیرموجه داشته است",
-            "detail": f"کلاس {r['class']}. موضوع برای پیگیری به مشاور ارجاع شده است.", "done": False,
+            "detail": f"کلاس {r['class']}. موضوع برای پیگیری به مشاور سپرده شده است.", "done": False,
         })
     # 3. Letters the agent sent to the manager for a decision
     for r in c.execute("SELECT id, subject, summary, action FROM letters WHERE status = 'needs_manager'").fetchall():
@@ -226,7 +226,7 @@ def seen(lid: int, user: dict = Depends(manager_only)):
             raise HTTPException(status_code=404, detail="نامه پیدا نشد")
         c.execute("UPDATE letters SET status = 'done', manager_seen_at = ? WHERE id = ?", (db.stamp(), lid))
         c.execute("INSERT INTO agent_log (letter_id, action, reason, created_at) VALUES (?, ?, ?, ?)",
-                  (lid, f"مدیر نامه «{row['subject']}» را دید", "نامه برای اطلاع مدیر بود و با رؤیت او بسته شد.", db.stamp()))
+                  (lid, f"مدیر نامه «{row['subject']}» را دید", "نامه برای اطلاع مدیر بود و بعد از دیدن او بسته شد.", db.stamp()))
     db.notify(db.users_with("staff"), "letter", f"مدیر نامه «{row['subject']}» را دید")
     _briefing_cache.clear()
     return {"ok": True}

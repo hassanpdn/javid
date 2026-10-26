@@ -1,4 +1,5 @@
 import { reactive } from "vue"
+import { gate } from "./gate.js"
 
 // localStorage can throw (private window, blocked storage), so every access is wrapped
 export const store = {
@@ -20,7 +21,12 @@ export async function api(path, body) {
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.token || ""}` },
     body: body ? JSON.stringify(body) : undefined,
   })
-  if (res.status === 401 && path !== "/login") { clearSession(); throw new Error("401") }
+  if (res.status === 401 && path !== "/login") {
+    // "site": the site's own door (gate.py) is closed for this browser, so the door page comes back
+    const d = await res.clone().json().catch(() => ({}))
+    if (d.detail === "site") { gate.ok = false; throw new Error("site") }
+    clearSession(); throw new Error("401")
+  }
   const data = await res.json()
   if (!res.ok) throw new Error(data.detail || res.status)
   return data

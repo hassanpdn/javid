@@ -6,7 +6,7 @@ export const KINDS = {
   letter: { label: "نامه", icon: "mail", tone: "primary" },
   reminder: { label: "یادآوری", icon: "clock", tone: "warning" },
   info: { label: "اطلاع", icon: "check", tone: "success" },
-  referral: { label: "ارجاع", icon: "forward", tone: "info" },
+  referral: { label: "نامه برای شما", icon: "forward", tone: "info" },
   suggestion: { label: "پیام مشاور", icon: "message", tone: "success" },
 }
 
@@ -24,8 +24,8 @@ export const groupSignals = (signals) => {
 }
 
 export const CATEGORY_OPTIONS = [
-  ["ack", "اعلام وصول"], ["stats", "درخواست آمار"], ["meeting", "دعوت به جلسه"],
-  ["info", "برای اطلاع"], ["decision", "نیازمند تصمیم مدیر"], ["request", "نیازمند اقدام"],
+  ["ack", "تأیید دریافت"], ["stats", "درخواست آمار"], ["meeting", "دعوت به جلسه"],
+  ["info", "برای اطلاع"], ["decision", "تصمیم با مدیر"], ["request", "کار لازم دارد"],
 ]
 
 // settings for the floating assistant of staff roles: answers come only from the school documents

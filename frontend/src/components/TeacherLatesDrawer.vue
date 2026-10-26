@@ -38,10 +38,10 @@ onMounted(async () => { d.value = await api("/manager/teachers/lates") })
             </div>
             <p v-if="t.warning" class="small ok">
               ✓ تذکر کتبی در {{ fa(t.warning.date) }} صادر شد.
-              {{ t.warning.acknowledged_at ? 'رؤیت شد: ' + fa(t.warning.acknowledged_at) : 'هنوز رؤیت نشده' }}
+              {{ t.warning.acknowledged_at ? 'دیده شد: ' + fa(t.warning.acknowledged_at) : 'هنوز دیده نشده' }}
             </p>
             <div v-else-if="t.over_limit" class="btn-row">
-              <button class="btn sm" @click="$emit('draft', { teacher_id: t.teacher_id, name: t.name })"><Icon name="edit" :size="16" />پیش‌نویس تذکر</button>
+              <button class="btn sm" @click="$emit('draft', { teacher_id: t.teacher_id, name: t.name })"><Icon name="edit" :size="16" />نوشتن تذکر</button>
             </div>
           </section>
         </template>

@@ -35,11 +35,11 @@ def acknowledge(nid: int, user: dict = Depends(current_user)):
         if n["ref_type"] == "warning":
             c.execute("UPDATE warnings SET acknowledged_at = ? WHERE id = ?", (when, n["ref_id"]))
     if n["ref_type"] == "warning":
-        db.notify(db.users_with("manager"), "info", f"{user['full_name']} تذکر کتبی را رؤیت کرد", f"زمان رؤیت: {when}")
+        db.notify(db.users_with("manager"), "info", f"{user['full_name']} تذکر کتبی را دید", f"زمان دیدن: {when}")
     if n["ref_type"] == "letter":
         with db.conn() as c:
             c.execute("INSERT INTO agent_log (letter_id, action, reason, created_at) VALUES (?, ?, ?, ?)",
-                      (n["ref_id"], f"{user['full_name']} ارجاع را رؤیت کرد", "رؤیت ثبت شد.", when))
+                      (n["ref_id"], f"{user['full_name']} نامه‌ی فرستاده‌شده را دید", "دیدن نامه ثبت شد.", when))
     return {"ok": True}
 
 @router.post("/read-all")

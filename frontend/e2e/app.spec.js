@@ -84,7 +84,7 @@ for (const role of ["مدیر", "پرسنل اداری", "مشاور", "ولی",
 test("manager drafts a verified warning in the letter font, Escape closes the dialog", async ({ page }) => {
   await loginAs(page, "مدیر")
   await expect(page.locator(".welcome-text p")).not.toBeEmpty({ timeout: 15_000 })
-  await page.locator(".alert", { has: page.locator("button", { hasText: "پیش‌نویس تذکر" }) }).first().locator("button").click()
+  await page.locator(".alert", { has: page.locator("button", { hasText: "نوشتن تذکر" }) }).first().locator("button").click()
   const dialog = page.locator(".dialog")
   await expect(dialog.locator("textarea.ai-draft")).toBeVisible({ timeout: 15_000 })
   await expect(dialog.locator(".check.ok")).toBeVisible()
@@ -92,7 +92,7 @@ test("manager drafts a verified warning in the letter font, Escape closes the di
   expect(await dialog.evaluate((el) => el.contains(document.activeElement))).toBe(true)   // focus moved into the dialog
   await page.keyboard.press("Escape")
   await expect(dialog).toBeHidden()
-  await page.locator(".alert button", { hasText: "پیش‌نویس تذکر" }).first().click()
+  await page.locator(".alert button", { hasText: "نوشتن تذکر" }).first().click()
   await expect(dialog.locator(".check.ok")).toBeVisible({ timeout: 15_000 })
   await dialog.locator(".dialog-actions .btn.primary").click()
   await expect(page.locator(".alert.done")).not.toHaveCount(0)
@@ -109,7 +109,7 @@ test("teacher acknowledges the warning and the manager is told", async ({ browse
   const manager = await (await browser.newContext()).newPage()
   await loginAs(manager, "مدیر")
   await manager.locator(".bell-wrap .icon-btn").click()
-  await expect(manager.locator(".bp-item", { hasText: "رؤیت کرد" })).not.toHaveCount(0)
+  await expect(manager.locator(".bp-item", { hasText: " را دید" })).not.toHaveCount(0)
 })
 
 test("staff: agent works the queue, a reply is approved and a letter is referred to parents", async ({ page }) => {
@@ -120,7 +120,7 @@ test("staff: agent works the queue, a reply is approved and a letter is referred
   await expect(page.locator(".dialog textarea.ai-draft")).toBeVisible()
   await page.locator(".dialog-actions .btn.primary").click()
   await expect(page.locator(".dialog")).toBeHidden()
-  await page.locator(".letter-card button", { hasText: "ارجاع" }).first().click()
+  await page.locator(".letter-card button", { hasText: "فرستادن به دیگران" }).first().click()
   await page.locator(".person", { hasText: "اولیای کلاس چهارم الف" }).click()
   await expect(page.locator(".parent-box textarea.ai-draft")).not.toHaveValue("", { timeout: 15_000 })
   await page.locator(".dialog-actions .btn.primary").click()
@@ -146,7 +146,7 @@ test("manager opens a letter from the dashboard, decides with a note, and marks 
   await expect(dialog).toBeHidden()
   const info = page.locator(".letter-card", { has: page.locator("button", { hasText: "دیدم" }) }).first()
   await info.locator("button", { hasText: "دیدم" }).click()
-  await expect(page.locator(".letter-card .tag.st-done").first()).toContainText("دیدید")
+  await expect(page.locator(".letter-card .tag.st-done").first()).toContainText("دیده شد")
   expect(await seriousA11y(page)).toEqual([])
   expect(errors).toEqual([])
 })

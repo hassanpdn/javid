@@ -12,9 +12,9 @@ import AiOrb from "../components/AiOrb.vue"
 
 const TABS = [
   { key: "mine", label: "منتظر شما", icon: "inbox", match: (l) => ["new", "processing", "awaiting_approval", "todo"].includes(l.status) },
-  { key: "manager", label: "ارجاع به مدیر", icon: "forward", match: (l) => ["needs_manager", "forwarded"].includes(l.status) },
+  { key: "manager", label: "برای مدیر", icon: "forward", match: (l) => ["needs_manager", "forwarded"].includes(l.status) },
   { key: "done", label: "بسته‌شده", icon: "check", match: (l) => l.status === "done" },
-  { key: "log", label: "دفترچه دستیار", icon: "notebook" },
+  { key: "log", label: "کارهای دستیار", icon: "notebook" },
 ]
 const letters = ref([]), log = ref([]), tab = ref("mine"), open = ref(null), reply = ref(""), view = ref("inbox")
 const compose = reactive({ open: false, sender: "", subject: "", body: "", saving: false, error: "" })
@@ -32,9 +32,9 @@ const nav = computed(() => [
 ])
 const stats = computed(() => [
   { label: "منتظر شما", value: count(TABS[0].match), icon: "inbox", tone: "warning" },
-  { label: "ارجاع به مدیر", value: count(TABS[1].match), icon: "forward", tone: "info" },
+  { label: "فرستاده‌شده برای مدیر", value: count(TABS[1].match), icon: "forward", tone: "info" },
   { label: "بسته‌شده", value: count(TABS[2].match), icon: "check", tone: "success" },
-  { label: "اعلام وصول خودکار", value: count((l) => l.status === "done" && l.category === "ack"), icon: "sparkles", tone: "primary" },
+  { label: "تأیید دریافت خودکار", value: count((l) => l.status === "done" && l.category === "ack"), icon: "sparkles", tone: "primary" },
 ])
 const loaded = ref(false)
 const load = async () => {
@@ -60,7 +60,7 @@ const runAgent = async () => {
       log.value = await api("/staff/log")
     }
   } catch (e) {
-    if (e.message !== "401") agent.error = "دستیار در دسترس نیست. مدل محلی روشن است؟"
+    if (e.message !== "401") agent.error = "دستیار الان جواب نمی‌دهد. چند لحظه بعد دوباره امتحان کنید."
   } finally { agent.running = false; agent.current = "" }
 }
 const openLetter = (l) => { open.value = l; reply.value = l.reply || "" }
@@ -85,7 +85,7 @@ onUnmounted(() => lockScroll(false))
   <AppLayout :chat="DOCS_CHAT" title="پنل اداری" subtitle="صندوق نامه‌های اداری" :nav="nav" v-model="view">
     <div class="flex flex-col gap-6">
       <section v-reveal class="row-between">
-        <div><h2>روز بخیر</h2><p class="muted">دستیار نامه‌ها را می‌خواند، دسته‌بندی می‌کند و پیش‌نویس پاسخ می‌نویسد. تصمیم با شماست.</p></div>
+        <div><h2>روز بخیر</h2><p class="muted">دستیار نامه‌ها را می‌خواند، دسته‌بندی می‌کند و متن پاسخ را می‌نویسد. تصمیم با شماست.</p></div>
         <button class="btn primary" @click="compose.open = true" :disabled="agent.running"><Icon name="plus" :size="18" />ثبت نامه جدید</button>
       </section>
 
@@ -107,7 +107,7 @@ onUnmounted(() => lockScroll(false))
             <b v-else>همه نامه‌ها بررسی شد</b>
             <small class="muted" v-if="loaded && agent.running && agent.current">در حال خواندن: {{ fa(agent.current) }}</small>
             <small class="muted" v-else-if="loaded && !agent.running && !agent.error">
-              {{ fa(count(l => l.status === 'done' && l.category === 'ack')) }} اعلام وصول خودکار بسته شد،
+              {{ fa(count(l => l.status === 'done' && l.category === 'ack')) }} نامه با تأیید دریافت خودکار بسته شد،
               {{ fa(count(TABS[0].match)) }} مورد منتظر شماست و {{ fa(count(TABS[1].match)) }} مورد به مدیر رفت.
             </small>
           </div>
@@ -138,9 +138,9 @@ onUnmounted(() => lockScroll(false))
           <p v-if="l.summary" class="lc-summary">{{ fa(l.summary) }}</p>
           <p v-if="l.action && l.status !== 'done'" class="lc-action"><Icon name="sparkles" :size="16" /><span>پیشنهاد دستیار: {{ fa(l.action) }}</span></p>
           <div v-if="l.referral" class="ref-line">
-            <span>ارجاع به {{ fa(l.referral.count) }} نفر</span>
+            <span>فرستاده‌شده برای {{ fa(l.referral.count) }} نفر</span>
             <span v-if="l.referral.needs_ack" class="sep">·</span>
-            <span v-if="l.referral.needs_ack" :class="l.referral.acked === l.referral.count ? 'ok' : ''">{{ fa(l.referral.acked) }} رؤیت</span>
+            <span v-if="l.referral.needs_ack" :class="l.referral.acked === l.referral.count ? 'ok' : ''">{{ fa(l.referral.acked) }} نفر دیده‌اند</span>
             <small v-if="l.referral.pending.length" class="muted">منتظر: {{ l.referral.pending.join('، ') }}<span v-if="l.referral.more"> و {{ fa(l.referral.more) }} نفر دیگر</span></small>
           </div>
           <div class="btn-row">
@@ -148,7 +148,7 @@ onUnmounted(() => lockScroll(false))
             <button v-if="l.status === 'todo'" class="btn success sm" @click="complete(l)"><Icon name="check" :size="16" />انجام شد</button>
             <button v-if="l.reply && l.status === 'done'" class="btn ghost sm" @click="openLetter(l)">مشاهده پاسخ</button>
             <button v-if="!l.reply" class="btn ghost sm" @click="openLetter(l)">متن نامه</button>
-            <button v-if="!['new', 'processing'].includes(l.status)" class="btn sm" @click="referring = l"><Icon name="forward" :size="16" />ارجاع</button>
+            <button v-if="!['new', 'processing'].includes(l.status)" class="btn sm" @click="referring = l"><Icon name="forward" :size="16" />فرستادن به دیگران</button>
             <select v-if="l.category" class="cat-select" :value="l.category" @change="changeCategory(l, $event.target.value)" title="اصلاح دسته" aria-label="اصلاح دسته نامه">
               <option v-for="[k, v] in CATEGORY_OPTIONS" :key="k" :value="k">دسته: {{ v }}</option>
             </select>
@@ -157,7 +157,7 @@ onUnmounted(() => lockScroll(false))
       </section>
 
       <section v-else v-reveal class="card">
-        <div class="card-head">دفترچه دستیار <small>هر کاری که دستیار کرد، با دلیلش</small></div>
+        <div class="card-head">کارهای دستیار <small>هر کاری که دستیار کرد، با دلیلش</small></div>
         <p v-if="!log.length" class="muted">هنوز کاری ثبت نشده.</p>
         <ol class="timeline">
           <li v-for="g in log" :key="g.id">
@@ -176,7 +176,7 @@ onUnmounted(() => lockScroll(false))
         <p class="muted small">{{ open.sender }} · {{ fa(open.received_short) }}</p>
         <div class="letter">{{ fa(open.body) }}</div>
         <template v-if="open.status === 'awaiting_approval'">
-          <p class="small text-ink"><b>پیش‌نویس پاسخ دستیار</b> <span class="muted">(قبل از تأیید بخوانید و در صورت نیاز ویرایش کنید)</span></p>
+          <p class="small text-ink"><b>متنی که دستیار نوشته</b> <span class="muted">(قبل از تأیید بخوانید و در صورت نیاز ویرایش کنید)</span></p>
           <textarea v-model="reply" rows="7" class="ai-draft" aria-label="متن پاسخ"></textarea>
           <div class="dialog-actions">
             <button class="btn primary" :disabled="!reply.trim()" @click="approve"><Icon name="send" :size="18" />تأیید و ارسال پاسخ</button>

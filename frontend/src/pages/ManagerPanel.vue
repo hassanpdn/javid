@@ -44,7 +44,7 @@ const stats = computed(() => {
     { label: "دانش‌آموزان حاضر", value: d.students.present, of: d.students.total, sub: `${fa(d.students.absent)} غایب، ${fa(d.students.late)} تأخیر`, icon: "userCheck", tone: "success", go: "attendance" },
     { label: "غیبت امروز", value: d.students.absent, sub: "دانش‌آموزان غایب امروز", icon: "calendar", tone: "danger", go: "attendance" },
     { label: "تأخیر معلمان امروز", value: d.late_teachers.length, sub: d.late_teachers.map((t) => t.full_name + " " + fa(t.check_in)).join("، ") || "همه به موقع", icon: "clock", tone: "warning", go: "lates" },
-    { label: "نامه‌های منتظر رسیدگی", value: d.open_letters, sub: "در صندوق پرسنل اداری", icon: "mail", tone: "primary", go: "letters" },
+    { label: "نامه‌های باز دفتر", value: d.open_letters, sub: "هنوز کارشان تمام نشده", icon: "mail", tone: "primary", go: "letters" },
   ]
 })
 const look = (a) => ALERT_LOOK[a.type] || { icon: "alert", tone: "warning" }
@@ -69,7 +69,7 @@ onMounted(async () => {
 onUnmounted(() => { lockScroll(false); window.removeEventListener("notifications-changed", onNotify); idle("brief"); idle("warn") })
 const openDraft = async (alert) => {
   Object.assign(draft, { open: true, alert, text: "", loading: true, verified: null, missing: [] })
-  busy("warn", "دستیار در حال نوشتن پیش‌نویس تذکر")
+  busy("warn", "دستیار در حال نوشتن تذکر")
   try {
     const r = await api("/manager/warnings/draft", { teacher_id: alert.teacher_id })
     Object.assign(draft, { text: r.text, verified: r.verified, missing: r.missing })
@@ -80,7 +80,7 @@ const issue = async () => {
   draft.saving = true
   try {
     await api("/manager/warnings", { teacher_id: draft.alert.teacher_id, text: draft.text })
-    toast({ tone: "success", title: "تذکر صادر شد", body: `برای ${draft.alert.name} فرستاده شد و بعد از رؤیت به شما خبر می‌دهیم.` })
+    toast({ tone: "success", title: "تذکر فرستاده شد", body: `برای ${draft.alert.name} فرستاده شد. وقتی آن را دید به شما خبر می‌دهیم.` })
     draft.open = false; await load()
   }
   finally { draft.saving = false }
@@ -145,7 +145,7 @@ watch(view, (v) => { if (v !== "letters") focusLetter.value = null })
                 <small class="muted">{{ fa(a.detail) }}</small>
                 <small v-if="a.done" class="ok">✓ {{ fa(a.done_text) }}</small>
               </div>
-              <button v-if="a.type === 'teacher_late' && !a.done" class="btn sm" @click="openDraft(a)"><Icon name="edit" :size="16" />پیش‌نویس تذکر</button>
+              <button v-if="a.type === 'teacher_late' && !a.done" class="btn sm" @click="openDraft(a)"><Icon name="edit" :size="16" />نوشتن تذکر</button>
               <button v-if="a.type === 'letter_decision'" class="btn sm" @click="goLetter(a.letter_id)"><Icon name="file" :size="16" />بررسی نامه</button>
               <button v-if="a.type === 'letter_info'" class="btn sm" @click="goLetter(a.letter_id)"><Icon name="mail" :size="16" />خواندن نامه</button>
             </li>
@@ -168,13 +168,13 @@ watch(view, (v) => { if (v !== "letters") focusLetter.value = null })
     <div v-if="draft.open" class="overlay" @click.self="draft.open = false">
       <div class="dialog" v-pop>
         <h3>تذکر کتبی به {{ draft.alert.name }}</h3>
-        <p class="muted small">این متن را دستیار نوشته است. قبل از صدور بخوانید و هر جا لازم است ویرایش کنید.</p>
+        <p class="muted small">این متن را دستیار نوشته است. قبل از فرستادن بخوانید و هر جا لازم است تغییر دهید.</p>
         <Skeleton v-if="draft.loading" :lines="8" class="sk-draft" />
-        <p v-if="!draft.loading && draft.verified === true" class="check ok">✓ تاریخ‌ها و ساعت‌های این متن با ثبت ورود سامانه تطبیق داده شد.</p>
-        <p v-if="!draft.loading && draft.verified === false" class="check bad">این موارد ثبت‌شده در متن نیامده یا متفاوت آمده: {{ fa(draft.missing.join('، ')) }}. قبل از صدور اصلاح کنید.</p>
+        <p v-if="!draft.loading && draft.verified === true" class="check ok">✓ تاریخ‌ها و ساعت‌ها با ساعت ورود ثبت‌شده در سامانه یکی است.</p>
+        <p v-if="!draft.loading && draft.verified === false" class="check bad">این موارد در متن نیامده یا با ساعت ثبت‌شده فرق دارد: {{ fa(draft.missing.join('، ')) }}. قبل از فرستادن درستش کنید.</p>
         <textarea v-if="!draft.loading" v-model="draft.text" rows="10" class="ai-draft" aria-label="متن تذکر"></textarea>
         <div class="dialog-actions">
-          <button class="btn primary" :disabled="draft.loading || !draft.text.trim() || draft.saving" @click="issue">تأیید و صدور</button>
+          <button class="btn primary" :disabled="draft.loading || !draft.text.trim() || draft.saving" @click="issue">تأیید و فرستادن</button>
           <button class="btn ghost" @click="draft.open = false">انصراف</button>
         </div>
       </div>
