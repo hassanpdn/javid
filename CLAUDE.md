@@ -59,4 +59,4 @@ Models run in Ollama on the Mac: `qwen3-14b` (chat) and `bge-m3` (embeddings), b
 - Never write a school, manager or counselor name into code, prompts or seed data: take it from `school.py` (backend) or `schoolInfo` (frontend).
 - Any new model-written text shown to a parent goes through `checks.unsafe_for_parent` and `checks.only_known_numbers`, with a code-built fallback.
 - Don't commit `.env`, `school.db`, `db/` or model files.
-- `tests/` and `frontend/e2e/` must pass before merging.
+- Run tests only when Hassan asks. Don't run the full suite (`pytest` plus `pnpm test:e2e`) on every change or before merging: it takes his time. When a change needs a check, run only the tests for that part (e.g. `pytest -k manager`).
