@@ -6,6 +6,7 @@ import { CATEGORY_OPTIONS, DOCS_CHAT } from "../lib/constants.js"
 import AppLayout from "../components/AppLayout.vue"
 import ReferDialog from "../components/ReferDialog.vue"
 import Icon from "../components/Icon.vue"
+import Skeleton from "../components/Skeleton.vue"
 import CountUp from "../components/CountUp.vue"
 import AiOrb from "../components/AiOrb.vue"
 
@@ -35,8 +36,9 @@ const stats = computed(() => [
   { label: "بسته‌شده", value: count(TABS[2].match), icon: "check", tone: "success" },
   { label: "اعلام وصول خودکار", value: count((l) => l.status === "done" && l.category === "ack"), icon: "sparkles", tone: "primary" },
 ])
+const loaded = ref(false)
 const load = async () => {
-  letters.value = await api("/staff/letters")
+  letters.value = await api("/staff/letters"); loaded.value = true
   log.value = await api("/staff/log")
 }
 const changeCategory = async (l, category) => { await api(`/staff/letters/${l.id}/category`, { category }); await load() }
@@ -88,7 +90,8 @@ onUnmounted(() => lockScroll(false))
       </section>
 
       <div class="grid grid-cols-2 xl:grid-cols-4 gap-6">
-        <div v-for="s in stats" :key="s.label" v-reveal class="card stat" :style="{ '--c': 'var(--' + s.tone + ')' }">
+        <Skeleton v-if="!loaded" kind="stat" :count="4" />
+        <div v-else v-for="s in stats" :key="s.label" v-reveal class="card stat" :style="{ '--c': 'var(--' + s.tone + ')' }">
           <div class="stat-top"><span :class="['tint', 't-' + s.tone]"><Icon :name="s.icon" :size="22" /></span><div class="stat-num"><CountUp :value="s.value" /></div></div>
           <div class="stat-label">{{ s.label }}</div>
         </div>
@@ -98,11 +101,12 @@ onUnmounted(() => lockScroll(false))
         <div class="agent-row">
           <AiOrb :size="64" :busy="agent.running" />
           <div class="agent-text">
-            <b v-if="agent.running">دستیار در حال بررسی نامه‌ها: {{ fa(agent.processed) }} از {{ fa(agent.total) }}</b>
+            <Skeleton v-if="!loaded" :lines="2" />
+            <b v-else-if="agent.running">دستیار در حال بررسی نامه‌ها: {{ fa(agent.processed) }} از {{ fa(agent.total) }}</b>
             <b v-else-if="agent.error">{{ agent.error }}</b>
             <b v-else>همه نامه‌ها بررسی شد</b>
-            <small class="muted" v-if="agent.running && agent.current">در حال خواندن: {{ fa(agent.current) }}</small>
-            <small class="muted" v-else-if="!agent.running && !agent.error">
+            <small class="muted" v-if="loaded && agent.running && agent.current">در حال خواندن: {{ fa(agent.current) }}</small>
+            <small class="muted" v-else-if="loaded && !agent.running && !agent.error">
               {{ fa(count(l => l.status === 'done' && l.category === 'ack')) }} اعلام وصول خودکار بسته شد،
               {{ fa(count(TABS[0].match)) }} مورد منتظر شماست و {{ fa(count(TABS[1].match)) }} مورد به مدیر رفت.
             </small>
@@ -119,7 +123,8 @@ onUnmounted(() => lockScroll(false))
       </nav>
 
       <section v-if="tab !== 'log'" class="letters">
-        <div v-if="!shown.length" class="card empty-state"><span class="tint lg t-success"><Icon name="check" :size="24" /></span><p>موردی نیست.</p></div>
+        <Skeleton v-if="!loaded" kind="letter" :count="3" />
+        <div v-else-if="!shown.length" class="card empty-state"><span class="tint lg t-success"><Icon name="check" :size="24" /></span><p>موردی نیست.</p></div>
         <article v-for="l in shown" :key="l.id" v-reveal :class="['letter-card', 'card', 'st-' + l.status, { fresh: fresh.has(l.id) }]">
           <div class="lc-top">
             <b>{{ fa(l.subject) }}</b>

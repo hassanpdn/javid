@@ -3,6 +3,7 @@
 import { ref, reactive, computed, watch, onMounted } from "vue"
 import { api, fa } from "../lib/api.js"
 import Icon from "./Icon.vue"
+import Skeleton from "../components/Skeleton.vue"
 
 const props = defineProps(["letter"])
 const emit = defineEmits(["close", "done"])
@@ -60,7 +61,7 @@ onMounted(async () => {
 
       <div class="suggest">
         <span class="bot-avatar sm"><Icon name="sparkles" :size="15" /></span>
-        <div v-if="suggestion.loading" class="muted small flex-1">دستیار در حال پیشنهاد گیرنده<span class="dots"><i></i><i></i><i></i></span></div>
+        <div v-if="suggestion.loading" class="typing muted small flex-1"><span class="typing-dots"><i></i><i></i><i></i></span>دستیار در حال پیشنهاد گیرنده</div>
         <div v-else-if="suggestion.keys.length" class="suggest-body">
           <span class="small">پیشنهاد دستیار: <b>{{ suggestion.keys.map(label).join('، ') }}</b></span>
           <small class="muted" v-if="suggestion.reason">{{ fa(suggestion.reason) }}</small>
@@ -92,7 +93,7 @@ onMounted(async () => {
         <div class="row-between"><b class="small text-ink">پیام برای اولیا</b>
           <button type="button" class="link small" @click="draftParent" :disabled="parent.loading">{{ parent.loading ? 'در حال نوشتن...' : 'نوشتن دوباره با دستیار' }}</button></div>
         <p class="muted small">اولیا متن اداری نامه را نمی‌بینند؛ فقط این پیام ساده را دریافت می‌کنند.</p>
-        <div v-if="parent.loading && !parent.text" class="shimmer"><span></span><span></span><span style="width:60%"></span></div>
+        <Skeleton v-if="parent.loading && !parent.text" :lines="3" />
         <textarea v-else v-model="parent.text" rows="5" class="ai-draft" aria-label="پیام برای اولیا"></textarea>
       </div>
 

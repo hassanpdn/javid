@@ -8,6 +8,7 @@ import AppLayout from "../components/AppLayout.vue"
 import BarChart from "../components/BarChart.vue"
 import RadialGauge from "../components/RadialGauge.vue"
 import Icon from "../components/Icon.vue"
+import Skeleton from "../components/Skeleton.vue"
 import CountUp from "../components/CountUp.vue"
 import TypeText from "../components/TypeText.vue"
 import AiOrb from "../components/AiOrb.vue"
@@ -103,7 +104,7 @@ watch(view, (v) => { if (v !== "letters") focusLetter.value = null })
             <h2>روز بخیر، {{ user.full_name }}</h2>
             <div class="flex items-center gap-2 text-primary font-bold text-sm"><Icon name="sparkles" :size="18" /> خلاصه امروز به قلم دستیار</div>
             <p v-if="brief"><TypeText :text="brief" /></p>
-            <div v-else class="shimmer"><span></span><span></span><span style="width:60%"></span></div>
+            <Skeleton v-else :lines="3" />
           </div>
           <div class="welcome-art"><AiOrb :size="150" :busy="!brief" /></div>
         </section>
@@ -118,23 +119,25 @@ watch(view, (v) => { if (v !== "letters") focusLetter.value = null })
               <div><b class="text-warning text-lg"><CountUp :value="data.students.late" /></b><small class="block muted">تأخیر</small></div>
             </div>
           </template>
-          <div v-else class="shimmer"><span></span><span></span><span></span></div>
+          <Skeleton v-else kind="gauge" />
         </section>
       </div>
 
-      <div v-if="data" class="grid grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-6">
-        <component :is="s.go ? 'button' : 'div'" v-for="s in stats" :key="s.label" v-reveal class="card stat" :style="{ '--c': 'var(--' + s.tone + ')' }" @click="openStat(s.go)">
+      <div class="grid grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-6">
+        <Skeleton v-if="!data" kind="stat" :count="4" />
+        <component v-else :is="s.go ? 'button' : 'div'" v-for="s in stats" :key="s.label" v-reveal class="card stat" :style="{ '--c': 'var(--' + s.tone + ')' }" @click="openStat(s.go)">
           <div class="stat-top"><span :class="['tint', 'lg', 't-' + s.tone]"><Icon :name="s.icon" :size="24" /></span>
             <div class="stat-num"><CountUp :value="s.value" /> <span v-if="s.of" class="of">از {{ fa(s.of) }}</span></div></div>
           <div><div class="stat-label">{{ s.label }}</div><div class="stat-sub">{{ s.sub }}</div></div>
         </component>
       </div>
 
-      <div v-if="data" class="grid grid-cols-12 gap-6">
+      <div class="grid grid-cols-12 gap-6">
         <section v-reveal class="card col-span-12 2xl:col-span-6">
-          <div class="card-head">نیاز به توجه شما <span class="count">{{ fa(open) }}</span></div>
-          <p v-if="!data.alerts.length" class="muted">موردی نیست.</p>
-          <ul class="alerts">
+          <div class="card-head">نیاز به توجه شما <span v-if="data" class="count">{{ fa(open) }}</span></div>
+          <Skeleton v-if="!data" kind="row" :count="4" />
+          <p v-else-if="!data.alerts.length" class="muted">موردی نیست.</p>
+          <ul v-if="data" class="alerts">
             <li v-for="a in data.alerts" :key="alertKey(a)" :class="['alert', a.type, { done: a.done, fresh: fresh.has(alertKey(a)) }]">
               <span :class="['tint', 't-' + (a.done ? 'success' : look(a).tone)]"><Icon :name="a.done ? 'check' : look(a).icon" :size="20" /></span>
               <div class="alert-body">
@@ -152,7 +155,8 @@ watch(view, (v) => { if (v !== "letters") focusLetter.value = null })
         <section v-reveal class="card col-span-12 2xl:col-span-6 flex flex-col">
           <div class="card-head"><span class="grow">درصد حضور دانش‌آموزان در ده روز اخیر</span>
             <span class="legend-dot" style="--c: var(--primary)">۹۵٪ و بیشتر</span><span class="legend-dot" style="--c: var(--warning)">کمتر از ۹۵٪</span></div>
-          <BarChart :points="data.trend" />
+          <BarChart v-if="data" :points="data.trend" />
+          <Skeleton v-else kind="chart" />
         </section>
       </div>
     </div>
@@ -165,7 +169,7 @@ watch(view, (v) => { if (v !== "letters") focusLetter.value = null })
       <div class="dialog" v-pop>
         <h3>تذکر کتبی به {{ draft.alert.name }}</h3>
         <p class="muted small">این متن را دستیار نوشته است. قبل از صدور بخوانید و هر جا لازم است ویرایش کنید.</p>
-        <div v-if="draft.loading" class="shimmer tall"><span></span><span></span><span></span><span style="width:50%"></span></div>
+        <Skeleton v-if="draft.loading" :lines="8" class="sk-draft" />
         <p v-if="!draft.loading && draft.verified === true" class="check ok">✓ تاریخ‌ها و ساعت‌های این متن با ثبت ورود سامانه تطبیق داده شد.</p>
         <p v-if="!draft.loading && draft.verified === false" class="check bad">این موارد ثبت‌شده در متن نیامده یا متفاوت آمده: {{ fa(draft.missing.join('، ')) }}. قبل از صدور اصلاح کنید.</p>
         <textarea v-if="!draft.loading" v-model="draft.text" rows="10" class="ai-draft" aria-label="متن تذکر"></textarea>

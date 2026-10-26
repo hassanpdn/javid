@@ -6,6 +6,7 @@ import { KINDS } from "../lib/constants.js"
 import { gsap, motion } from "../lib/motion.js"
 import { toast } from "../lib/notify.js"
 import Icon from "./Icon.vue"
+import Skeleton from "../components/Skeleton.vue"
 import KindIcon from "./KindIcon.vue"
 
 const items = ref([]), unread = ref(0), open = ref(false), current = ref(null), filter = ref("all"), wrap = ref(null), icon = ref(null)
@@ -17,6 +18,7 @@ const filters = computed(() => [
 const visible = computed(() => items.value.filter((n) =>
   filter.value === "unread" ? !n.read_at : filter.value === "ack" ? n.needs_ack && !n.ack_at : true))
 let loaded = false
+const ready = ref(false)
 const seen = new Set()
 const load = async () => {
   try {
@@ -33,7 +35,7 @@ const load = async () => {
       // ring the bell when something new arrives (not on the first load)
       if (loaded && motion && icon.value) gsap.fromTo(icon.value, { rotation: -18 }, { rotation: 0, duration: 1.2, ease: "elastic.out(1.2, .25)", transformOrigin: "50% 0" })
     }
-    items.value = d.items; unread.value = d.unread; loaded = true
+    items.value = d.items; unread.value = d.unread; loaded = true; ready.value = true
   } catch {}
 }
 const show = async (n) => {
@@ -71,7 +73,8 @@ watch(current, lockScroll)
         </button>
       </nav>
       <div class="bp-list">
-        <div v-if="!visible.length" class="bp-empty">
+        <Skeleton v-if="!ready" kind="row" :count="3" class="bp-skel" />
+        <div v-else-if="!visible.length" class="bp-empty">
           <span class="tint lg t-success"><Icon name="check" :size="24" /></span>
           <p>اعلانی در این بخش نیست.</p>
         </div>

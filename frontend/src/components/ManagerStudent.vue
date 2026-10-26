@@ -3,6 +3,7 @@
 import { ref, onMounted } from "vue"
 import { api, fa } from "../lib/api.js"
 import Icon from "./Icon.vue"
+import Skeleton from "../components/Skeleton.vue"
 import Avatar from "./Avatar.vue"
 import Sparkline from "./Sparkline.vue"
 import LevelChip from "./LevelChip.vue"
@@ -22,7 +23,10 @@ onMounted(async () => { f.value = await api(`/manager/students/${props.sid}`) })
         <button class="icon-btn" @click="$emit('close')" aria-label="بستن"><Icon name="x" /></button>
       </div>
       <div class="drawer-body" tabindex="0">
-        <div v-if="!f" class="card"><div class="shimmer"><span></span><span></span><span style="width:60%"></span></div></div>
+        <template v-if="!f">
+          <div class="card"><Skeleton :lines="2" /></div>
+          <div class="card"><Skeleton kind="row" :count="5" /></div>
+        </template>
         <template v-else>
           <section class="card">
             <div class="card-head">حضور <small>۳۰ روز اخیر</small></div>

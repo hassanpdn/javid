@@ -397,10 +397,6 @@ body .nav-title h1 { color: var(--ink); font-size: 16px; line-height: 1.5; white
 .legend-dot::before { content: ""; width: 10px; height: 10px; border-radius: 3px; background: var(--c); }
 
 /* ---------- loading placeholder ---------- */
-.shimmer { display: flex; flex-direction: column; gap: 10px; }
-.shimmer span { display: block; height: 12px; width: 100%; border-radius: 6px; background: linear-gradient(90deg, var(--hover) 25%, color-mix(in srgb, var(--hover) 40%, var(--panel)) 50%, var(--hover) 75%); background-size: 200% 100%; animation: shimmer 1.4s linear infinite; }
-.shimmer.tall { margin: 10px 0; }
-@keyframes shimmer { 0% { background-position: 100% 0; } 100% { background-position: -100% 0; } }
 .typing-caret::after { content: ""; display: inline-block; width: 2px; height: 1em; margin-inline-start: 2px; vertical-align: -2px; background: var(--primary-strong); animation: blink .8s steps(2) infinite; }
 @keyframes blink { to { opacity: 0; } }
 
@@ -795,3 +791,45 @@ details summary { cursor: pointer; color: var(--primary-ink); }
 @media (prefers-reduced-motion: reduce) {
   .ap-dot i, .alert.fresh, .toast-time { animation: none; }
 }
+
+/* ---------- skeleton placeholders (components/Skeleton.vue) ---------- */
+/* every block shares one light wave that runs right to left, the reading direction */
+.sk { position: relative; overflow: hidden; display: block; height: 12px; border-radius: 8px; background: var(--hover); }
+.sk::after { content: ""; position: absolute; inset: 0; transform: translateX(100%);
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--panel) 70%, transparent), transparent); animation: skWave 1.6s ease-in-out infinite; }
+@keyframes skWave { to { transform: translateX(-100%); } }
+.sk.sm { height: 9px; }
+.sk-wrap { display: flex; flex-direction: column; gap: 14px; }
+.sk-k-stat, .sk-k-letter { display: contents; }   /* their cards sit straight in the page grid */
+.sk-lines { display: flex; flex-direction: column; gap: 10px; }
+.sk-lines.grow { flex: 1; min-width: 0; }
+.sk-card { display: flex; flex-direction: column; gap: 12px; }
+.sk-icon { width: 42px; height: 42px; flex: none; border-radius: var(--radius-sm); }
+.sk-icon.lg { width: 48px; height: 48px; }
+.sk-icon.round { border-radius: 50%; }
+.sk-row { display: flex; align-items: center; gap: 14px; padding: 6px 0; }
+.sk-pill { width: 72px; height: 22px; border-radius: 999px; flex: none; }
+.sk-btn { width: 112px; height: 34px; border-radius: var(--radius-sm); }
+.sk-box { height: 36px; border-radius: var(--radius-sm); }
+.sk-input { height: 42px; border-radius: var(--radius-sm); }
+.sk-between { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.sk-chips { display: flex; gap: 8px; flex-wrap: wrap; }
+.sk-field { display: flex; flex-direction: column; gap: 8px; }
+.sk-gauge { display: flex; flex-direction: column; align-items: center; gap: 22px; padding: 10px 0 4px; }
+.sk-ring { width: 160px; height: 160px; border-radius: 50%; background: none; border: 14px solid var(--hover); }
+.sk-three { width: 100%; display: grid; grid-template-columns: repeat(3, 1fr); }
+.sk-three span { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.sk-three i { display: block; }
+.sk-k-chart { flex: 1; }
+.sk-chart { display: flex; height: 100%; min-height: 220px; flex-direction: row; align-items: flex-end; gap: 22px; padding: 30px 0 26px; }
+.sk-chart .sk { flex: 1; border-radius: 8px 8px 4px 4px; }
+@media (prefers-reduced-motion: reduce) { .sk::after { animation: none; } }
+
+/* the assistant typing in the chat */
+.typing { display: inline-flex; align-items: center; gap: 10px; }
+.typing-dots { display: inline-flex; gap: 4px; }
+.typing-dots i { width: 7px; height: 7px; border-radius: 50%; background: var(--primary); animation: bounce 1.2s infinite ease-in-out; }
+.typing-dots i:nth-child(2) { animation-delay: .15s; } .typing-dots i:nth-child(3) { animation-delay: .3s; }
+.typing small { color: var(--muted); font-size: 12px; }
+.sk-draft { margin: 12px 0; padding: 14px 16px; border: 1px solid var(--line); border-radius: var(--radius-sm); }
+.bp-skel { padding: 14px 16px; }

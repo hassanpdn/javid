@@ -4,6 +4,7 @@
 import { ref, onMounted } from "vue"
 import { api, fa } from "../lib/api.js"
 import Icon from "./Icon.vue"
+import Skeleton from "../components/Skeleton.vue"
 import Avatar from "./Avatar.vue"
 
 defineEmits(["close", "draft"])
@@ -19,7 +20,9 @@ onMounted(async () => { d.value = await api("/manager/teachers/lates") })
         <button class="icon-btn" @click="$emit('close')" aria-label="بستن"><Icon name="x" /></button>
       </div>
       <div class="drawer-body" tabindex="0">
-        <div v-if="!d" class="card"><div class="shimmer"><span></span><span></span><span style="width:60%"></span></div></div>
+        <div v-if="!d" class="flex flex-col gap-4">
+          <div v-for="n in 3" :key="n" class="card"><Skeleton kind="row" round /><Skeleton kind="chips" class="mt-3" /></div>
+        </div>
         <template v-else>
           <p class="muted small">ساعت ورود {{ fa(d.arrival) }} است. با {{ fa(d.limit) }} تأخیر در {{ fa(d.window) }} روز، تذکر کتبی پیشنهاد می‌شود.</p>
           <div v-if="!d.teachers.length" class="card empty-state"><span class="tint lg t-success"><Icon name="check" :size="24" /></span><p>در ۳۰ روز اخیر تأخیری ثبت نشده.</p></div>

@@ -5,6 +5,7 @@ import { ref, reactive, computed, watch, onMounted, onUnmounted } from "vue"
 import { api, fa, lockScroll } from "../lib/api.js"
 import { toast, busy, idle } from "../lib/notify.js"
 import Icon from "./Icon.vue"
+import Skeleton from "../components/Skeleton.vue"
 
 const props = defineProps({ focus: { default: null } })   // id of a letter to open right away (from a dashboard alert)
 const emit = defineEmits(["changed"])
@@ -65,7 +66,7 @@ onUnmounted(() => { lockScroll(false); idle("agent") })
     </section>
     <p v-if="agent.error" class="check bad" role="status">{{ agent.error }}</p>
 
-    <div v-if="!data" class="card shimmer"><span></span><span></span><span style="width:60%"></span></div>
+    <div v-if="!data" class="letters"><Skeleton kind="letter" :count="2" /></div>
     <template v-else>
       <section class="letters">
         <h3 class="group-head">منتظر تصمیم شما <span v-if="data.decide.length" class="count">{{ fa(data.decide.length) }}</span></h3>

@@ -6,6 +6,7 @@ import { groupSignals, DOCS_CHAT } from "../lib/constants.js"
 import AppLayout from "../components/AppLayout.vue"
 import StudentProfile from "../components/StudentProfile.vue"
 import Icon from "../components/Icon.vue"
+import Skeleton from "../components/Skeleton.vue"
 import Avatar from "../components/Avatar.vue"
 import CountUp from "../components/CountUp.vue"
 
@@ -49,7 +50,7 @@ onUnmounted(() => lockScroll(false))
           <input v-if="view === 'all'" class="search small-search" v-model="q" placeholder="جستجوی نام یا کلاس...">
         </div>
 
-        <div v-if="!loaded" class="p-6"><div class="shimmer"><span></span><span></span><span></span></div></div>
+        <div v-if="!loaded" class="p-6"><Skeleton kind="row" round :count="6" /></div>
         <div v-else-if="!shown.length" class="empty-state"><span class="tint lg t-success"><Icon name="check" :size="24" /></span><p>موردی نیست.</p></div>
         <div v-else class="student-list">
           <button v-for="s in shown" :key="s.id" v-reveal class="student-row" @click="openId = s.id">

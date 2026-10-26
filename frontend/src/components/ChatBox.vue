@@ -54,7 +54,7 @@ const send = async (text) => {
       </div>
       <div v-if="loading" class="msg-row bot">
         <span class="bot-avatar sm"><Icon name="sparkles" :size="15" /></span>
-        <div class="msg"><div class="bubble loading">{{ loadingText }}<span class="dots"><i></i><i></i><i></i></span></div></div>
+        <div class="msg"><div class="bubble loading typing"><span class="typing-dots"><i></i><i></i><i></i></span><small>{{ loadingText }}</small></div></div>
       </div>
     </div>
     <form class="composer" @submit.prevent="send(input)">

@@ -8,6 +8,7 @@ import Sparkline from "../components/Sparkline.vue"
 import LevelChip from "../components/LevelChip.vue"
 import HealthFormDialog from "../components/HealthFormDialog.vue"
 import Icon from "../components/Icon.vue"
+import Skeleton from "../components/Skeleton.vue"
 import Avatar from "../components/Avatar.vue"
 import CountUp from "../components/CountUp.vue"
 import TypeText from "../components/TypeText.vue"
@@ -42,7 +43,11 @@ const askExamples = computed(() => {
 <template>
   <AppLayout :chat="chat" title="پنل ولی" :subtitle="f ? 'گزارش ' + f.name : ''" :nav="nav" v-model="view">
     <div>
-      <div v-if="!f" class="card"><div class="shimmer"><span></span><span></span><span></span></div></div>
+      <div v-if="!f" class="flex flex-col gap-6">
+        <div class="card"><Skeleton kind="row" round /></div>
+        <div class="card"><Skeleton :lines="3" /></div>
+        <div class="card"><Skeleton kind="row" :count="4" /></div>
+      </div>
       <div v-else class="flex flex-col gap-6">
         <section v-reveal class="card profile">
           <div class="profile-cover" ref="cover">
@@ -67,7 +72,7 @@ const askExamples = computed(() => {
               <div class="welcome-text">
                 <div class="card-head mb-0"><span class="bot-avatar sm"><Icon name="sparkles" :size="15" /></span> گزارش این هفته</div>
                 <p v-if="report"><TypeText :text="report" /></p>
-                <div v-else class="shimmer"><span></span><span></span><span style="width:55%"></span></div>
+                <Skeleton v-else :lines="3" />
               </div>
               <div class="welcome-art"><AiOrb :size="110" :busy="!report" /></div>
             </section>

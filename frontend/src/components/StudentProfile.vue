@@ -4,6 +4,7 @@ import { ref, computed, onMounted } from "vue"
 import { api, fa } from "../lib/api.js"
 import { schoolInfo } from "../lib/school.js"
 import Icon from "./Icon.vue"
+import Skeleton from "../components/Skeleton.vue"
 import Avatar from "./Avatar.vue"
 import CountUp from "./CountUp.vue"
 import TypeText from "./TypeText.vue"
@@ -43,13 +44,16 @@ onMounted(async () => {
         <span v-else></span>
         <button class="icon-btn" @click="$emit('close')" aria-label="بستن"><Icon name="x" /></button>
       </div>
-      <div v-if="!f" class="drawer-body"><div class="card"><div class="shimmer"><span></span><span></span><span style="width:60%"></span></div></div></div>
+      <div v-if="!f" class="drawer-body">
+        <div class="card"><Skeleton :lines="3" /></div>
+        <div class="card"><Skeleton kind="row" :count="5" /></div>
+      </div>
       <div v-else class="drawer-body">
 
         <section v-reveal class="card brief">
           <div class="card-head"><span class="bot-avatar sm"><Icon name="sparkles" :size="15" /></span> جمع‌بندی دستیار</div>
           <p v-if="insight"><TypeText :text="insight" /></p>
-          <div v-else class="shimmer"><span></span><span style="width:70%"></span></div>
+          <Skeleton v-else :lines="2" />
           <div v-if="f.signals.length" class="chips">
             <span v-for="s in f.signals" :key="s.text" :class="['sig', s.type]">{{ fa(s.text) }}</span>
           </div>

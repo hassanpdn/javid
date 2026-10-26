@@ -3,6 +3,7 @@
 import { ref, reactive, onMounted } from "vue"
 import { api, fa } from "../lib/api.js"
 import Icon from "./Icon.vue"
+import Skeleton from "../components/Skeleton.vue"
 
 const SCALE_ENDS = { mood: ["خیلی کم", "خیلی خوب"], sleep_quality: ["بد", "عالی"], school_worry: ["اصلا", "خیلی زیاد"], friends: ["سخت", "خیلی خوب"] }
 const props = defineProps(["kind"])
@@ -26,7 +27,7 @@ const save = async () => {
           <p class="muted small">{{ date ? 'آخرین ثبت: ' + fa(date) + '. پاسخ‌های قبلی را ببینید و اگر چیزی تغییر کرده اصلاح کنید.' : 'چند سؤال کوتاه. پاسخ‌ها فقط برای مشاور مدرسه است.' }}</p></div>
         <button type="button" class="icon-btn" @click="$emit('close')" aria-label="بستن"><Icon name="x" /></button>
       </div>
-      <div v-if="!fields.length" class="shimmer"><span></span><span></span></div>
+      <Skeleton v-if="!fields.length" kind="field" :count="4" />
       <div v-for="[key, label, type] in fields" :key="key" class="q">
         <span class="q-label">{{ label }}</span>
         <input v-if="type === 'number'" type="number" inputmode="decimal" v-model="data[key]" class="q-input" min="0">

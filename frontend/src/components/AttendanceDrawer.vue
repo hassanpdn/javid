@@ -3,6 +3,7 @@
 import { ref, computed, onMounted } from "vue"
 import { api, fa } from "../lib/api.js"
 import Icon from "./Icon.vue"
+import Skeleton from "../components/Skeleton.vue"
 import Avatar from "./Avatar.vue"
 import ManagerStudent from "./ManagerStudent.vue"
 
@@ -24,7 +25,10 @@ onMounted(async () => { d.value = await api("/manager/attendance/today") })
         <button class="icon-btn" @click="$emit('close')" aria-label="بستن"><Icon name="x" /></button>
       </div>
       <div class="drawer-body" tabindex="0">
-        <div v-if="!d" class="card"><div class="shimmer"><span></span><span></span><span style="width:60%"></span></div></div>
+        <template v-if="!d">
+          <div class="card"><Skeleton :lines="2" /></div>
+          <div class="card"><Skeleton kind="row" round :count="4" /></div>
+        </template>
         <template v-else>
           <section class="card">
             <div class="card-head">به تفکیک کلاس</div>
