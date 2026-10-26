@@ -211,6 +211,7 @@ onUnmounted(() => blobs?.revert())
 
       <aside class="setup-aside">
         <SchoolCard ref="cardRef" :form="form" :done="done" :step="step" :building="building" :success="success" />
+        <p class="muted small center">پیش‌نمایش زنده: کارت با تکمیل هر مرحله پر می‌شود.</p>
       </aside>
     </div>
   </main>
