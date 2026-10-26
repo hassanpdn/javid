@@ -206,15 +206,18 @@ test("dark mode stays after reload and passes contrast", async ({ page }) => {
   expect(await seriousA11y(page)).toEqual([])
 })
 
-test("phone width: no sideways scrolling, the assistant opens full screen", async ({ browser }) => {
+test("phone width: no sideways scrolling, tab bar, the assistant opens full screen", async ({ browser }) => {
   let page
-  for (const role of ["ولی", "پرسنل اداری"]) {
-    page = await (await browser.newContext({ viewport: { width: 375, height: 760 } })).newPage()
+  for (const role of ["ولی", "پرسنل اداری", "مدیر"]) {
+    page = await (await browser.newContext({ viewport: { width: 375, height: 760 }, isMobile: true, hasTouch: true })).newPage()
     await loginAs(page, role)
     await page.waitForTimeout(1200)
     expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(0)
+    await expect(page.locator(".tabbar")).toBeVisible()          // phones use the bottom tab bar, not the sidebar
   }
-  await page.locator(".fab-chat").click()
+  await page.locator(".tabbar .tab", { hasText: "نامه‌ها" }).click()
+  await expect(page.locator(".nav-title h1")).toHaveText("نامه‌ها")
+  await page.locator(".tabbar .tab-ai").click()
   await page.waitForTimeout(700)   // let the opening animation finish
   const box = await page.locator(".chat-window").boundingBox()
   expect(box.width).toBeGreaterThanOrEqual(374)

@@ -9,6 +9,8 @@ import Icon from "./Icon.vue"
 import Skeleton from "../components/Skeleton.vue"
 import KindIcon from "./KindIcon.vue"
 
+// tab: the phone version, a button in the bottom tab bar whose list opens as a sheet
+defineProps({ tab: { type: Boolean, default: false } })
 const items = ref([]), unread = ref(0), open = ref(false), current = ref(null), filter = ref("all"), wrap = ref(null), icon = ref(null)
 const filters = computed(() => [
   { key: "all", label: "همه" },
@@ -56,8 +58,12 @@ watch(current, lockScroll)
 </script>
 
 <template>
-  <div class="bell-wrap" ref="wrap">
-    <button class="icon-btn" :class="{ on: open }" @click="open = !open" :aria-label="'اعلان‌ها، ' + fa(unread) + ' خوانده‌نشده'">
+  <div :class="['bell-wrap', { 'bell-tab': tab }]" ref="wrap">
+    <button v-if="tab" :class="['tab', { on: open }]" @click="open = !open" :aria-label="'اعلان‌ها، ' + fa(unread) + ' خوانده‌نشده'" :aria-expanded="open">
+      <span class="tab-ico" ref="icon"><Icon name="bell" :size="22" /><i v-if="unread" class="tab-badge">{{ fa(unread > 99 ? '99+' : unread) }}</i></span>
+      <span class="tab-label">اعلان‌ها</span>
+    </button>
+    <button v-else class="icon-btn" :class="{ on: open }" @click="open = !open" :aria-label="'اعلان‌ها، ' + fa(unread) + ' خوانده‌نشده'">
       <span ref="icon"><Icon name="bell" :size="22" /></span>
       <span v-if="unread" class="badge-dot">{{ fa(unread > 99 ? '99+' : unread) }}</span>
     </button>
