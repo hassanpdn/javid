@@ -70,7 +70,7 @@ onUnmounted(() => { if (card.value) gsap.killTweensOf(card.value) })
         <i class="sc-circle a"></i><i class="sc-circle b"></i>
         <span class="sc-logo">{{ (schoolName || "؟")[0] }}</span>
         <div class="sc-title">
-          <small>کارت مدرسه</small>
+          <small>کارت مدرسه · با هر مرحله پر می‌شود</small>
           <b :class="{ ghost: !schoolName }">{{ schoolName ? "دبستان " + schoolName : "نام مدرسه" }}</b>
           <span v-if="form.gender" class="sc-badge">{{ form.gender === "boys" ? "پسرانه" : "دخترانه" }}</span>
         </div>

@@ -323,10 +323,19 @@ body .nav-title h1 { color: var(--ink); font-size: 16px; line-height: 1.5; white
 .sc-burst { position: absolute; inset: 50% auto auto 50%; z-index: 4; pointer-events: none; }
 .sc-burst i { position: absolute; width: 9px; height: 9px; border-radius: 3px; }
 
+/* wide screens: the form and the school card are one height. The form keeps the height of its tallest step,
+   so nothing jumps between steps; the card stretches to it and spreads its rows over the space. */
+@media (min-width: 961px) {
+  .setup-layout { align-items: stretch; }
+  .setup-form { min-height: 600px; }
+  .setup-aside { position: static; }
+  .setup-aside, .school-card-wrap { display: flex; flex-direction: column; flex: 1; }
+  .school-card { flex: 1; display: flex; flex-direction: column; }
+  .school-card .sc-body { flex: 1; justify-content: space-between; padding-block: 18px; }
+}
 @media (max-width: 960px) {
   .setup-layout { grid-template-columns: 1fr; }
   .setup-aside { position: static; order: -1; max-width: 420px; width: 100%; margin: 0 auto; }
-  .setup-aside > p { display: none; }
   .sc-row.todo { display: none; }          /* on small screens the card starts compact and grows step by step */
   .sc-head { padding: 18px 18px 20px; }
 }

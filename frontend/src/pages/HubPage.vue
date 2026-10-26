@@ -38,8 +38,7 @@ const leave = (e) => { e.currentTarget.style.setProperty("--rx", "0deg"); e.curr
 
     <section class="h-hero">
       <span class="h-eyebrow"><i></i>نسخه‌ی نمایشی</span>
-      <h1>دستیاری که کارتان را <span>سبک‌تر</span> می‌کند</h1>
-      <p>هر دستیار برای یک حوزه ساخته شده و فقط با اطلاعات همان حوزه کار می‌کند. یکی را انتخاب کنید.</p>
+      <h1>انتخاب <span>دستیار</span></h1>
     </section>
 
     <section class="h-grid">
