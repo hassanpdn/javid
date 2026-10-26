@@ -18,6 +18,7 @@ import staff
 import counselor
 import parent
 import parent_chat
+from fabric import api as fabric_api
 THRESHOLD = float(os.getenv("SIMILARITY_THRESHOLD", "0.60"))
 NOT_FOUND = "جواب این سؤال رو توی اسناد مدرسه پیدا نکردم. می‌تونید سؤال رو دقیق‌تر بپرسید یا با دفتر مدرسه تماس بگیرید."
 UNCLEAR = "متوجه سؤالتون نشدم. لطفا سؤال رو کامل و واضح بنویسید، مثلا «ساعت کاری کارکنان اداری چقدره؟»"
@@ -135,7 +136,7 @@ def setup(req: SetupRequest):
 
 @app.post("/setup/reset")
 def setup_reset():
-    """Forget the school, so the next visit starts on an empty setup form (only with RESET_ON_LOAD=1,
+    """Forget the school (and the fabric wholesaler), so the next visit starts on an empty setup form (only with RESET_ON_LOAD=1,
     which the live demo uses: every reload of the page is a fresh start). Everyone is logged out."""
     if os.getenv("RESET_ON_LOAD") != "1":
         raise HTTPException(status_code=404)
@@ -144,6 +145,7 @@ def setup_reset():
         with db.conn() as c:
             c.execute("DELETE FROM sessions")
         manager._briefing_cache.clear(); parent._reports.clear(); counselor._insights.clear()
+    fabric_api.reset()   # the fabric assistant starts fresh too
     return {"ok": True}
 
 @app.get("/me")
@@ -229,6 +231,7 @@ app.include_router(counselor.router)
 app.include_router(parent.router)
 app.include_router(parent_chat.router)
 app.include_router(gate.router)
+app.include_router(fabric_api.router)
 
 # Serve the built frontend (frontend/ -> npm run build -> static/) at http://localhost:8000. Must come after the API routes
 app.mount("/", StaticFiles(directory="static", html=True), name="static")

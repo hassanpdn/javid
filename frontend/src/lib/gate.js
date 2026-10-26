@@ -4,13 +4,14 @@ import { reactive } from "vue"
 // before anything else; locally it is off and ok is true from the start.
 // reset: the server wants every page load to start fresh on an empty setup form (RESET_ON_LOAD=1).
 // hub: after the door comes the list of assistants (HubPage); app is the one picked there ("" = the list).
-// Without the door (local runs, tests) there is no list and the school assistant opens straight away.
+// Without the door (local runs, tests) there is no list and the school assistant opens straight away,
+// unless the server runs with HUB=1.
 export const gate = reactive({ checked: false, ok: true, reset: false, hub: false, app: "" })
 
 export async function checkGate() {
   try {
     const s = await (await fetch("/gate/status")).json()
-    Object.assign(gate, { ok: s.ok !== false, reset: s.reset_on_load === true, hub: s.on === true })
+    Object.assign(gate, { ok: s.ok !== false, reset: s.reset_on_load === true, hub: s.hub === true })
   } catch {}
   gate.checked = true
 }

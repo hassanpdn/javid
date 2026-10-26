@@ -8,7 +8,7 @@ import conftest
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 def test_door_and_reset_are_off_without_settings():
-    assert httpx.get(conftest.BASE + "/gate/status").json() == {"on": False, "ok": True, "reset_on_load": False}
+    assert httpx.get(conftest.BASE + "/gate/status").json() == {"on": False, "ok": True, "reset_on_load": False, "hub": False}
     assert httpx.post(conftest.BASE + "/setup/reset").status_code == 404   # nobody can wipe the school by accident
 
 def test_door_needs_the_right_password_and_signs_its_cookie(monkeypatch):

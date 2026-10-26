@@ -2,11 +2,12 @@
 // Root: the site's door and the list of assistants (live demo only), the school setup form (first run, or when asked for),
 // the login page, or the panel for the user's role
 import { computed, watch, onMounted } from "vue"
-import { api, session, clearSession, lockScroll } from "./lib/api.js"
+import { api, session, clearSession, clearFabricSession, lockScroll } from "./lib/api.js"
 import { schoolInfo, setupUi, loadSchool } from "./lib/school.js"
 import { gate, checkGate } from "./lib/gate.js"
 import GatePage from "./pages/GatePage.vue"
 import HubPage from "./pages/HubPage.vue"
+import FabricApp from "./fabric/FabricApp.vue"
 import SetupPage from "./pages/SetupPage.vue"
 import LoginPage from "./pages/LoginPage.vue"
 import ManagerPanel from "./pages/ManagerPanel.vue"
@@ -21,7 +22,7 @@ const boot = async () => {
   if (gate.reset) {
     gate.reset = false
     try { await api("/setup/reset", {}) } catch {}
-    clearSession()
+    clearSession(); clearFabricSession()
   }
   try { await loadSchool() } catch { schoolInfo.loaded = true }
   if (!session.token) return
@@ -43,6 +44,7 @@ watch(user, () => lockScroll(false))
   <template v-if="!gate.checked"></template>
   <GatePage v-else-if="!gate.ok" @entered="entered" />
   <HubPage v-else-if="gate.hub && !gate.app" @open="(key) => gate.app = key" />
+  <FabricApp v-else-if="gate.app === 'fabric'" />
   <template v-else-if="!schoolInfo.loaded"></template>
   <SetupPage v-else-if="!user && (!schoolInfo.set_up || setupUi.open)" />
   <LoginPage v-else-if="!user" />

@@ -26,3 +26,6 @@ frontend/playwright-report/
 
 # The schools set up on this machine (see school.py)
 school.json
+fabric.db
+fabric.json
+fabric_files/

@@ -1,7 +1,6 @@
 <script setup>
 // The live site's home after the door: every assistant as a card. A click opens that assistant
-// (for the school: its setup form, then its own login and panels). Today there is only the school one;
-// a new assistant is one more entry in ASSISTANTS.
+// (its setup form, then its own login and panels). A new assistant is one more entry in ASSISTANTS.
 import { onMounted } from "vue"
 import { leaveGate } from "../lib/gate.js"
 import AuroraBg from "../components/AuroraBg.vue"
@@ -14,6 +13,12 @@ const ASSISTANTS = [
     desc: "کارهای هر روز مدرسه را سبک می‌کند: نامه‌ها، حضور و غیاب، پیگیری دانش‌آموزان و خبر دادن به خانواده‌ها.",
     roles: ["مدیر", "دفتر", "مشاور", "معلم", "خانواده"],
     perks: [{ icon: "sparkles", text: "خلاصه‌ی امروز" }, { icon: "mail", text: "نامه‌ی تازه" }, { icon: "heart", text: "کمک به موقع" }],
+  },
+  {
+    key: "fabric", title: "دستیار پارچه‌فروشی", icon: "layers", hue: "teal",
+    desc: "برای عمده‌فروشی که کارش با اکسل و تلفن می‌گذرد: سفارش تلفنی، چک و طلب، انبار و خلاصه‌ی هر روز.",
+    roles: ["صاحب کار", "فروشنده", "حسابدار"],
+    perks: [{ icon: "message", text: "سفارش تلفنی" }, { icon: "file", text: "سه فایل اکسل" }, { icon: "alert", text: "چک برگشتی" }],
   },
 ]
 onMounted(() => { document.title = "Pudineh Agent Center" })
@@ -96,6 +101,7 @@ h1 span { background: linear-gradient(90deg, #a99fff, #5fe3f3 60%, #ff9fc6); -we
   box-shadow: 0 30px 80px -24px rgba(0,0,0,.7), inset 0 1px 0 rgba(255,255,255,.18);
   transform: rotateX(var(--rx)) rotateY(var(--ry)); transition: transform .25s ease, box-shadow .3s, border-color .3s;
   animation: h-up 1s cubic-bezier(.2,.9,.25,1) calc(.3s + var(--i) * .12s) backwards; }
+.hue-teal { --c1: #0f8b7d; --c2: #f3b33d; }
 .h-card:hover { border-color: rgba(255,255,255,.28); box-shadow: 0 40px 90px -24px rgba(115,103,240,.55), inset 0 1px 0 rgba(255,255,255,.25); }
 .h-card:focus-visible { outline: 3px solid #8fefff; outline-offset: 4px; }
 .h-glow { position: absolute; inset: 0; pointer-events: none; opacity: 0; transition: opacity .3s;

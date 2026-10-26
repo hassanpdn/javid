@@ -14,18 +14,25 @@ export const fa = (v) => String(v ?? "").replace(/\d/g, (d) => "۰۱۲۳۴۵۶۷
 // One shared session object; every component reads the token from here
 export const session = reactive({ token: store.get("token"), user: null })
 export const clearSession = () => { session.token = null; session.user = null; store.del("token") }
+// The fabric assistant has its own logins (its own database), so its own session next to the school's.
+// Every /fabric/... call sends this token instead of the school's.
+export const fabricSession = reactive({ token: store.get("fabric_token"), user: null })
+export const setFabricSession = (token, user) => { fabricSession.token = token; fabricSession.user = user; store.set("fabric_token", token) }
+export const clearFabricSession = () => { fabricSession.token = null; fabricSession.user = null; store.del("fabric_token") }
+const isFabric = (path) => path.startsWith("/fabric/")
 
 export async function api(path, body) {
   const res = await fetch(path, {
     method: body ? "POST" : "GET",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.token || ""}` },
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${(isFabric(path) ? fabricSession.token : session.token) || ""}` },
     body: body ? JSON.stringify(body) : undefined,
   })
-  if (res.status === 401 && path !== "/login") {
+  if (res.status === 401 && path !== "/login" && path !== "/fabric/login") {
     // "site": the site's own door (gate.py) is closed for this browser, so the door page comes back
     const d = await res.clone().json().catch(() => ({}))
     if (d.detail === "site") { gate.ok = false; throw new Error("site") }
-    clearSession(); throw new Error("401")
+    if (isFabric(path)) clearFabricSession(); else clearSession()
+    throw new Error("401")
   }
   const data = await res.json()
   if (!res.ok) throw new Error(data.detail || res.status)

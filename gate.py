@@ -38,8 +38,10 @@ class GateLogin(BaseModel):
 
 @router.get("/status")
 def status(request: Request):
-    """on: the door exists. ok: this browser may come in. reset_on_load: start every visit on the setup form."""
-    return {"on": ON, "ok": allowed(request), "reset_on_load": os.getenv("RESET_ON_LOAD") == "1"}
+    """on: the door exists. ok: this browser may come in. reset_on_load: start every visit on the setup form.
+    hub: show the list of assistants first (always behind the door; HUB=1 shows it locally too)."""
+    return {"on": ON, "ok": allowed(request), "reset_on_load": os.getenv("RESET_ON_LOAD") == "1",
+            "hub": ON or os.getenv("HUB") == "1"}
 
 @router.post("/login")
 def login(req: GateLogin, request: Request, response: Response):
