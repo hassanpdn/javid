@@ -11,6 +11,8 @@ import Icon from "./Icon.vue"
 import Avatar from "./Avatar.vue"
 import NotificationBell from "./NotificationBell.vue"
 import FloatingChat from "./FloatingChat.vue"
+import ToastHost from "./ToastHost.vue"
+import ActivityPill from "./ActivityPill.vue"
 
 defineProps({ title: String, subtitle: String, nav: Array, chat: { type: Object, default: () => ({}) } })
 const page = defineModel()
@@ -63,6 +65,7 @@ onUnmounted(() => { document.removeEventListener("click", outside); lockScroll(f
         <div class="navbar-inner">
           <button class="icon-btn menu-btn" @click="menuOpen = true" aria-label="منو"><Icon name="menu" :size="22" /></button>
           <div class="nav-title"><h1>{{ title }}</h1><small v-if="subtitle">{{ subtitle }}</small></div>
+          <ActivityPill />
           <div class="nav-actions">
             <button class="icon-btn" @click="toggleTheme" :aria-label="theme.dark ? 'حالت روشن' : 'حالت تیره'">
               <span ref="themeIcon"><Icon :name="theme.dark ? 'sun' : 'moon'" :size="21" /></span>
@@ -83,5 +86,6 @@ onUnmounted(() => { document.removeEventListener("click", outside); lockScroll(f
       <footer class="footer">نسخه آزمایشی دستیار هوشمند {{ schoolInfo.school.full_name }} · همه داده‌ها ساختگی است</footer>
     </div>
     <FloatingChat v-bind="chat" />
+    <ToastHost />
   </div>
 </template>

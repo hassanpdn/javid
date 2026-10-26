@@ -3,6 +3,7 @@
 // and look at what the office still has open. The office writes and sends the formal replies; the manager decides.
 import { ref, reactive, computed, watch, onMounted, onUnmounted } from "vue"
 import { api, fa, lockScroll } from "../lib/api.js"
+import { toast, busy, idle } from "../lib/notify.js"
 import Icon from "./Icon.vue"
 
 const props = defineProps({ focus: { default: null } })   // id of a letter to open right away (from a dashboard alert)
@@ -18,19 +19,34 @@ const agent = reactive({ running: false, processed: 0, total: 0, error: "" })
 const runAgent = async () => {
   if (!queued.value) return
   Object.assign(agent, { running: true, processed: 0, total: queued.value, error: "" })
+  const before = data.value.decide.length + data.value.info.length
+  const label = () => busy("agent", `دستیار در حال خواندن نامه‌های تازه: ${agent.processed} از ${agent.total}`)
+  label()
   try {
-    while (!(await api("/staff/agent/next", {})).done) { agent.processed++; await load() }
+    while (!(await api("/staff/agent/next", {})).done) { agent.processed++; label(); await load() }
   } catch { agent.error = "دستیار در دسترس نیست. مدل محلی روشن است؟" }
-  finally { agent.running = false; await load(); emit("changed") }
+  finally {
+    agent.running = false; idle("agent"); await load(); emit("changed")
+    const added = data.value.decide.length + data.value.info.length - before
+    if (added > 0) toast({ tone: "primary", title: `${fa(added)} نامه‌ی تازه برای شما`, body: "دستیار نامه‌ها را خواند؛ تصمیم و رؤیت با شماست." })
+  }
 }
 const show = (l) => { open.value = l; note.value = "" }
 const done = async () => { open.value = null; await load(); emit("changed") }
 const decide = async (approve) => {
   saving.value = true
-  try { await api(`/manager/letters/${open.value.id}/decide`, { approve, note: note.value }); await done() }
+  try {
+    await api(`/manager/letters/${open.value.id}/decide`, { approve, note: note.value })
+    toast({ tone: "success", title: approve ? "موافقت شما ثبت شد" : "مخالفت شما ثبت شد", body: "دفتر خبردار شد و نتیجه را به فرستنده اعلام می‌کند." })
+    await done()
+  }
   finally { saving.value = false }
 }
-const markSeen = async (l) => { await api(`/manager/letters/${l.id}/seen`, {}); await done() }
+const markSeen = async (l) => {
+  await api(`/manager/letters/${l.id}/seen`, {})
+  toast({ tone: "success", title: "رؤیت شد", body: "نامه بسته شد و دفتر در جریان قرار گرفت." })
+  await done()
+}
 watch(() => !!open.value, lockScroll)
 onMounted(async () => {
   await load()
@@ -38,7 +54,7 @@ onMounted(async () => {
   if (l) show(l)
   runAgent()
 })
-onUnmounted(() => lockScroll(false))
+onUnmounted(() => { lockScroll(false); idle("agent") })
 </script>
 
 <template>
@@ -47,8 +63,7 @@ onUnmounted(() => lockScroll(false))
       <h2>نامه‌ها</h2>
       <p class="muted">تصمیم با شماست. پاسخ رسمی را دفتر می‌نویسد و می‌فرستد.</p>
     </section>
-    <p v-if="agent.running" class="check" role="status">دستیار در حال خواندن نامه‌های تازه: {{ fa(agent.processed) }} از {{ fa(agent.total) }}</p>
-    <p v-else-if="agent.error" class="check bad" role="status">{{ agent.error }}</p>
+    <p v-if="agent.error" class="check bad" role="status">{{ agent.error }}</p>
 
     <div v-if="!data" class="card shimmer"><span></span><span></span><span style="width:60%"></span></div>
     <template v-else>

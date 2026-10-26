@@ -3,6 +3,7 @@
 import { ref, reactive, computed, watch, onMounted, onUnmounted } from "vue"
 import { api, fa, session, lockScroll } from "../lib/api.js"
 import { DOCS_CHAT } from "../lib/constants.js"
+import { toast, busy, idle } from "../lib/notify.js"
 import AppLayout from "../components/AppLayout.vue"
 import BarChart from "../components/BarChart.vue"
 import RadialGauge from "../components/RadialGauge.vue"
@@ -46,27 +47,41 @@ const stats = computed(() => {
   ]
 })
 const look = (a) => ALERT_LOOK[a.type] || { icon: "alert", tone: "warning" }
-const load = async () => { data.value = await api("/manager/overview") }
+// alerts that were not there at the last load are tinted for a moment (see .alert.fresh)
+const alertKey = (a) => a.type + "|" + a.title
+const fresh = ref(new Set())
+const load = async () => {
+  const before = data.value ? new Set(data.value.alerts.map(alertKey)) : null
+  data.value = await api("/manager/overview")
+  if (before) fresh.value = new Set(data.value.alerts.map(alertKey).filter((k) => !before.has(k)))
+}
 watch(() => draft.open || !!drawer.value, lockScroll)
 // the bell fires this when a new notification arrives, so alerts stay current
 const onNotify = () => load()
 onMounted(async () => {
   window.addEventListener("notifications-changed", onNotify)
   await load()
+  busy("brief", "دستیار در حال نوشتن خلاصه‌ی امروز")
   try { brief.value = (await api("/manager/briefing")).text } catch { brief.value = "خلاصه امروز در دسترس نیست." }
+  finally { idle("brief") }
 })
-onUnmounted(() => { lockScroll(false); window.removeEventListener("notifications-changed", onNotify) })
+onUnmounted(() => { lockScroll(false); window.removeEventListener("notifications-changed", onNotify); idle("brief"); idle("warn") })
 const openDraft = async (alert) => {
   Object.assign(draft, { open: true, alert, text: "", loading: true, verified: null, missing: [] })
+  busy("warn", "دستیار در حال نوشتن پیش‌نویس تذکر")
   try {
     const r = await api("/manager/warnings/draft", { teacher_id: alert.teacher_id })
     Object.assign(draft, { text: r.text, verified: r.verified, missing: r.missing })
   }
-  catch { draft.text = "" } finally { draft.loading = false }
+  catch { draft.text = "" } finally { draft.loading = false; idle("warn") }
 }
 const issue = async () => {
   draft.saving = true
-  try { await api("/manager/warnings", { teacher_id: draft.alert.teacher_id, text: draft.text }); draft.open = false; await load() }
+  try {
+    await api("/manager/warnings", { teacher_id: draft.alert.teacher_id, text: draft.text })
+    toast({ tone: "success", title: "تذکر صادر شد", body: `برای ${draft.alert.name} فرستاده شد و بعد از رؤیت به شما خبر می‌دهیم.` })
+    draft.open = false; await load()
+  }
   finally { draft.saving = false }
 }
 // the letters card switches page; the attendance and late cards open a drawer
@@ -120,7 +135,7 @@ watch(view, (v) => { if (v !== "letters") focusLetter.value = null })
           <div class="card-head">نیاز به توجه شما <span class="count">{{ fa(open) }}</span></div>
           <p v-if="!data.alerts.length" class="muted">موردی نیست.</p>
           <ul class="alerts">
-            <li v-for="(a, i) in data.alerts" :key="i" :class="['alert', a.type, { done: a.done }]">
+            <li v-for="a in data.alerts" :key="alertKey(a)" :class="['alert', a.type, { done: a.done, fresh: fresh.has(alertKey(a)) }]">
               <span :class="['tint', 't-' + (a.done ? 'success' : look(a).tone)]"><Icon :name="a.done ? 'check' : look(a).icon" :size="20" /></span>
               <div class="alert-body">
                 <b>{{ fa(a.title) }}</b>

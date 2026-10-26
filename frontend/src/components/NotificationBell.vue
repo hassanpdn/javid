@@ -4,6 +4,7 @@ import { ref, computed, watch, onMounted, onUnmounted } from "vue"
 import { api, fa, lockScroll } from "../lib/api.js"
 import { KINDS } from "../lib/constants.js"
 import { gsap, motion } from "../lib/motion.js"
+import { toast } from "../lib/notify.js"
 import Icon from "./Icon.vue"
 import KindIcon from "./KindIcon.vue"
 
@@ -16,9 +17,16 @@ const filters = computed(() => [
 const visible = computed(() => items.value.filter((n) =>
   filter.value === "unread" ? !n.read_at : filter.value === "ack" ? n.needs_ack && !n.ack_at : true))
 let loaded = false
+const seen = new Set()
 const load = async () => {
   try {
     const d = await api("/notifications")
+    // anything new since the last check gets a toast (not the ones already there when the page opened)
+    const fresh = d.items.filter((n) => !seen.has(n.id) && !n.read_at)
+    d.items.forEach((n) => seen.add(n.id))
+    if (loaded) fresh.slice(0, 3).reverse().forEach((n) => toast({
+      kind: n.kind, title: fa(n.title), body: n.body ? fa(n.body.split("\n")[0]) : "", action: { label: "مشاهده", run: () => show(n) },
+    }))
     if (d.unread > unread.value) {
       // panels listen for this to reload their own data
       window.dispatchEvent(new Event("notifications-changed"))
