@@ -288,49 +288,55 @@ class Confirm(BaseModel):
 
 @router.post("/order/confirm")
 def order_confirm(req: Confirm, user: dict = Depends(DESK)):
-    """The seller approved the draft: one invoice in the database and in all three Excel files.
-    Prices and stock are worked out again here from the stock data, never taken from the browser."""
-    if req.payment not in ("نقد", "چک", "نسیه"):
-        raise HTTPException(status_code=400, detail="نوع پرداخت را انتخاب کنید")
+    """The seller approved the draft: one invoice in the database and in all three Excel files."""
     with _lock:
-        with store.conn() as c:
-            cust = c.execute("SELECT * FROM customers WHERE id = ?", (req.customer_id,)).fetchone()
-            if not cust:
-                raise HTTPException(status_code=404, detail="این مشتری پیدا نشد")
-            lines, _ = price_lines(c, [l.model_dump() for l in req.lines])
-            if not lines:
-                raise HTTPException(status_code=400, detail="فاکتور قلمی ندارد")
-            short = [l["title"] for l in lines if l["short"]]
-            if short:
-                raise HTTPException(status_code=400, detail=f"موجودی {short[0]} کافی نیست")
-            d = excel.today()
-            no = (c.execute("SELECT MAX(id) FROM invoices").fetchone()[0] or 1400) + 1
-            total = sum(l["amount"] for l in lines)
-            seller = business.current()["seller_name"]
-            c.execute("INSERT INTO invoices (id, date, customer_id, seller, payment, total, source) VALUES (?,?,?,?,?,?, 'app')",
-                      (no, d.isoformat(), cust["id"], seller, req.payment, total))
-            for l in lines:
-                c.execute("INSERT INTO invoice_lines (invoice_id, product_code, rolls, meters, price, amount) VALUES (?,?,?,?,?,?)",
-                          (no, l["code"], l["rolls"], l["meters"], l["price"], l["amount"]))
-                c.execute("UPDATE products SET meters = MAX(0, meters - ?), rolls = MAX(0, rolls - ?) WHERE code = ?",
-                          (l["meters"], l["rolls"], l["code"]))
-            cheque = None
-            if req.payment == "چک":
-                cheque = {"number": req.cheque_number.strip() or "ثبت نشده", "bank": req.cheque_bank.strip() or "نامشخص",
-                          "amount": total, "due": d + timedelta(days=req.cheque_days)}
-                c.execute("INSERT INTO cheques_in (number, bank, customer_id, amount, due, status) VALUES (?,?,?,?,?, 'در جریان')",
-                          (cheque["number"], cheque["bank"], cust["id"], total, cheque["due"].isoformat()))
-        excel.add_invoice(no, d, cust["name"], lines, req.payment, seller, cheque)
-        # what changed where, one line per file: shown to the seller now and kept in the event log
-        rolls = sum(l["rolls"] for l in lines)
-        steps = [{"file": "فروش", "text": f"{len(lines)} ردیف برای فاکتور {no} اضافه شد"},
-                 {"file": "انبار", "text": (f"{rolls} توپ، " if rolls else "") + f"{meters(sum(l['meters'] for l in lines))} از موجودی کم شد"}]
-        if cheque:
-            steps.append({"file": "حسابداری", "text": f"چک {money(total)} با سررسید {jday(cheque['due'].isoformat())} ثبت شد"})
-        with store.conn() as c:
-            store.log(c, user, "invoice", f"فاکتور {no} برای {cust['name']} ثبت شد · {money(total)} · {req.payment}",
-                      {"files": [x["file"] for x in steps], "steps": steps})
-        _cache.clear()
+        return make_invoice(user, req.customer_id, [l.model_dump() for l in req.lines], req.payment,
+                            req.cheque_days, req.cheque_bank, req.cheque_number)
+
+def make_invoice(user, customer_id, wanted, payment, cheque_days=45, cheque_bank="", cheque_number="", origin=""):
+    """One invoice in the database and in all three Excel files (call with _lock held). Used by the phone desk
+    and by a website order once it is paid. Prices and stock are worked out here from the stock data, never
+    taken from the browser. origin: a few words for the event log, e.g. «از سفارش سایت ۱۰۰۱»."""
+    if payment not in ("نقد", "چک", "نسیه"):
+        raise HTTPException(status_code=400, detail="نوع پرداخت را انتخاب کنید")
+    with store.conn() as c:
+        cust = c.execute("SELECT * FROM customers WHERE id = ?", (customer_id,)).fetchone()
+        if not cust:
+            raise HTTPException(status_code=404, detail="این مشتری پیدا نشد")
+        lines, _ = price_lines(c, wanted)
+        if not lines:
+            raise HTTPException(status_code=400, detail="فاکتور قلمی ندارد")
+        short = [l["title"] for l in lines if l["short"]]
+        if short:
+            raise HTTPException(status_code=400, detail=f"موجودی {short[0]} کافی نیست")
+        d = excel.today()
+        no = (c.execute("SELECT MAX(id) FROM invoices").fetchone()[0] or 1400) + 1
+        total = sum(l["amount"] for l in lines)
+        seller = business.current()["seller_name"]
+        c.execute("INSERT INTO invoices (id, date, customer_id, seller, payment, total, source) VALUES (?,?,?,?,?,?, 'app')",
+                  (no, d.isoformat(), cust["id"], seller, payment, total))
+        for l in lines:
+            c.execute("INSERT INTO invoice_lines (invoice_id, product_code, rolls, meters, price, amount) VALUES (?,?,?,?,?,?)",
+                      (no, l["code"], l["rolls"], l["meters"], l["price"], l["amount"]))
+            c.execute("UPDATE products SET meters = MAX(0, meters - ?), rolls = MAX(0, rolls - ?) WHERE code = ?",
+                      (l["meters"], l["rolls"], l["code"]))
+        cheque = None
+        if payment == "چک":
+            cheque = {"number": cheque_number.strip() or "ثبت نشده", "bank": cheque_bank.strip() or "نامشخص",
+                      "amount": total, "due": d + timedelta(days=cheque_days)}
+            c.execute("INSERT INTO cheques_in (number, bank, customer_id, amount, due, status) VALUES (?,?,?,?,?, 'در جریان')",
+                      (cheque["number"], cheque["bank"], cust["id"], total, cheque["due"].isoformat()))
+    excel.add_invoice(no, d, cust["name"], lines, payment, seller, cheque)
+    # what changed where, one line per file: shown to the seller now and kept in the event log
+    rolls = sum(l["rolls"] for l in lines)
+    steps = [{"file": "فروش", "text": f"{len(lines)} ردیف برای فاکتور {no} اضافه شد"},
+             {"file": "انبار", "text": (f"{rolls} توپ، " if rolls else "") + f"{meters(sum(l['meters'] for l in lines))} از موجودی کم شد"}]
+    if cheque:
+        steps.append({"file": "حسابداری", "text": f"چک {money(total)} با سررسید {jday(cheque['due'].isoformat())} ثبت شد"})
+    with store.conn() as c:
+        store.log(c, user, "invoice", f"فاکتور {no} برای {cust['name']} ثبت شد · {money(total)} · {payment}" + (f" · {origin}" if origin else ""),
+                  {"files": [x["file"] for x in steps], "steps": steps})
+    _cache.clear()
     return {"invoice": no, "total": total, "files": [x["file"] for x in steps], "steps": steps}
 
 # ---------- stock ----------

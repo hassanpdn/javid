@@ -21,20 +21,26 @@ import EventFeed from "./EventFeed.vue"
 import ReconcileView from "./ReconcileView.vue"
 import ReportView from "./ReportView.vue"
 import HowTip from "./HowTip.vue"
+import ShopView from "./ShopView.vue"
+import WebOrders from "./WebOrders.vue"
+import { useWebOrders } from "./webOrders.js"
 import { CHAT } from "./chat.js"
 
 const view = ref("home"), d = ref(null), brief = ref(""), openId = ref(null), stockFilter = ref(""), pulse = ref([])
 const nav = computed(() => [
   { header: "پیشخوان" },
   { key: "home", label: "داشبورد", icon: "dashboard", badge: d.value?.alerts.length || 0 },
+  { key: "orders", label: "سفارش‌ها", icon: "inbox", badge: web.waiting },
   { key: "check", label: "تطبیق", icon: "shield", badge: d.value?.glance.issues.length || 0 },
   { key: "report", label: "گزارش", icon: "chart" },
-  { key: "money", label: "چک و طلب", icon: "calendar" },
+  { key: "money", label: "چک و طلب", icon: "calendar", more: true },
+  { header: "سایت" },
+  { key: "shop", label: "سایت فروشگاه", icon: "message", more: true },
   { header: "فایل‌ها" },
   { key: "stock", label: "انبار", icon: "inbox", more: true },
   { key: "files", label: "اکسل‌ها", icon: "file", more: true },
 ])
-const TITLES = { home: "داشبورد صاحب کار", check: "تطبیق سه فایل", report: "گزارش", money: "چک و طلب", stock: "انبار", files: "فایل‌های اکسل" }
+const TITLES = { orders: "سفارش‌های سایت", shop: "سایت فروشگاه از نگاه مشتری", home: "داشبورد صاحب کار", check: "تطبیق سه فایل", report: "گزارش", money: "چک و طلب", stock: "انبار", files: "فایل‌های اکسل" }
 const stats = computed(() => {
   const o = d.value
   const up = o.sales_month.amount - o.sales_prev.amount
@@ -53,6 +59,7 @@ const act = (a) => {
   else { stockFilter.value = ""; view.value = "stock" }
 }
 const load = async () => { d.value = await api("/fabric/overview") }
+const web = useWebOrders(() => { view.value = "orders" })   // a toast and a badge when the website takes an order
 // something changed in the files (the event log saw it): light the files up and refresh the numbers
 const changed = async (files) => { pulse.value = files; await load(); setTimeout(() => { pulse.value = [] }, 2500) }
 onMounted(async () => {
@@ -67,6 +74,8 @@ onUnmounted(() => idle("brief"))
 <template>
   <AppLayout app="fabric" :brand="brand()" :chat="CHAT.owner" :title="TITLES[view]" :subtitle="d ? fa(d.today) : ''" :nav="nav" v-model="view">
     <ReconcileView v-if="view === 'check'" events />
+    <WebOrders v-else-if="view === 'orders'" @shop="view = 'shop'" />
+    <ShopView v-else-if="view === 'shop'" @orders="view = 'orders'" />
     <ReportView v-else-if="view === 'report'" />
     <MoneyView v-else-if="view === 'money'" />
     <StockView v-else-if="view === 'stock'" :focus="stockFilter" />

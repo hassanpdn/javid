@@ -19,6 +19,7 @@ import counselor
 import parent
 import parent_chat
 from fabric import api as fabric_api
+from fabric import shop as fabric_shop
 THRESHOLD = float(os.getenv("SIMILARITY_THRESHOLD", "0.60"))
 NOT_FOUND = "جواب این سؤال رو توی اسناد مدرسه پیدا نکردم. می‌تونید سؤال رو دقیق‌تر بپرسید یا با دفتر مدرسه تماس بگیرید."
 UNCLEAR = "متوجه سؤالتون نشدم. لطفا سؤال رو کامل و واضح بنویسید، مثلا «ساعت کاری کارکنان اداری چقدره؟»"
@@ -232,6 +233,7 @@ app.include_router(parent.router)
 app.include_router(parent_chat.router)
 app.include_router(gate.router)
 app.include_router(fabric_api.router)
+app.include_router(fabric_shop.router)
 
 # Serve the built frontend (frontend/ -> npm run build -> static/) at http://localhost:8000. Must come after the API routes
 app.mount("/", StaticFiles(directory="static", html=True), name="static")

@@ -117,3 +117,44 @@ def test_report_lines_say_where_they_come_from_and_download(tokens):
     d = httpx.get(base("/report/download?period=last_30"), headers=tokens["sahebkar"])
     assert d.status_code == 200 and d.content.startswith(b"PK")
     assert httpx.get(base("/report?period=forever"), headers=tokens["sahebkar"]).status_code == 400
+
+def say(chat, text):
+    r = httpx.post(base("/shop/chat"), json={"chat": chat, "text": text}, timeout=30)
+    assert r.status_code == 200, r.text
+    return r.json()
+
+def test_website_assistant_takes_an_unpaid_order_and_the_shop_hears_of_it(tokens):
+    before = httpx.get(base("/web-orders/new"), headers=tokens["sahebkar"]).json()["waiting"]
+    chat = say("", "")["chat"]
+    r = say(chat, "۲ توپ مخمل")
+    assert "کدام" in " ".join(r["messages"]) and "مخمل ساده سرمه‌ای" in r["chips"]       # it asks which one
+    r = say(chat, "مخمل ساده سبز یشمی")
+    assert any("انبار" in t for t in r["trace"])                                         # price and stock came from the stock file
+    r = say(chat, "همین کافیه")
+    r = say(chat, "09120000001")
+    assert "نام" in " ".join(r["messages"])                                              # a new customer: it asks the name
+    r = say(chat, "زهرا کاظمی")
+    r = say(chat, "بله")
+    order = r["order"]
+    assert order and str(order["id"]) in " ".join(r["messages"]).translate(str.maketrans("۰۱۲۳۴۵۶۷۸۹", "0123456789"))
+    news = httpx.get(base("/web-orders/new"), headers=tokens["forooshande"]).json()
+    assert news["waiting"] == before + 1
+    folder = os.path.join(os.path.dirname(conftest.DB_PATH), "fabric_files")
+    sheet = openpyxl.load_workbook(os.path.join(folder, "sales.xlsx"))["سفارش‌های سایت"]
+    assert [row[-1] for row in sheet.iter_rows(min_row=2, values_only=True) if row[0] == order["id"]] == ["پرداخت نشده"]
+    # paid: it becomes an invoice, the new customer joins the accounts file
+    r = httpx.post(base(f"/web-orders/{order['id']}/invoice"), json={"payment": "نقد"}, headers=tokens["forooshande"])
+    assert r.status_code == 200, r.text
+    assert r.json()["new_customer"] is True
+    assert httpx.post(base(f"/web-orders/{order['id']}/invoice"), json={"payment": "نقد"}, headers=tokens["forooshande"]).status_code == 400
+    assert httpx.get(base("/web-orders"), headers=tokens["hesabdar"]).status_code == 403
+    rec = httpx.get(base("/reconcile"), headers=tokens["hesabdar"]).json()
+    assert sorted(i["kind"] for i in rec["issues"]) == ["cash", "invoice", "stock", "stock"]   # the sale kept the files in agreement
+
+def test_website_knows_a_returning_customer_by_phone(tokens):
+    phone = httpx.get(base("/shop/demo-phones"), headers=tokens["sahebkar"]).json()[0]["phone"]
+    chat = say("", "")["chat"]
+    say(chat, "۱ توپ کتان کش کرم")
+    say(chat, "همین")
+    r = say(chat, phone)
+    assert "خوش آمدید" in " ".join(r["messages"]) and "ثبت کنم؟" in r["messages"]

@@ -26,6 +26,10 @@ CREATE TABLE IF NOT EXISTS products (
     supplier TEXT, received TEXT, opening REAL DEFAULT 0);
 CREATE TABLE IF NOT EXISTS stock_in (id INTEGER PRIMARY KEY, date TEXT, code TEXT, rolls INTEGER, meters REAL, supplier TEXT);
 CREATE TABLE IF NOT EXISTS cash_deposits (id INTEGER PRIMARY KEY, date TEXT, amount INTEGER);
+CREATE TABLE IF NOT EXISTS web_orders (       -- orders the website's assistant took; not paid, not invoices yet
+    id INTEGER PRIMARY KEY, at TEXT, customer_id INTEGER, name TEXT, phone TEXT, items TEXT, total INTEGER,
+    status TEXT, invoice_id INTEGER);
+CREATE TABLE IF NOT EXISTS web_chats (id TEXT PRIMARY KEY, state TEXT, updated TEXT);   -- one website conversation each
 CREATE TABLE IF NOT EXISTS events (           -- who did what and when; nothing in the app changes without a line here
     id INTEGER PRIMARY KEY, at TEXT, who TEXT, role TEXT, kind TEXT, text TEXT, detail TEXT);
 CREATE TABLE IF NOT EXISTS customers (

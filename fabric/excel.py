@@ -43,6 +43,8 @@ RECEIPT_COLS = ["تاریخ", "مشتری", "مبلغ", "روش"]
 CHEQUE_IN_COLS = ["شماره چک", "بانک", "مشتری", "مبلغ", "تاریخ سررسید", "وضعیت"]
 CHEQUE_OUT_COLS = ["شماره چک", "در وجه", "مبلغ", "تاریخ سررسید", "وضعیت"]
 BANK_COLS = ["تاریخ", "موجودی حساب"]
+WEB_COLS = ["شماره سفارش", "تاریخ", "ساعت", "مشتری", "تلفن", "کد کالا", "شرح کالا", "توپ", "متراژ", "قیمت هر متر", "مبلغ", "وضعیت پرداخت"]
+WEB_SHEET = "سفارش‌های سایت"
 CASH_COLS = ["تاریخ", "واریز فروش نقدی"]
 MONEY_COLS = {"قیمت خرید هر متر", "قیمت فروش هر متر", "قیمت هر متر", "مبلغ", "سقف اعتبار", "مانده اول دوره", "موجودی حساب", "واریز فروش نقدی"}
 
@@ -323,6 +325,7 @@ def write_workbooks(data):
     wb = openpyxl.Workbook()
     ws = wb.active; ws.title = "فروش"
     _sheet(ws, SALES_COLS, rows)
+    _sheet(wb.create_sheet(WEB_SHEET), WEB_COLS, [])     # filled by the website's assistant
     wb.save(path("sales"))
 
     wb = openpyxl.Workbook()
@@ -524,7 +527,8 @@ def build():
     store.init()
     s = business.current()
     with store.conn() as c:
-        c.execute("DELETE FROM users"); c.execute("DELETE FROM sessions"); c.execute("DELETE FROM reminders")
+        for t in ("users", "sessions", "reminders", "events", "web_orders", "web_chats"):
+            c.execute(f"DELETE FROM {t}")
         for username, role in (("sahebkar", "owner"), ("forooshande", "seller"), ("hesabdar", "accountant")):
             c.execute("INSERT INTO users (username, password, full_name, role) VALUES (?,?,?,?)",
                       (username, store.school_db.hash_password("1234"), business.person(role, s), role))
@@ -597,3 +601,29 @@ def preview(key, limit=60):
         body = rows[-limit:] if latest and limit else rows[1:limit + 1]
         out.append({"name": ws.title, "header": rows[0] if rows else [], "rows": body, "total": max(len(rows) - 1, 0), "latest": latest})
     return out
+
+# ---------- orders from the website ----------
+
+def add_web_order(no, d, time, name, phone, lines, status):
+    """An order the website's assistant took goes into the sales file, on its own sheet, as not paid."""
+    wb = openpyxl.load_workbook(path("sales"))
+    ws = wb[WEB_SHEET] if WEB_SHEET in wb.sheetnames else None
+    if ws is None:
+        ws = wb.create_sheet(WEB_SHEET)
+        _sheet(ws, WEB_COLS, [])
+    for l in lines:
+        ws.append([no, jstr(d), time, name, phone, l["code"], l["title"], l["rolls"], l["meters"], l["price"], l["amount"], status])
+    for col in ("قیمت هر متر", "مبلغ"):
+        letter = get_column_letter(WEB_COLS.index(col) + 1)
+        for cell in ws[letter][1:]:
+            cell.number_format = "#,##0"
+    wb.save(path("sales"))
+
+def set_web_order_status(no, status):
+    wb = openpyxl.load_workbook(path("sales"))
+    if WEB_SHEET in wb.sheetnames:
+        ws = wb[WEB_SHEET]
+        for row in ws.iter_rows(min_row=2):
+            if row[0].value == no:
+                row[len(WEB_COLS) - 1].value = status
+        wb.save(path("sales"))

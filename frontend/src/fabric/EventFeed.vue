@@ -10,7 +10,8 @@ import Skeleton from "../components/Skeleton.vue"
 const props = defineProps({ limit: { default: 6 }, full: { type: Boolean, default: false } })
 const emit = defineEmits(["changed"])
 const items = ref(null), fresh = ref(new Set()), open = ref(null)
-const LOOK = { invoice: ["file", "success"], upload: ["refresh", "warning"], reminder: ["message", "info"], login: ["user", "secondary"], import: ["sparkles", "primary"] }
+const LOOK = { invoice: ["file", "success"], upload: ["refresh", "warning"], reminder: ["message", "info"], login: ["user", "secondary"], import: ["sparkles", "primary"],
+               web_order: ["message", "success"], customer: ["user", "info"] }
 // the short feed leaves out logins; the full log keeps everything
 const shown = computed(() => props.full ? items.value : items.value.filter((e) => e.kind !== "login").slice(0, props.limit))
 let timer

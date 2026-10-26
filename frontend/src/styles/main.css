@@ -1201,3 +1201,71 @@ section.card > .fs-search { margin-bottom: 12px; }
 @keyframes fg-run-v { from { top: -35%; } to { top: 105%; } }
 @media (prefers-reduced-motion: reduce) { .fg-link i, .ef-live i { animation: none; } .desk-flow li { opacity: 1; animation: none; } }
 .stat.stat-how { overflow: visible; }
+
+/* the shop's website, as the end customer sees it */
+.shop-view { display: grid; grid-template-columns: minmax(0, 1fr) minmax(280px, 380px); gap: 24px; align-items: start; }
+.sv-site { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.sv-browser { border-radius: 20px; overflow: hidden; background: var(--panel); box-shadow: var(--shadow-lg); border: 1px solid var(--line); display: flex; flex-direction: column; }
+.sv-bar { display: flex; align-items: center; gap: 6px; padding: 10px 14px; background: var(--panel-2); border-bottom: 1px solid var(--line); }
+.sv-bar > i { width: 10px; height: 10px; border-radius: 50%; background: var(--line); }
+.sv-bar > i:nth-child(1) { background: #ff5f57; } .sv-bar > i:nth-child(2) { background: #febc2e; } .sv-bar > i:nth-child(3) { background: #28c840; }
+.sv-url { flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px; margin-inline-start: 10px; padding: 4px 12px; border-radius: 999px; background: var(--panel); font-size: 12px; color: var(--muted); }
+.sv-url .ico { color: var(--success-ink); }
+.sv-head { display: flex; align-items: center; gap: 12px; padding: 16px 20px; }
+.sv-head > div { display: flex; flex-direction: column; }
+.sv-head b { color: var(--ink); font-size: 16px; }
+.sv-head small { color: var(--muted); font-size: 12px; }
+.sv-hero { display: flex; gap: 10px; padding: 18px 20px; overflow: hidden; background: linear-gradient(135deg, color-mix(in srgb, #1f6f43 12%, var(--panel)), color-mix(in srgb, #c9a243 14%, var(--panel))); }
+.sv-roll { flex: none; width: 74px; height: 34px; border-radius: 17px; box-shadow: inset 0 -8px 12px rgba(0, 0, 0, .18), inset 0 6px 8px rgba(255, 255, 255, .18); }
+.sv-chat { display: flex; flex-direction: column; height: min(560px, 66vh); border-top: 1px solid var(--line); }
+.sv-chat-head { display: flex; align-items: center; gap: 10px; padding: 10px 16px; border-bottom: 1px solid var(--line); }
+.sv-chat-head > div { flex: 1; display: flex; flex-direction: column; line-height: 1.5; }
+.sv-chat-head b { color: var(--ink); font-size: 14px; }
+.sv-chat-head small { color: var(--success-ink); font-size: 12px; }
+.sv-msgs { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; padding: 16px; background: var(--bg); }
+.sv-msg { max-width: 82%; padding: 9px 14px; border-radius: 16px; font-size: 14.5px; line-height: 1.9; white-space: pre-line; animation: sv-in .25s ease-out; }
+.sv-msg.me { align-self: flex-start; background: var(--primary-strong); color: #fff; border-start-start-radius: 4px; }
+.sv-msg.bot { align-self: flex-end; background: var(--panel); color: var(--ink); border: 1px solid var(--line); border-start-end-radius: 4px; }
+.sv-typing { display: flex; gap: 4px; padding: 12px 16px; }
+.sv-typing i { width: 7px; height: 7px; border-radius: 50%; background: var(--muted); animation: ef-blink 1s infinite; }
+.sv-typing i:nth-child(2) { animation-delay: .15s; } .sv-typing i:nth-child(3) { animation-delay: .3s; }
+.sv-done { align-self: center; display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 999px; background: var(--success-soft); color: var(--success-ink); font-size: 13px; font-weight: 700; }
+.sv-chips { display: flex; flex-wrap: wrap; gap: 6px; padding: 10px 16px 0; }
+.sv-chips .chip-btn { font-size: 13px; padding: 5px 12px; }
+.sv-input { display: flex; gap: 8px; padding: 12px 16px; }
+.sv-input input { flex: 1; min-width: 0; font: inherit; font-size: 16px; padding: 10px 14px; border-radius: 999px; border: 1px solid var(--line); background: var(--panel); outline: none; color: var(--ink); }
+.sv-input input:focus { border-color: var(--primary); }
+.sv-input .btn { border-radius: 999px; width: 46px; padding: 0; justify-content: center; }
+.sv-try { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.sv-behind { display: flex; flex-direction: column; gap: 16px; position: sticky; top: 90px; }
+.sv-trace { display: flex; flex-direction: column; gap: 12px; margin: 10px 0 0; padding: 0; list-style: none; }
+.sv-trace > li { display: flex; flex-direction: column; gap: 4px; animation: sv-in .4s ease-out; }
+.sv-line { font-size: 12.5px; line-height: 1.8; padding: 4px 10px; border-radius: 8px; border-inline-start: 3px solid var(--line); background: var(--panel-2); }
+.sv-line.f-stock { border-color: #2a9d62; } .sv-line.f-sales { border-color: var(--primary); } .sv-line.f-accounts { border-color: var(--warning); }
+.sv-order { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; box-shadow: inset 0 3px 0 var(--success), var(--shadow); }
+.sv-order .grow { flex: 1; min-width: 180px; display: flex; flex-direction: column; }
+.sv-order b { color: var(--ink); }
+@keyframes sv-in { from { opacity: 0; transform: translateY(6px); } }
+
+/* website orders */
+.wo { display: flex; flex-direction: column; gap: 12px; }
+.wo.wait { box-shadow: inset -3px 0 0 var(--warning), var(--shadow); }
+.wo-top { display: flex; align-items: center; gap: 14px; }
+.wo-top .grow { min-width: 0; display: flex; flex-direction: column; }
+.wo-top b { color: var(--ink); }
+.wo-no { flex: none; display: flex; flex-direction: column; align-items: center; justify-content: center; width: 64px; height: 56px; border-radius: 14px; background: var(--primary-soft); color: var(--primary-ink); }
+.wo-no small { font-size: 11px; } .wo-no b { font-size: 17px; color: var(--primary-ink); }
+.wo-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+
+@media (max-width: 1100px) {
+  .shop-view { grid-template-columns: 1fr; }
+  .sv-behind { position: static; }
+}
+@media (max-width: 767px) {
+  .sv-chat { height: 70vh; }
+  .sv-hero { padding: 12px 16px; }
+  .sv-roll { width: 54px; height: 26px; }
+  .wo-top { flex-wrap: wrap; }
+  .wo-top .grow { flex: 1 1 0; }
+}
+.wo-top .tag, .wo .tag { white-space: nowrap; }
