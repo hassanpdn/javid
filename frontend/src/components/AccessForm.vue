@@ -2,8 +2,8 @@
 // Give or change one person's access (permanent account only, access.py): their name, username and password, the
 // assistants they may open (one or more), and an optional last day. After saving with a password, a text ready to send.
 import { ref, reactive, computed, onMounted } from "vue"
-import { accessCall } from "../lib/access.js"
-import { jalaliIn, jalaliText, format } from "../lib/jalali.js"
+import { access, accessCall, checkAccess } from "../lib/access.js"
+import { addDays, today as browserToday, parse, jalaliText, format } from "../lib/jalali.js"
 import Icon from "./Icon.vue"
 import DatePicker from "./core/DatePicker.vue"
 import "./hub-dialog.css"
@@ -12,17 +12,23 @@ const props = defineProps({ assistants: Array, person: { type: Object, default: 
 const emit = defineEmits(["close", "saved"])
 const editing = !!props.person
 
-// ready-made last days (they fill the date picker); null = no last day
-const ENDS = [{ text: "بدون تاریخ", value: null }, ...[[7, "۱ هفته"], [30, "۱ ماه"], [90, "۳ ماه"]].map(([n, text]) => ({ text, value: format(jalaliIn(n)) }))]
+// Today comes from the server's clock (access.today); the browser's only if the server hasn't said yet.
+// ready-made expiry dates (they fill the date picker); null = no expiry
+const todayStr = computed(() => access.today || format(browserToday()))
+const ENDS = computed(() => [{ text: "بدون تاریخ", value: null },
+  ...[[7, "۱ هفته"], [30, "۱ ماه"], [90, "۳ ماه"]].map(([n, text]) => ({ text, value: format(addDays(parse(todayStr.value), n)) }))])
 
 const form = reactive({
   name: props.person?.name || "", username: props.person?.username || "", password: "",
   apps: props.person ? [...props.person.apps] : [props.assistants[0].key],
-  expires_on: editing ? props.person.expires_on : ENDS[2].value,
+  expires_on: editing ? props.person.expires_on : null,
 })
 const show = ref(!editing), error = ref(""), sending = ref(false), done = ref(null), copied = ref(false)
 const nameEl = ref(null)
-onMounted(() => { if (window.matchMedia("(min-width: 768px)").matches) nameEl.value?.focus() })
+onMounted(() => {
+  checkAccess()   // a fresh «today» from the server
+  if (window.matchMedia("(min-width: 768px)").matches) nameEl.value?.focus()
+})
 
 // a password that is easy to read out on the phone: no 0/O or 1/l
 const makePassword = () => {
@@ -128,7 +134,7 @@ const copy = async () => {
           <button v-for="e in ENDS" :key="e.text" type="button" :class="['af-chip', { on: form.expires_on === e.value }]"
                   :aria-pressed="form.expires_on === e.value" @click="form.expires_on = e.value">{{ e.text }}</button>
         </div>
-        <div class="af-picker"><DatePicker v-model="form.expires_on" label="تاریخ انقضای دسترسی" placeholder="یک روز را انتخاب کنید" /></div>
+        <div class="af-picker"><DatePicker v-model="form.expires_on" :min="todayStr" label="تاریخ انقضای دسترسی" placeholder="بدون تاریخ انقضا" /></div>
         <p class="af-end"><Icon name="info" :size="15" />{{ form.expires_on ? `تا آخر روز ${jalaliText(form.expires_on)} باز است، بعد خودش بسته می‌شود.` : "تاریخ انقضا ندارد؛ تا وقتی خودتان پاکش نکنید باز است." }}</p>
       </div>
 

@@ -5,11 +5,12 @@ import { gate } from "./gate.js"
 // card and gives access to other people; anyone else sees only the cards they were given. Locally it is off and every
 // assistant opens straight away.
 // ask: the card whose login box should open (an assistant's call came back 401 "access" while it was open).
-export const access = reactive({ on: false, admin: false, name: "", apps: ["school", "fabric"], expires_on: null, ask: "" })
+// today: the date in Tehran from the server's clock («1405/08/05»), so a visitor's wrong clock can't move it
+export const access = reactive({ on: false, today: null, admin: false, name: "", apps: ["school", "fabric"], expires_on: null, ask: "" })
 
 export const canOpen = (app) => !access.on || access.apps.includes(app)
 
-const take = (s) => Object.assign(access, { on: s.on === true, admin: s.admin === true, name: s.name || "", apps: s.apps || [], expires_on: s.expires_on || null })
+const take = (s) => Object.assign(access, { on: s.on === true, today: s.today || access.today, admin: s.admin === true, name: s.name || "", apps: s.apps || [], expires_on: s.expires_on || null })
 
 export async function checkAccess() {
   try {

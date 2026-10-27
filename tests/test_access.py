@@ -97,6 +97,13 @@ def test_last_day(monkeypatch, tmp_path):
     assert admin.get("/access/people").json()[0]["expired"] is True
     _cleanup(monkeypatch)
 
+def test_today_comes_from_the_server_in_tehran(monkeypatch, tmp_path):
+    from datetime import datetime
+    import jalali
+    app, access = _app(monkeypatch, tmp_path)
+    assert TestClient(app).get("/access/status").json()["today"] == jalali.jstr(datetime.now(access.TEHRAN).date())
+    _cleanup(monkeypatch)
+
 def test_forged_cookie(monkeypatch, tmp_path):
     app, access = _app(monkeypatch, tmp_path)
     c = TestClient(app)

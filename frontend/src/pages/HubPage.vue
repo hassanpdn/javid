@@ -8,6 +8,7 @@ import AuroraBg from "../components/AuroraBg.vue"
 import Icon from "../components/Icon.vue"
 import AccessDialog from "../components/AccessDialog.vue"
 import AccessManager from "../components/AccessManager.vue"
+import BrandMark from "../components/core/BrandMark.vue"
 
 const emit = defineEmits(["open"])
 const ASSISTANTS = [
@@ -54,7 +55,7 @@ const unlean = (e) => { e.currentTarget.style.setProperty("--rx", "0deg"); e.cur
   <main class="hub">
     <AuroraBg />
     <header class="h-top">
-      <div class="h-brand"><span class="h-mark"><Icon name="sparkles" :size="20" /></span><span dir="ltr" lang="en">Pudineh Agent Center</span></div>
+      <div class="h-brand"><span class="h-mark"><BrandMark :size="24" /></span><span dir="ltr" lang="en">Pudineh Agent Center</span></div>
       <div class="h-tools">
         <span v-if="access.name" class="h-guest"><Icon name="user" :size="15" />{{ access.name }}<template v-if="access.expires_on">، تا {{ jalaliText(access.expires_on) }}</template></span>
         <button class="h-out" @click="leave"><Icon name="logout" :size="17" />خروج</button>

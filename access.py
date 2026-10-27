@@ -130,9 +130,13 @@ def _too_many(request: Request):
     _failed[who] = [t for t in _failed.get(who, []) if now - t < FAIL_WINDOW]
     return len(_failed[who]) >= MAX_FAILS
 
+def today():
+    """Today in Tehran as «1405/08/05», from the server's clock (a visitor's computer may have the wrong date)."""
+    return jalali.jstr(datetime.now(TEHRAN).date())
+
 def _status(cookie):
     h = _holder(cookie) if ON else None
-    return {"on": ON, "admin": bool(h and h["admin"]), "name": h["name"] if h else "",
+    return {"on": ON, "today": today(), "admin": bool(h and h["admin"]), "name": h["name"] if h else "",
             "apps": h["apps"] if h else ([] if ON else list(APPS)), "expires_on": h["expires_on"] if h else None}
 
 class AccessLogin(BaseModel):
