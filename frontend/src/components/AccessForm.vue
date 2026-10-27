@@ -2,39 +2,27 @@
 // Give or change one person's access (permanent account only, access.py): their name, username and password, the
 // assistants they may open (one or more), and an optional last day. After saving with a password, a text ready to send.
 import { ref, reactive, computed, onMounted } from "vue"
-import { accessCall, jalaliIn, jalaliText, MONTHS } from "../lib/access.js"
+import { accessCall } from "../lib/access.js"
+import { jalaliIn, jalaliText, format } from "../lib/jalali.js"
 import Icon from "./Icon.vue"
+import DatePicker from "./core/DatePicker.vue"
 import "./hub-dialog.css"
 
 const props = defineProps({ assistants: Array, person: { type: Object, default: null } })
 const emit = defineEmits(["close", "saved"])
 const editing = !!props.person
 
-// ready-made last days; "date" opens the day/month/year boxes
-const ENDS = [{ key: "none", text: "بدون تاریخ" }, { key: 7, text: "۱ هفته" }, { key: 30, text: "۱ ماه" }, { key: 90, text: "۳ ماه" }, { key: "date", text: "تاریخ دلخواه" }]
-const today = jalaliIn(0)
-const asDate = (s) => { const [y, m, d] = s.split("/").map(Number); return { y, m, d } }
+// ready-made last days (they fill the date picker); null = no last day
+const ENDS = [{ text: "بدون تاریخ", value: null }, ...[[7, "۱ هفته"], [30, "۱ ماه"], [90, "۳ ماه"]].map(([n, text]) => ({ text, value: format(jalaliIn(n)) }))]
 
 const form = reactive({
   name: props.person?.name || "", username: props.person?.username || "", password: "",
   apps: props.person ? [...props.person.apps] : [props.assistants[0].key],
-  end: props.person?.expires_on ? "date" : editing ? "none" : 30,
-  date: props.person?.expires_on ? asDate(props.person.expires_on) : jalaliIn(30),
+  expires_on: editing ? props.person.expires_on : ENDS[2].value,
 })
 const show = ref(!editing), error = ref(""), sending = ref(false), done = ref(null), copied = ref(false)
 const nameEl = ref(null)
 onMounted(() => { if (window.matchMedia("(min-width: 768px)").matches) nameEl.value?.focus() })
-
-const pad = (n) => String(n).padStart(2, "0")
-const fa = (v) => String(v).replace(/\d/g, (c) => "۰۱۲۳۴۵۶۷۸۹"[c])
-// the last day as the server wants it («1405/08/30»), or null for none
-const endsOn = computed(() => {
-  if (form.end === "none") return null
-  const d = form.end === "date" ? form.date : jalaliIn(form.end)
-  return `${d.y}/${pad(d.m)}/${pad(d.d)}`
-})
-const daysIn = computed(() => (form.date.m <= 6 ? 31 : 30))
-const years = [today.y, today.y + 1, today.y + 2]
 
 // a password that is easy to read out on the phone: no 0/O or 1/l
 const makePassword = () => {
@@ -55,10 +43,9 @@ const save = async () => {
   if (!form.username.trim()) { error.value = "یک نام کاربری بنویسید."; return }
   if (!editing && !form.password) { error.value = "یک رمز عبور بنویسید یا «رمز تازه» را بزنید."; return }
   if (!form.apps.length) { error.value = "دست‌کم یک دستیار را انتخاب کنید."; return }
-  if (form.date.d > daysIn.value) form.date.d = daysIn.value
   sending.value = true; error.value = ""
   try {
-    const body = { name: form.name, username: form.username, password: form.password, apps: form.apps, expires_on: endsOn.value }
+    const body = { name: form.name, username: form.username, password: form.password, apps: form.apps, expires_on: form.expires_on }
     const p = await accessCall(editing ? `/access/people/${props.person.id}` : "/access/people", body)
     emit("saved")
     if (form.password) done.value = { ...p, password: form.password }
@@ -136,17 +123,13 @@ const copy = async () => {
       </div>
 
       <div class="hd-field">
-        <span class="hd-label">تا کی</span>
+        <span class="hd-label">تاریخ انقضای دسترسی</span>
         <div class="af-chips">
-          <button v-for="e in ENDS" :key="e.key" type="button" :class="['af-chip', { on: form.end === e.key }]" :aria-pressed="form.end === e.key"
-                  @click="form.end = e.key">{{ e.text }}</button>
+          <button v-for="e in ENDS" :key="e.text" type="button" :class="['af-chip', { on: form.expires_on === e.value }]"
+                  :aria-pressed="form.expires_on === e.value" @click="form.expires_on = e.value">{{ e.text }}</button>
         </div>
-        <div v-if="form.end === 'date'" class="af-date">
-          <select v-model.number="form.date.d" aria-label="روز"><option v-for="d in daysIn" :key="d" :value="d">{{ fa(d) }}</option></select>
-          <select v-model.number="form.date.m" aria-label="ماه"><option v-for="(m, i) in MONTHS" :key="m" :value="i + 1">{{ m }}</option></select>
-          <select v-model.number="form.date.y" aria-label="سال"><option v-for="y in years" :key="y" :value="y">{{ fa(y) }}</option></select>
-        </div>
-        <p class="af-end"><Icon name="calendar" :size="15" />{{ endsOn ? `تا آخر روز ${jalaliText(endsOn)} باز است، بعد خودش بسته می‌شود.` : "تا وقتی خودتان پاکش نکنید باز است." }}</p>
+        <div class="af-picker"><DatePicker v-model="form.expires_on" label="تاریخ انقضای دسترسی" placeholder="یک روز را انتخاب کنید" /></div>
+        <p class="af-end"><Icon name="info" :size="15" />{{ form.expires_on ? `تا آخر روز ${jalaliText(form.expires_on)} باز است، بعد خودش بسته می‌شود.` : "تاریخ انقضا ندارد؛ تا وقتی خودتان پاکش نکنید باز است." }}</p>
       </div>
 
       <p class="hd-error" role="alert">{{ error }}</p>
@@ -185,11 +168,9 @@ const copy = async () => {
   background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.14); }
 .af-chip.on { color: #fff; background: rgba(143,133,255,.28); border-color: #8f85ff; }
 .af-chip:focus-visible { outline: 3px solid #8fefff; outline-offset: 2px; }
-.af-date { display: flex; gap: 8px; margin-top: 4px; }
-.af-date select { flex: 1; min-width: 0; height: 44px; padding: 0 10px; border-radius: 12px; font: inherit; font-size: 14px; color: #fff;
-  background: rgba(10,9,32,.6); border: 1px solid rgba(255,255,255,.14); }
-.af-date select:focus { outline: none; border-color: #8f85ff; box-shadow: 0 0 0 4px rgba(143,133,255,.22); }
-.af-date option { color: #000; }
+/* the date picker on this always-dark page */
+.af-picker { --dp-panel: #1c1a3f; --dp-field-bg: rgba(10,9,32,.6); --dp-field-line: rgba(255,255,255,.14); --dp-text: #fff; --dp-muted: #9a96c4; --dp-accent: #8f85ff; margin-top: 4px; }
+.af-picker :deep(.dp-field) { --dp-panel: inherit; --dp-field-bg: inherit; --dp-field-line: inherit; --dp-text: inherit; --dp-muted: inherit; --dp-accent: inherit; height: 50px; border-radius: 14px; }
 .af-end { display: flex; align-items: center; gap: 6px; margin: 2px 0 0; font-size: 12.5px; color: #b7b3d9; line-height: 1.8; }
 
 .af-done { margin: 0; display: grid; gap: 10px; padding: 16px; border-radius: 16px; background: rgba(62,224,143,.08); border: 1px solid rgba(62,224,143,.3); }

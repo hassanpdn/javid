@@ -1269,3 +1269,13 @@ section.card > .fs-search { margin-bottom: 12px; }
   .wo-top .grow { flex: 1 1 0; }
 }
 .wo-top .tag, .wo .tag { white-space: nowrap; }
+
+/* Every dropdown: the browser's own arrow sat right against the left edge. Ours sits 12px in, with room for the text.
+   The arrow's grey reads on both light and dark backgrounds. Comes last so it wins over each page's padding. */
+select:not([multiple]) {
+  appearance: none; -webkit-appearance: none; cursor: pointer;
+  padding-inline-end: 36px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238b88a3' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-size: 16px; background-position: left 12px center;
+}
+[dir="ltr"] select:not([multiple]), select[dir="ltr"]:not([multiple]) { background-position: right 12px center; }
