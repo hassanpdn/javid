@@ -46,17 +46,5 @@ export async function accessCall(path, body) {
   return data
 }
 
-// Jalali dates: today and «n days from today» as {y, m, d}, from the browser's own Persian calendar
-const parts = (date) => {
-  const p = Object.fromEntries(new Intl.DateTimeFormat("en-u-ca-persian-nu-latn", { year: "numeric", month: "numeric", day: "numeric", timeZone: "Asia/Tehran" })
-    .formatToParts(date).map((x) => [x.type, x.value]))
-  return { y: parseInt(p.year), m: parseInt(p.month), d: parseInt(p.day) }
-}
-export const jalaliIn = (days) => parts(new Date(Date.now() + days * 86400000))
-export const MONTHS = ["فروردین", "اردیبهشت", "خرداد", "تیر", "مرداد", "شهریور", "مهر", "آبان", "آذر", "دی", "بهمن", "اسفند"]
-// «1405/08/30» → «۳۰ آبان ۱۴۰۵»
-export const jalaliText = (s) => {
-  if (!s) return ""
-  const [y, m, d] = s.split("/").map(Number)
-  return `${d} ${MONTHS[m - 1]} ${y}`.replace(/\d/g, (c) => "۰۱۲۳۴۵۶۷۸۹"[c])
-}
+// Jalali dates live in lib/jalali.js; the assistants page takes them from here too
+export { jalaliText } from "./jalali.js"
