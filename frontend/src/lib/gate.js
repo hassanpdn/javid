@@ -31,7 +31,7 @@ export async function enterGate(username, password) {
   } catch { return "Can't connect. Check your internet connection." }
 }
 
-// leave the site: the door closes for this browser and the door page comes back
+// leave the site: the door closes for this browser (the assistants' logins too) and the door page comes back
 export async function leaveGate() {
   try { await fetch("/gate/logout", { method: "POST" }) } catch {}
   Object.assign(gate, { ok: false, app: "" })

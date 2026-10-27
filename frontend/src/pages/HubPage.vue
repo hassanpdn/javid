@@ -1,10 +1,13 @@
 <script setup>
 // The live site's home after the door: every assistant as a card. A click opens that assistant
 // (its setup form, then its own login and panels). A new assistant is one more entry in ASSISTANTS.
-import { onMounted } from "vue"
+import { ref, watch, onMounted } from "vue"
 import { leaveGate } from "../lib/gate.js"
+import { access, canOpen } from "../lib/access.js"
 import AuroraBg from "../components/AuroraBg.vue"
 import Icon from "../components/Icon.vue"
+import AccessDialog from "../components/AccessDialog.vue"
+import GuestCodes from "../components/GuestCodes.vue"
 
 const emit = defineEmits(["open"])
 const ASSISTANTS = [
@@ -23,6 +26,23 @@ const ASSISTANTS = [
 ]
 onMounted(() => { document.title = "Pudineh Agent Center" })
 
+// On the live demo each card needs a login (access.js): a card this browser may not open yet asks for one first
+const asking = ref(null), codes = ref(false)
+const pick = (a) => { if (canOpen(a.key)) emit("open", a.key); else asking.value = a }
+const opened = (key) => { asking.value = null; emit("open", key) }
+// an assistant sent us back here because its login ran out: open its login box again
+watch(() => access.ask, (key) => {
+  if (!key) return
+  asking.value = ASSISTANTS.find((a) => a.key === key) || null
+  access.ask = ""
+}, { immediate: true })
+const leave = () => {
+  Object.assign(access, { admin: false, apps: [], guest: null })
+  leaveGate()
+}
+const until = (sec) => new Date(sec * 1000).toLocaleTimeString("fa-IR", { hour: "2-digit", minute: "2-digit" })
+const untilDay = (sec) => new Date(sec * 1000).toDateString() === new Date().toDateString() ? "" : new Date(sec * 1000).toLocaleDateString("fa-IR", { day: "numeric", month: "long" }) + "، "
+
 // the light on the card follows the pointer, and the card leans a little toward it
 const move = (e) => {
   const el = e.currentTarget, r = el.getBoundingClientRect()
@@ -30,7 +50,7 @@ const move = (e) => {
   el.style.setProperty("--mx", x * 100 + "%"); el.style.setProperty("--my", y * 100 + "%")
   el.style.setProperty("--rx", (0.5 - y) * 6 + "deg"); el.style.setProperty("--ry", (x - 0.5) * 8 + "deg")
 }
-const leave = (e) => { e.currentTarget.style.setProperty("--rx", "0deg"); e.currentTarget.style.setProperty("--ry", "0deg") }
+const unlean = (e) => { e.currentTarget.style.setProperty("--rx", "0deg"); e.currentTarget.style.setProperty("--ry", "0deg") }
 </script>
 
 <template>
@@ -38,7 +58,11 @@ const leave = (e) => { e.currentTarget.style.setProperty("--rx", "0deg"); e.curr
     <AuroraBg />
     <header class="h-top">
       <div class="h-brand"><span class="h-mark"><Icon name="sparkles" :size="20" /></span><span dir="ltr" lang="en">Pudineh Agent Center</span></div>
-      <button class="h-out" @click="leaveGate"><Icon name="logout" :size="17" />خروج</button>
+      <div class="h-tools">
+        <span v-if="access.guest" class="h-guest"><Icon name="clock" :size="15" />مهمان، تا {{ untilDay(access.guest.expires) }}ساعت {{ until(access.guest.expires) }}</span>
+        <button v-if="access.admin" class="h-out" @click="codes = true"><Icon name="lock" :size="17" />رمزهای مهمان</button>
+        <button class="h-out" @click="leave"><Icon name="logout" :size="17" />خروج</button>
+      </div>
     </header>
 
     <section class="h-hero">
@@ -48,7 +72,7 @@ const leave = (e) => { e.currentTarget.style.setProperty("--rx", "0deg"); e.curr
 
     <section class="h-grid">
       <button v-for="(a, i) in ASSISTANTS" :key="a.key" :class="['h-card', 'hue-' + a.hue]" :style="{ '--i': i }"
-              @pointermove="move" @pointerleave="leave" @click="emit('open', a.key)">
+              @pointermove="move" @pointerleave="unlean" @click="pick(a)">
         <span class="h-glow" aria-hidden="true"></span>
         <span class="h-art" aria-hidden="true">
           <span class="h-rings"><i></i><i></i><i></i></span>
@@ -56,7 +80,7 @@ const leave = (e) => { e.currentTarget.style.setProperty("--rx", "0deg"); e.curr
           <span v-for="(p, n) in a.perks" :key="p.text" :class="['h-perk', 'p' + n]"><Icon :name="p.icon" :size="14" />{{ p.text }}</span>
         </span>
         <span class="h-body">
-          <span class="h-head"><b>{{ a.title }}</b><span class="h-live"><i></i>آماده</span></span>
+          <span class="h-head"><b>{{ a.title }}</b><span v-if="canOpen(a.key)" class="h-live"><i></i>آماده</span><span v-else class="h-locked"><Icon name="lock" :size="13" />با رمز</span></span>
           <span class="h-desc">{{ a.desc }}</span>
           <span class="h-roles"><span v-for="r in a.roles" :key="r">{{ r }}</span></span>
           <span class="h-go">ورود به دستیار<Icon name="arrowLeft" :size="18" /></span>
@@ -64,6 +88,8 @@ const leave = (e) => { e.currentTarget.style.setProperty("--rx", "0deg"); e.curr
       </button>
     </section>
 
+    <AccessDialog v-if="asking" :app="asking.key" :title="asking.title" @close="asking = null" @opened="opened" />
+    <GuestCodes v-if="codes" :assistants="ASSISTANTS" @close="codes = false" />
     <p class="h-foot"><Icon name="shield" :size="15" />همه‌ی اطلاعات این نسخه ساختگی است.</p>
   </main>
 </template>
@@ -80,6 +106,10 @@ const leave = (e) => { e.currentTarget.style.setProperty("--rx", "0deg"); e.curr
 .h-out { display: inline-flex; align-items: center; gap: 6px; height: 40px; padding: 0 14px; border-radius: 12px; cursor: pointer;
   font: inherit; font-size: 13.5px; color: #cfcbf3; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.12); transition: background .2s, color .2s; }
 .h-out:hover, .h-out:focus-visible { background: rgba(255,255,255,.12); color: #fff; outline: none; }
+.h-tools { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+.h-guest { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; color: #c9c5ee; }
+.h-locked { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 999px; font-size: 12px; color: #dcd8ff;
+  background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.16); }
 
 .h-hero { text-align: center; max-width: 640px; margin-top: 4vh; animation: h-up .9s cubic-bezier(.2,.9,.25,1) .1s both; }
 .h-eyebrow { display: inline-flex; align-items: center; gap: 8px; padding: 6px 14px; border-radius: 999px; font-size: 12.5px; color: #d9d5ff;
@@ -146,6 +176,9 @@ h1 span { background: linear-gradient(90deg, #a99fff, #5fe3f3 60%, #ff9fc6); -we
 .h-foot { display: flex; align-items: center; gap: 6px; margin: auto 0 0; padding-top: 12px; font-size: 12.5px; color: #8f8bb6; animation: h-fade 1s ease .8s both; }
 
 @media (max-width: 480px) {
+  .h-top { align-items: flex-start; }
+  .h-brand span:last-child { display: none; }
+  .h-out { padding: 0 11px; }
   .h-hero { margin-top: 2vh; }
   .h-art { height: 190px; }
   .h-body { padding: 18px 18px 20px; }

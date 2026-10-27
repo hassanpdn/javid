@@ -1,0 +1,46 @@
+/* Dialogs on the assistants page (AccessDialog, GuestCodes). The page is dark in both themes, so these are too.
+   On phones they open as a sheet from the bottom, like every other dialog (v-pop). */
+.hd-overlay { position: fixed; inset: 0; z-index: 60; display: grid; place-items: center; padding: 16px;
+  background: rgba(4,3,16,.66); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); animation: hd-fade .25s ease both; overscroll-behavior: contain; }
+.hd { position: relative; width: min(100%, 420px); max-height: 92vh; overflow-y: auto; display: flex; flex-direction: column; gap: 14px;
+  padding: 26px 24px 22px; border-radius: 24px; color: #eceaff; text-align: right;
+  background: linear-gradient(160deg, #1c1a3f, #110f2b); border: 1px solid rgba(255,255,255,.14);
+  box-shadow: 0 30px 80px -20px rgba(0,0,0,.75), inset 0 1px 0 rgba(255,255,255,.12); }
+.hd.wide { width: min(100%, 620px); }
+.hd-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.hd-head h3 { margin: 0; font-size: 19px; color: #fff; line-height: 1.6; }
+.hd-head p { margin: 2px 0 0; font-size: 13.5px; color: #b7b3d9; line-height: 1.9; }
+.hd-x { flex: none; display: grid; place-items: center; width: 38px; height: 38px; border: 0; border-radius: 11px; cursor: pointer; color: #cfcbf3; background: rgba(255,255,255,.07); }
+.hd-x:hover, .hd-x:focus-visible { color: #fff; background: rgba(255,255,255,.14); outline: none; }
+
+.hd-field { display: flex; flex-direction: column; gap: 6px; }
+.hd-label { font-size: 13px; font-weight: 700; color: #d6d3f5; }
+.hd-input { display: flex; align-items: center; gap: 10px; height: 50px; padding: 0 14px; border-radius: 14px; color: #9a96c4;
+  background: rgba(10,9,32,.6); border: 1px solid rgba(255,255,255,.14); transition: border-color .2s, box-shadow .2s; }
+.hd-input:focus-within { border-color: #8f85ff; box-shadow: 0 0 0 4px rgba(143,133,255,.22); color: #c9c3ff; }
+.hd-input input { flex: 1; min-width: 0; height: 100%; border: 0; outline: 0; background: transparent; color: #fff; font: inherit; font-size: 16px; }
+.hd-input input[dir="ltr"] { text-align: left; }
+.hd-input input:-webkit-autofill { -webkit-text-fill-color: #fff; transition: background-color 9999s; caret-color: #fff; }
+.hd-eye { display: grid; place-items: center; width: 38px; height: 38px; margin-inline-start: -8px; border: 0; border-radius: 10px; background: transparent; color: inherit; cursor: pointer; }
+.hd-eye:hover, .hd-eye:focus-visible { color: #fff; background: rgba(255,255,255,.08); outline: none; }
+.hd-error { min-height: 22px; margin: -4px 0 0; font-size: 13px; color: #ffa3b0; }
+
+.hd-btn { display: flex; align-items: center; justify-content: center; gap: 10px; height: 50px; border: 0; border-radius: 14px; cursor: pointer;
+  color: #fff; font: inherit; font-size: 15px; font-weight: 700; background: linear-gradient(110deg, #6a5cf5, #8f6bff 45%, #1fb8d6);
+  background-size: 180% 100%; box-shadow: 0 14px 30px -12px rgba(115,103,240,.9); transition: background-position .5s; }
+.hd-btn:hover { background-position: 100% 0; }
+.hd-btn:focus-visible { outline: 3px solid #8fefff; outline-offset: 3px; }
+.hd-btn:disabled { cursor: wait; opacity: .8; }
+.hd-ghost { display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 36px; padding: 0 12px; border-radius: 10px; cursor: pointer;
+  font: inherit; font-size: 13px; color: #dcd8ff; background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.12); white-space: nowrap; }
+.hd-ghost:hover, .hd-ghost:focus-visible { color: #fff; background: rgba(255,255,255,.14); outline: none; }
+.hd-spin { width: 18px; height: 18px; border-radius: 50%; border: 2.5px solid rgba(255,255,255,.35); border-top-color: #fff; animation: hd-rot .8s linear infinite; }
+
+@media (max-width: 767px) {
+  .hd-overlay { place-items: end stretch; padding: 0; }
+  .hd, .hd.wide { width: 100%; max-height: calc(var(--vvh, 100dvh) - env(safe-area-inset-top) - 20px);
+    border-radius: 22px 22px 0 0; padding: 22px 18px calc(env(safe-area-inset-bottom) + 18px); }
+  .hd::before { content: ""; flex: none; display: block; width: 46px; height: 5px; margin: -10px auto 2px; border-radius: 999px; background: rgba(255,255,255,.2); }
+}
+@keyframes hd-fade { from { opacity: 0; } }
+@keyframes hd-rot { to { transform: rotate(360deg); } }

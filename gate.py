@@ -5,10 +5,12 @@ After a correct login the browser gets a signed cookie, so the door stays open f
 The cookie holds only an expiry time and a signature; the signature's key is made from the username and
 password, so nobody can make a valid cookie without knowing the password, and changing the password
 closes the door for every browser at once.
+The permanent account and guest codes (access.py) open the door too, so a guest needs only the one login they were given.
 """
 import os, time, hmac, hashlib
 from fastapi import APIRouter, HTTPException, Request, Response
 from pydantic import BaseModel
+import access
 
 USER = os.getenv("SITE_USER", "")
 PASSWORD = os.getenv("SITE_PASSWORD", "")
@@ -23,7 +25,7 @@ def _sign(expires):
 
 def allowed(request: Request):
     """True when the door is off, or the browser has a valid cookie that has not expired."""
-    if not ON:
+    if not ON or access.holder(request):
         return True
     expires, _, sig = request.cookies.get(COOKIE, "").partition(".")
     return expires.isdigit() and int(expires) > time.time() and hmac.compare_digest(sig, _sign(expires))
@@ -54,6 +56,11 @@ def login(req: GateLogin, request: Request, response: Response):
     # compare_digest takes the same time whatever the input, so timing gives nothing away
     good = hmac.compare_digest(req.username.strip().encode(), USER.encode()) & hmac.compare_digest(req.password.encode(), PASSWORD.encode())
     if not good:
+        # the permanent account or a guest code: its cookie opens the door and the assistants it is for
+        got = access.check(req.username, req.password)
+        if got:
+            access.set_cookie(request, response, *got)
+            return {"ok": True}
         _failed[who] = recent + [now]
         raise HTTPException(status_code=401, detail="نام کاربری یا رمز عبور درست نیست")
     _failed.pop(who, None)
@@ -66,4 +73,5 @@ def login(req: GateLogin, request: Request, response: Response):
 @router.post("/logout")
 def logout(response: Response):
     response.delete_cookie(COOKIE)
+    response.delete_cookie(access.COOKIE)
     return {"ok": True}

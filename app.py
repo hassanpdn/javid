@@ -10,6 +10,7 @@ from llm import ask_llm
 from auth import get_token, current_user
 import db
 import gate
+import access
 import school
 import seed
 import manager
@@ -36,15 +37,22 @@ app.add_middleware(GZipMiddleware, minimum_size=1000)   # compresses the JS/CSS 
 
 # The site's front door (gate.py, on only when SITE_PASSWORD is set). The page itself and its files load
 # without it, so the browser can show the door; every API call needs the door's cookie.
+# Behind the door each assistant needs its own login (access.py, on only when ADMIN_PASSWORD is set):
+# "access" in the 401 tells the page which assistant asked, so it can show the login box for it.
 STATIC_TOP = set(os.listdir("static")) if os.path.isdir("static") else set()
 
 @app.middleware("http")
 async def site_gate(request: Request, call_next):
     path = request.url.path
     first = path.strip("/").split("/")[0]
-    if path == "/" or first in STATIC_TOP or first == "gate" or gate.allowed(request):
+    if path == "/" or first in STATIC_TOP or first in ("gate", "access"):
         return await call_next(request)
-    return JSONResponse({"detail": "site"}, status_code=401)
+    if not gate.allowed(request):
+        return JSONResponse({"detail": "site"}, status_code=401)
+    need = access.app_for(path)
+    if not access.allows(request, need):
+        return JSONResponse({"detail": "access", "app": need}, status_code=401)
+    return await call_next(request)
 
 @app.middleware("http")
 async def cache_assets(request: Request, call_next):
@@ -232,6 +240,7 @@ app.include_router(counselor.router)
 app.include_router(parent.router)
 app.include_router(parent_chat.router)
 app.include_router(gate.router)
+app.include_router(access.router)
 app.include_router(fabric_api.router)
 app.include_router(fabric_shop.router)
 

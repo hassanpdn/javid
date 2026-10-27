@@ -29,3 +29,6 @@ school.json
 fabric.db
 fabric.json
 fabric_files/
+
+# Guest codes for the live demo (access.py)
+access.db

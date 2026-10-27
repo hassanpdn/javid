@@ -1,5 +1,6 @@
 import { reactive } from "vue"
 import { gate } from "./gate.js"
+import { accessDenied } from "./access.js"
 
 // localStorage can throw (private window, blocked storage), so every access is wrapped
 export const store = {
@@ -31,6 +32,8 @@ export async function api(path, body) {
     // "site": the site's own door (gate.py) is closed for this browser, so the door page comes back
     const d = await res.clone().json().catch(() => ({}))
     if (d.detail === "site") { gate.ok = false; throw new Error("site") }
+    // "access": this browser may not open that assistant (access.py), so its login box comes back on the assistants page
+    if (d.detail === "access") { accessDenied(d.app); throw new Error("access") }
     if (isFabric(path)) clearFabricSession(); else clearSession()
     throw new Error("401")
   }
