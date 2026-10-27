@@ -104,7 +104,7 @@ const send = async () => {
         <template v-else>
           <p v-if="draft.checked === true" class="check ok">✓ مبلغ‌ها با حساب این مشتری یکی است.</p>
           <p v-if="draft.checked === false" class="check bad">متن دستیار با حساب‌ها نمی‌خواند؛ این متن را خود برنامه از روی حساب نوشته است.</p>
-          <p v-if="draft.checked === null" class="check warn">دستیار الان جواب نداد؛ این متن را خود برنامه از روی حساب نوشته است.</p>
+          <p v-if="draft.checked === null" class="check warn">دستیار پاسخ نداد؛ این متن را خود برنامه از روی حساب نوشته است.</p>
           <textarea v-model="draft.text" rows="6" aria-label="متن پیامک"></textarea>
         </template>
         <div class="dialog-actions">

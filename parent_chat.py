@@ -42,12 +42,12 @@ SUBJECT_ALIASES = {  # what parents say -> subject name in the database
 }
 
 # Fixed answers: these never go through the model
-OTHER_STUDENT = "من فقط می‌تونم درباره فرزند خودتون اطلاعات بدم. اطلاعات بقیه دانش‌آموزها محرمانه‌ست."
-COMPARE = ("مدرسه پیشرفت هر بچه رو با خودش می‌سنجه، نه با همکلاسی‌هاش. "
-           "می‌تونم بگم فرزندتون توی هر درس نسبت به اول سال چه تغییری کرده.")
-SENSITIVE = ("این سؤال نیاز به بررسی تخصصی داره و من نمی‌تونم درباره‌ش نظر بدم. "
-             "پیشنهاد می‌کنم با {counselor}، مشاور مدرسه، صحبت کنید. می‌تونید از دفتر مدرسه وقت بگیرید.")
-UNCLEAR = ("متوجه سؤالتون نشدم. می‌تونید درباره نمره‌ها، درس‌ها، غیبت و تأخیر، فرم‌های سلامت، "
+OTHER_STUDENT = "من فقط درباره‌ی فرزند خودتان می‌توانم اطلاعات بدهم. اطلاعات دیگر دانش‌آموزان محرمانه است."
+COMPARE = ("مدرسه پیشرفت هر دانش‌آموز را با خود او می‌سنجد، نه با همکلاسی‌هایش. "
+           "می‌توانم بگویم فرزندتان در هر درس نسبت به ابتدای سال چه تغییری کرده است.")
+SENSITIVE = ("این سؤال نیاز به بررسی تخصصی دارد و من نمی‌توانم درباره‌ی آن نظر بدهم. "
+             "پیشنهاد می‌کنم با {counselor}، مشاور مدرسه، صحبت کنید. می‌توانید از دفتر مدرسه وقت بگیرید.")
+UNCLEAR = ("سؤال شما روشن نیست. می‌توانید درباره‌ی نمره‌ها، درس‌ها، غیبت و تأخیر، فرم‌های سلامت، "
            "پیام‌های مشاور یا مقررات مدرسه بپرسید.")
 
 def fa(v):
@@ -183,13 +183,13 @@ def build_facts(c, sid, intent, subject, q, t):
         facts = (f"درس: {subject}، آموزگار: {rows[-1]['teacher']}\nارزشیابی‌ها از مهر تا امروز: {trend}\n"
                  f"وضعیت فعلی: {LEVELS[rows[-1]['level']]}، نسبت به اول سال {trend_word(rows[0]['level'], rows[-1]['level'])}"
                  + (f"\nیادداشت آموزگار: {note}" if note else ""))
-        plain = (f"وضعیت {name} در {subject} الان «{LEVELS[rows[-1]['level']]}» است و نسبت به اول سال "
+        plain = (f"وضعیت {name} در {subject} اکنون «{LEVELS[rows[-1]['level']]}» است و نسبت به اول سال "
                  f"{trend_word(rows[0]['level'], rows[-1]['level'])}." + (f" یادداشت آموزگار: {note}" if note else ""))
         return facts, plain, ("ارزشیابی", subject)
 
     if intent in ("grades", "weakest", "strongest"):
         subs = subject_summary(c, sid)
-        lines = "\n".join(f"{s['subject']}: الان {LEVELS[s['now']]}، اول سال {LEVELS[s['start']]}"
+        lines = "\n".join(f"{s['subject']}: اکنون {LEVELS[s['now']]}، اول سال {LEVELS[s['start']]}"
                           + (f" (یادداشت آموزگار: {s['note']})" if s["note"] else "") for s in subs)
         if intent == "grades":
             facts = f"وضعیت همه درس‌ها از مهر تا امروز:\n{lines}"
@@ -203,14 +203,14 @@ def build_facts(c, sid, intent, subject, q, t):
         names = "، ".join(s["subject"] for s in chosen)
         kind = "نیاز به تمرین بیشتر" if intent == "weakest" else "قوی‌ترین"
         facts = (f"درس‌هایی که {kind} هستند: {names} (سطح فعلی: {LEVELS[best]})\n"
-                 + "\n".join(f"{s['subject']}: اول سال {LEVELS[s['start']]}، الان {LEVELS[s['now']]}"
+                 + "\n".join(f"{s['subject']}: اول سال {LEVELS[s['start']]}، اکنون {LEVELS[s['now']]}"
                              + (f"، یادداشت آموزگار: {s['note']}" if s["note"] else "") for s in chosen))
         if intent == "weakest" and best >= 3:
             facts += "\nتوجه: هیچ درسی پایین‌تر از «خوب» نیست."
         if intent == "weakest" and best >= 3:
-            head = f"خوشبختانه هیچ درسی پایین‌تر از «خوب» نیست. درسی که نسبت به بقیه جای تمرین بیشتری داره: {names}"
+            head = f"خوشبختانه هیچ درسی پایین‌تر از «خوب» نیست. درسی که نسبت به بقیه به تمرین بیشتری نیاز دارد: {names}"
         else:
-            head = f"{'درسی که بیشتر نیاز به تمرین داره' if intent == 'weakest' else 'قوی‌ترین درس‌ها'}: {names}"
+            head = f"{'درسی که بیشتر به تمرین نیاز دارد' if intent == 'weakest' else 'قوی‌ترین درس‌ها'}: {names}"
         plain = (f"{head} (سطح فعلی «{LEVELS[best]}»)." + (f" یادداشت آموزگار: {chosen[0]['note']}" if chosen[0]["note"] else ""))
         return facts, plain, ("ارزشیابی", "همه درس‌ها")
 
@@ -234,7 +234,7 @@ def build_facts(c, sid, intent, subject, q, t):
         rows = c.execute("""SELECT for_parent, approved_at FROM suggestions WHERE student_id = ? AND status = 'approved'
                             ORDER BY id DESC LIMIT 3""", (sid,)).fetchall()
         if not rows:
-            return None, "تا الان پیامی از طرف مشاور برای شما ثبت نشده.", ("پیام‌های مشاور", "")
+            return None, "تاکنون پیامی از طرف مشاور برای شما ثبت نشده است.", ("پیام‌های مشاور", "")
         facts = "\n".join(f"پیام مشاور ({r['approved_at']}): {r['for_parent']}" for r in rows)
         return facts, rows[0]["for_parent"], ("پیام‌های مشاور", "")
 
@@ -244,7 +244,7 @@ def build_facts(c, sid, intent, subject, q, t):
         done = {r["kind"]: r["jdate"] for r in rows}
         parts = [f"{'فرم سلامت جسمی' if k == 'physical' else 'فرم حال و احوال'}: "
                  + (f"آخرین ثبت {done[k]}" if k in done else "هنوز تکمیل نشده") for k in ("physical", "wellbeing")]
-        plain = "، ".join(parts) + ". از بخش «فرم‌های سلامت» توی همین صفحه می‌تونید به‌روزش کنید."
+        plain = "، ".join(parts) + ". از بخش «فرم‌های سلامت» در همین صفحه می‌توانید آن را به‌روز کنید."
         return None, plain, ("فرم‌های سلامت", "")
 
     return None, UNCLEAR, None
@@ -299,7 +299,7 @@ def ask(req: AskRequest, user: dict = Depends(parent_only)):
                 try:
                     result = answer_question(q, "parent")
                 except Exception:
-                    result = {"answer": "الان به اسناد مدرسه دسترسی ندارم. چند لحظه بعد دوباره امتحان کنید.", "sources": []}
+                    result = {"answer": "در حال حاضر به اسناد مدرسه دسترسی ندارم. چند لحظه بعد دوباره امتحان کنید.", "sources": []}
                 result["intent"] = "rules"
             elif intent in ("compare", "sensitive", "unclear"):
                 fixed = {"compare": COMPARE, "sensitive": SENSITIVE.format(counselor=counselor_name(c)), "unclear": UNCLEAR}

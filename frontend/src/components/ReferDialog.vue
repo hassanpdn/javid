@@ -97,7 +97,7 @@ onMounted(async () => {
         <textarea v-else v-model="parent.text" rows="5" class="ai-draft" aria-label="پیام برای اولیا"></textarea>
       </div>
 
-      <label class="ack-row"><input type="checkbox" v-model="needsAck"> گیرندگان باید «دیدم» را بزنند</label>
+      <label class="ack-row"><input type="checkbox" v-model="needsAck"> گیرندگان باید «دیدم» را انتخاب کنند</label>
       <p v-if="error" class="error-text">{{ error }}</p>
       <div class="dialog-actions">
         <button class="btn primary" type="submit" :disabled="!picked.length || sending || (hasParents && !parent.text.trim())">

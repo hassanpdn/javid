@@ -54,7 +54,7 @@ const fileOf = (l) => l.startsWith("انبار") ? "stock" : l.startsWith("فر�
         </div>
         <div class="sv-chat">
           <div class="sv-chat-head"><AiOrb :size="34" :busy="typing" /><div><b>دستیار فروش</b><small>{{ typing ? 'در حال نوشتن…' : 'آنلاین' }}</small></div>
-            <button class="icon-btn sm" @click="start" aria-label="گفت‌وگوی تازه"><Icon name="refresh" :size="16" /></button></div>
+            <button class="icon-btn sm" @click="start" aria-label="گفت‌وگوی جدید"><Icon name="refresh" :size="16" /></button></div>
           <div ref="box" class="sv-msgs" role="log" aria-live="polite">
             <div v-for="(m, i) in msgs" :key="i" :class="['sv-msg', m.from]">{{ fa(m.text) }}</div>
             <div v-if="typing" class="sv-msg bot sv-typing"><i></i><i></i><i></i></div>

@@ -22,8 +22,8 @@ import parent_chat
 from fabric import api as fabric_api
 from fabric import shop as fabric_shop
 THRESHOLD = float(os.getenv("SIMILARITY_THRESHOLD", "0.60"))
-NOT_FOUND = "جواب این سؤال رو توی اسناد مدرسه پیدا نکردم. می‌تونید سؤال رو دقیق‌تر بپرسید یا با دفتر مدرسه تماس بگیرید."
-UNCLEAR = "متوجه سؤالتون نشدم. لطفا سؤال رو کامل و واضح بنویسید، مثلا «ساعت کاری کارکنان اداری چقدره؟»"
+NOT_FOUND = "پاسخ این سؤال در اسناد مدرسه پیدا نشد. می‌توانید سؤال را دقیق‌تر بپرسید یا با دفتر مدرسه تماس بگیرید."
+UNCLEAR = "سؤال شما روشن نیست. لطفاً سؤال را کامل و واضح بنویسید، مثلاً «ساعت کار کارکنان اداری چقدر است؟»"
 
 # The API docs at /docs list every endpoint; they are only on when SHOW_DOCS=1 (handy while developing)
 docs = os.getenv("SHOW_DOCS") == "1"

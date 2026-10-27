@@ -19,7 +19,7 @@ const load = async () => { data.value = await api("/manager/letters") }
 // Letters reach the manager only after the assistant has read them. If nobody opened the office panel yet,
 // the queue is still full, so this page runs the assistant on it the same way the office panel does.
 // While it reads: a progress card with the letter being read, a skeleton card at the end of each section (a letter
-// may land there), and every card it adds gets «تازه» so nothing appears out of nowhere.
+// may land there), and every card it adds gets «جدید» so nothing appears out of nowhere.
 const agent = reactive({ running: false, processed: 0, total: 0, current: "", error: "" })
 const fresh = ref(new Set())
 const mine = () => [...data.value.decide, ...data.value.info].map((l) => l.id)
@@ -30,7 +30,7 @@ const runAgent = async () => {
   if (!queued.value) return
   Object.assign(agent, { running: true, processed: 0, total: queued.value, current: nextSubject(), error: "" })
   const before = data.value.decide.length + data.value.info.length
-  const label = () => busy("agent", `دستیار در حال خواندن نامه‌های تازه: ${agent.processed} از ${agent.total}`)
+  const label = () => busy("agent", `دستیار در حال خواندن نامه‌های جدید: ${agent.processed} از ${agent.total}`)
   label()
   try {
     while (true) {
@@ -41,11 +41,11 @@ const runAgent = async () => {
       fresh.value = new Set([...fresh.value, ...mine().filter((id) => !known.has(id))])
       agent.current = nextSubject()
     }
-  } catch { agent.error = "دستیار الان جواب نمی‌دهد. چند لحظه بعد دوباره امتحان کنید." }
+  } catch { agent.error = "دستیار در حال حاضر پاسخ نمی‌دهد. چند لحظه بعد دوباره امتحان کنید." }
   finally {
     agent.running = false; agent.current = ""; idle("agent"); await load(); emit("changed")
     const added = data.value.decide.length + data.value.info.length - before
-    if (added > 0) toast({ tone: "primary", title: `${fa(added)} نامه‌ی تازه برای شما`, body: "دستیار نامه‌ها را خواند. حالا نوبت شماست که ببینید و تصمیم بگیرید." })
+    if (added > 0) toast({ tone: "primary", title: `${fa(added)} نامه‌ی جدید برای شما`, body: "دستیار نامه‌ها را خواند. اکنون نوبت شماست که ببینید و تصمیم بگیرید." })
   }
 }
 const show = (l) => { open.value = l; note.value = "" }
@@ -85,7 +85,7 @@ onUnmounted(() => { lockScroll(false); idle("agent") })
       <div class="agent-row">
         <AiOrb :size="56" busy />
         <div class="agent-text">
-          <b>دستیار در حال خواندن نامه‌های تازه: {{ fa(agent.processed) }} از {{ fa(agent.total) }}</b>
+          <b>دستیار در حال خواندن نامه‌های جدید: {{ fa(agent.processed) }} از {{ fa(agent.total) }}</b>
           <small v-if="agent.current" class="muted">در حال خواندن: {{ fa(agent.current) }}</small>
         </div>
       </div>
@@ -100,7 +100,7 @@ onUnmounted(() => { lockScroll(false); idle("agent") })
         <article v-for="l in data.decide" :key="l.id" v-reveal :class="['letter-card', 'card', 'st-needs_manager', { fresh: fresh.has(l.id) }]">
           <div class="lc-top">
             <b>{{ fa(l.subject) }}</b>
-            <span v-if="fresh.has(l.id)" class="tag new-tag">تازه</span>
+            <span v-if="fresh.has(l.id)" class="tag new-tag">جدید</span>
             <span v-if="l.deadline_short" :class="['chip', { hot: l.days_left <= 3 }]">مهلت {{ fa(l.deadline_short) }}</span>
           </div>
           <div class="lc-meta"><Icon name="mail" :size="15" />{{ l.sender }} · {{ fa(l.received_short) }}</div>
@@ -117,7 +117,7 @@ onUnmounted(() => { lockScroll(false); idle("agent") })
         <article v-for="l in data.info" :key="l.id" v-reveal :class="['letter-card', 'card', 'st-' + l.status, { fresh: fresh.has(l.id) }]">
           <div class="lc-top">
             <b>{{ fa(l.subject) }}</b>
-            <span v-if="fresh.has(l.id)" class="tag new-tag">تازه</span>
+            <span v-if="fresh.has(l.id)" class="tag new-tag">جدید</span>
             <span v-if="l.manager_seen_at" class="tag st-done">دیده شد · {{ fa(l.manager_seen_at) }}</span>
           </div>
           <div class="lc-meta"><Icon name="mail" :size="15" />{{ l.sender }} · {{ fa(l.received_short) }}</div>

@@ -31,7 +31,7 @@ const TONE = { "پرداخت نشده": "st-todo", "فاکتور شد": "st-done
   <div class="flex flex-col gap-6">
     <section v-reveal class="rp-head">
       <div class="grow"><h2>سفارش‌های سایت</h2>
-        <p class="muted">سفارش‌هایی که دستیار سایت از مشتری‌ها گرفته. پرداخت نشده‌اند؛ بعد از پرداخت، فاکتور بزنید.</p></div>
+        <p class="muted">سفارش‌هایی که دستیار سایت از مشتری‌ها گرفته. پرداخت نشده‌اند؛ بعد از پرداخت، فاکتور ثبت کنید.</p></div>
       <button class="btn ghost" @click="emit('shop')"><Icon name="message" :size="18" />دیدن سایت از نگاه مشتری</button>
     </section>
     <div v-if="!list" class="card"><Skeleton kind="row" :count="3" /></div>
@@ -44,7 +44,7 @@ const TONE = { "پرداخت نشده": "st-todo", "فاکتور شد": "st-done
       <div class="wo-top">
         <span class="wo-no"><small>سفارش</small><b>{{ fa(o.id) }}</b></span>
         <div class="grow">
-          <b>{{ o.name }} <span :class="['tag', o.known ? 'st-done' : '']">{{ o.known ? 'مشتری قدیمی' : 'مشتری تازه' }}</span></b>
+          <b>{{ o.name }} <span :class="['tag', o.known ? 'st-done' : '']">{{ o.known ? 'مشتری قدیمی' : 'مشتری جدید' }}</span></b>
           <small class="muted"><span dir="ltr">{{ fa(o.phone) }}</span><template v-if="o.city"> · {{ o.city }}</template> · ساعت {{ fa(o.time) }}</small>
         </div>
         <span :class="['tag', TONE[o.status]]">{{ o.status }}<template v-if="o.invoice_id"> · فاکتور {{ fa(o.invoice_id) }}</template></span>
@@ -61,7 +61,7 @@ const TONE = { "پرداخت نشده": "st-todo", "فاکتور شد": "st-done
         <div class="segmented" role="radiogroup" aria-label="نوع پرداخت">
           <button v-for="p in ['نقد', 'چک', 'نسیه']" :key="p" role="radio" :aria-checked="(pay[o.id] || 'نقد') === p" :class="{ on: (pay[o.id] || 'نقد') === p }" @click="pay[o.id] = p">{{ p }}</button>
         </div>
-        <button class="btn primary sm" :disabled="busy === o.id" @click="invoice(o)"><Icon name="check" :size="16" />پرداخت شد، فاکتور بزن</button>
+        <button class="btn primary sm" :disabled="busy === o.id" @click="invoice(o)"><Icon name="check" :size="16" />پرداخت شد، ثبت فاکتور</button>
         <button class="btn ghost sm" :disabled="busy === o.id" @click="cancel(o)">لغو</button>
       </div>
       <ol v-if="done[o.id]" class="desk-flow">

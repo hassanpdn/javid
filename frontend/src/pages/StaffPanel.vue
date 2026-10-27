@@ -61,7 +61,7 @@ const runAgent = async () => {
       log.value = await api("/staff/log")
     }
   } catch (e) {
-    if (e.message !== "401") agent.error = "دستیار الان جواب نمی‌دهد. چند لحظه بعد دوباره امتحان کنید."
+    if (e.message !== "401") agent.error = "دستیار در حال حاضر پاسخ نمی‌دهد. چند لحظه بعد دوباره امتحان کنید."
   } finally { agent.running = false; agent.current = "" }
 }
 const openLetter = (l) => { open.value = l; reply.value = l.reply || "" }

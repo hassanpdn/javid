@@ -137,7 +137,7 @@ def _next(c, state, out, chips, trace):
         text, _ = _summary(state["items"])
         out.append(text)
         out.append("چیز دیگری لازم دارید؟")
-        chips += ["همین کافیه", "یک جنس دیگر"]
+        chips += ["همین کافی است", "یک جنس دیگر"]
         state["step"] = "more"
 
 FAQ = [
@@ -195,7 +195,7 @@ def reply(state, text):
                 else:
                     state["phone"] = m.group(0)
                     row = c.execute("SELECT id, name FROM customers WHERE phone = ?", (state["phone"],)).fetchone()
-                    trace.append("حسابداری › مشتریان: " + (f"این شماره مال {row['name']} است" if row else "مشتری تازه"))
+                    trace.append("حسابداری › مشتریان: " + (f"این شماره متعلق به {row['name']} است" if row else "مشتری جدید"))
                     if row:
                         state.update(customer_id=row["id"], name=row["name"], step="confirm")
                         out.append(f"{row['name']} عزیز، خوش آمدید.")
@@ -286,7 +286,7 @@ def _save(chat_id, state):
 @router.post("/shop/chat")
 def shop_chat(req: Say):
     if not business.is_set_up():
-        raise HTTPException(status_code=404, detail="فروشگاه هنوز راه نیفتاده")
+        raise HTTPException(status_code=404, detail="فروشگاه هنوز راه‌اندازی نشده است")
     state = _load(req.chat) if req.chat else None
     if state is None or not req.text.strip():
         chat_id = secrets.token_urlsafe(12)

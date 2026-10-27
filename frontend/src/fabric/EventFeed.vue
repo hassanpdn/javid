@@ -1,5 +1,5 @@
 <script setup>
-// «همین حالا»: the event log as it happens. Every change in the app (an invoice, a file replaced, a reminder,
+// «هم‌اکنون»: the event log as it happens. Every change in the app (an invoice, a file replaced, a reminder,
 // a login) has a line with who and when. It asks the server for new lines every few seconds;
 // new ones slide in and the files they touched light up in the picture above (emit "changed").
 import { ref, computed, onMounted, onUnmounted } from "vue"
@@ -30,7 +30,7 @@ onUnmounted(() => clearInterval(timer))
 
 <template>
   <section class="card ef">
-    <div class="card-head"><span class="grow">{{ full ? 'همه‌ی رویدادها' : 'همین حالا' }} <small>هر تغییر با نام و ساعت</small></span>
+    <div class="card-head"><span class="grow">{{ full ? 'همه‌ی رویدادها' : 'هم‌اکنون' }} <small>هر تغییر با نام و ساعت</small></span>
       <span class="ef-live"><i></i>زنده</span></div>
     <Skeleton v-if="!items" kind="row" round :count="4" />
     <p v-else-if="!items.length" class="muted small">هنوز رویدادی نیست.</p>

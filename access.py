@@ -194,7 +194,7 @@ def _last_moment(expires_on):
     except Exception:
         raise HTTPException(status_code=422, detail="تاریخ یا ساعت درست نیست.")
     if end <= time.time():
-        raise HTTPException(status_code=422, detail="زمان انقضا باید بعد از همین حالا باشد.")
+        raise HTTPException(status_code=422, detail="زمان انقضا باید بعد از زمان کنونی باشد.")
     return int(end)
 
 class Person(BaseModel):

@@ -7,9 +7,9 @@ import Icon from "./Icon.vue"
 import AiOrb from "./AiOrb.vue"
 
 const EXAMPLES = {
-  manager: ["ساعت کار کارکنان اداری چقدره؟", "مدرسه غیرانتفاعی مالیات میده؟", "ساعت شروع کلاس‌ها چنده؟"],
-  staff: ["سال مالی مدرسه از کی شروع میشه؟", "مدرسه باید حساب بانکی جدا داشته باشه؟", "غیبت بیماری رو تا کی باید اطلاع داد؟"],
-  default: ["ساعت شروع کلاس‌ها چنده؟", "اگه بچه‌م مریض بشه غیبتش چطور موجه میشه؟", "استفاده از موبایل توی مدرسه مجازه؟"],
+  manager: ["ساعت کار کارکنان اداری چقدر است؟", "آیا مدرسه‌ی غیرانتفاعی مالیات می‌پردازد؟", "کلاس‌ها چه ساعتی شروع می‌شوند؟"],
+  staff: ["سال مالی مدرسه از چه زمانی شروع می‌شود؟", "آیا مدرسه باید حساب بانکی جداگانه داشته باشد؟", "غیبت بیماری را تا چه زمانی باید اطلاع داد؟"],
+  default: ["کلاس‌ها چه ساعتی شروع می‌شوند؟", "اگر فرزندم بیمار شود، غیبتش چگونه موجه می‌شود؟", "آیا استفاده از تلفن همراه در مدرسه مجاز است؟"],
 }
 const props = defineProps({
   endpoint: { default: "/chat" }, examples: { default: null }, intro: { default: null },
@@ -36,7 +36,7 @@ const send = async (text) => {
     <div class="chat" ref="box" role="log" aria-live="polite">
       <div v-if="messages.length === 0" class="empty">
         <AiOrb :size="80" />
-        <p>{{ intro || 'سؤالتون رو از آیین‌نامه‌ها و دستورالعمل‌ها بپرسید، یا یکی از این‌ها رو امتحان کنید:' }}</p>
+        <p>{{ intro || 'سؤال خود را درباره‌ی آیین‌نامه‌ها و دستورالعمل‌ها بپرسید یا یکی از این نمونه‌ها را امتحان کنید:' }}</p>
         <div class="examples">
           <button v-for="ex in shownExamples" :key="ex" class="example" @click="send(ex)"><Icon name="sparkles" :size="16" />{{ ex }}</button>
         </div>
@@ -58,7 +58,7 @@ const send = async (text) => {
       </div>
     </div>
     <form class="composer" @submit.prevent="send(input)">
-      <input v-model="input" :disabled="loading" placeholder="سؤالتون رو اینجا بنویسید..." aria-label="متن سؤال">
+      <input v-model="input" :disabled="loading" placeholder="سؤال خود را اینجا بنویسید..." aria-label="متن سؤال">
       <button class="btn primary" type="submit" :disabled="loading || !input.trim()"><Icon name="send" :size="18" /><span>ارسال</span></button>
     </form>
   </div>

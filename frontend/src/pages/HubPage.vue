@@ -16,7 +16,7 @@ const ASSISTANTS = [
     key: "school", title: "دستیار مدرسه", icon: "school", hue: "violet",
     desc: "کارهای هر روز مدرسه را سبک می‌کند: نامه‌ها، حضور و غیاب، پیگیری دانش‌آموزان و خبر دادن به خانواده‌ها.",
     roles: ["مدیر", "دفتر", "مشاور", "معلم", "خانواده"],
-    perks: [{ icon: "sparkles", text: "خلاصه‌ی امروز" }, { icon: "mail", text: "نامه‌ی تازه" }, { icon: "heart", text: "کمک به موقع" }],
+    perks: [{ icon: "sparkles", text: "خلاصه‌ی امروز" }, { icon: "mail", text: "نامه‌ی جدید" }, { icon: "heart", text: "کمک به موقع" }],
   },
   {
     key: "fabric", title: "دستیار پارچه‌فروشی", icon: "layers", hue: "teal",

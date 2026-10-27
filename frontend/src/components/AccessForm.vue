@@ -60,7 +60,7 @@ const save = async () => {
   if (sending.value) return
   if (!form.name.trim()) { error.value = "اسم این شخص را بنویسید."; return }
   if (!form.username.trim()) { error.value = "یک نام کاربری بنویسید."; return }
-  if (!editing && !form.password) { error.value = "یک رمز عبور بنویسید یا «رمز تازه» را بزنید."; return }
+  if (!editing && !form.password) { error.value = "یک رمز عبور بنویسید یا «رمز جدید» را انتخاب کنید."; return }
   if (!form.apps.length) { error.value = "دست‌کم یک دستیار را انتخاب کنید."; return }
   sending.value = true; error.value = ""
   try {
@@ -100,7 +100,7 @@ const copy = async () => {
     <form v-else class="hd wide" v-pop @submit.prevent="save" novalidate>
       <div class="hd-head">
         <div>
-          <h3>{{ editing ? `دسترسی ${person.name}` : "دسترسی تازه" }}</h3>
+          <h3>{{ editing ? `دسترسی ${person.name}` : "دسترسی جدید" }}</h3>
           <p>چه کسی، با چه رمزی، کدام دستیار را ببیند.</p>
         </div>
         <button type="button" class="hd-x" aria-label="بستن" @click="emit('close')"><Icon name="x" :size="18" /></button>
@@ -125,7 +125,7 @@ const copy = async () => {
                    :placeholder="editing ? 'خالی = همان رمز قبلی' : ''" />
             <button type="button" class="hd-eye" :aria-label="show ? 'پنهان کردن رمز' : 'نشان دادن رمز'" :aria-pressed="show" @click="show = !show"><Icon :name="show ? 'eyeOff' : 'eye'" :size="19" /></button>
           </span>
-          <button type="button" class="af-gen" @click="makePassword"><Icon name="refresh" :size="14" />رمز تازه</button>
+          <button type="button" class="af-gen" @click="makePassword"><Icon name="refresh" :size="14" />رمز جدید</button>
         </label>
       </div>
 

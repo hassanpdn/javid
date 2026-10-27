@@ -13,7 +13,7 @@ export function useWebOrders(open) {
     const newest = r.new.length ? Math.max(...r.new.map((o) => o.id)) : null
     if (s.last !== null) {
       for (const o of r.new) {
-        toast({ tone: "success", timeout: 9000, title: `سفارش تازه از سایت: ${fa(o.id)}`,
+        toast({ tone: "success", timeout: 9000, title: `سفارش جدید از سایت: ${fa(o.id)}`,
                 body: `${o.name} · ${fa(o.items.length)} قلم · پرداخت نشده`, action: { label: "دیدن سفارش", run: open } })
       }
     }

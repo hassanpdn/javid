@@ -29,7 +29,7 @@ const download = async () => {
 <template>
   <div class="flex flex-col gap-6">
     <section v-reveal class="rp-head">
-      <div class="grow"><h2>گزارش</h2><p class="muted">{{ d ? fa(d.span) : '' }} · کنار هر عدد «از کجا؟» را بزنید تا حسابش را ببینید.</p></div>
+      <div class="grow"><h2>گزارش</h2><p class="muted">{{ d ? fa(d.span) : '' }} · روی «از کجا؟» کنار هر عدد کلیک کنید تا حسابش را ببینید.</p></div>
       <button class="btn primary" :disabled="!d || saving" @click="download"><Icon name="file" :size="18" />دانلود اکسل گزارش</button>
     </section>
     <div class="segmented rp-periods" role="tablist" aria-label="دوره‌ی گزارش">

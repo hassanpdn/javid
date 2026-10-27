@@ -31,7 +31,7 @@ const remove = async (p) => {
         <span class="am-badge"><Icon name="users" :size="22" /></span>
         <div><h2>دسترسی‌ها</h2><p>چه کسی، با چه رمزی، کدام دستیار را ببیند.</p></div>
       </div>
-      <button class="am-add" @click="adding = true"><Icon name="plus" :size="18" />دسترسی تازه</button>
+      <button class="am-add" @click="adding = true"><Icon name="plus" :size="18" />دسترسی جدید</button>
     </header>
 
     <div v-if="loading" class="am-grid">
@@ -40,7 +40,7 @@ const remove = async (p) => {
     <div v-else-if="!list.length" class="am-empty">
       <span class="am-empty-icon"><Icon name="userCheck" :size="28" /></span>
       <b>هنوز به کسی دسترسی نداده‌اید</b>
-      <p>با «دسترسی تازه» برای هر نفر نام کاربری و رمز بسازید و دستیارهایی را که می‌بیند انتخاب کنید.</p>
+      <p>با «دسترسی جدید» برای هر نفر نام کاربری و رمز بسازید و دستیارهایی را که می‌بیند انتخاب کنید.</p>
     </div>
     <ul v-else class="am-grid">
       <li v-for="p in list" :key="p.id" :class="['am-person', { gone: p.expired }]">
