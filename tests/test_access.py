@@ -97,6 +97,23 @@ def test_last_day(monkeypatch, tmp_path):
     assert admin.get("/access/people").json()[0]["expired"] is True
     _cleanup(monkeypatch)
 
+def test_expiry_with_a_time(monkeypatch, tmp_path):
+    from datetime import datetime, timedelta
+    import jalali
+    app, access = _app(monkeypatch, tmp_path)
+    admin = _admin(app)
+    t = datetime.now(access.TEHRAN)
+    stamp = lambda d: f"{jalali.jstr(d.date())} {d:%H:%M}"
+    body = {"name": "x", "username": "timed", "password": "123456", "apps": ["school"]}
+    assert admin.post("/access/people", json={**body, "expires_on": stamp(t - timedelta(minutes=5))}).status_code == 422
+    later = t + timedelta(hours=2)
+    p = admin.post("/access/people", json={**body, "expires_on": stamp(later)}).json()
+    with access._conn() as db:
+        at = db.execute("SELECT expires_at FROM people WHERE id = ?", (p["id"],)).fetchone()[0]
+    assert abs(at - later.replace(second=0, microsecond=0).timestamp()) < 1   # that exact minute in Tehran
+    assert p["expires_on"] == stamp(later)
+    _cleanup(monkeypatch)
+
 def test_today_comes_from_the_server_in_tehran(monkeypatch, tmp_path):
     from datetime import datetime
     import jalali

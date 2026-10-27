@@ -1,20 +1,23 @@
 <script setup>
-// Core: a Jalali date picker. v-model is «1405/08/30» or null. Days before `min` (today when not given) can't be
-// picked. The calendar opens under the field (above it when there is no room) and is moved to <body>, so a dialog
-// that scrolls can't cut it off. Colours come from the theme tokens; a dark page can set the --dp-* variables.
-import { ref, computed, watch, nextTick, onBeforeUnmount } from "vue"
+// Core: a Jalali date picker that looks like any other input. v-model is «1405/08/30» or null (empty, shown as the
+// placeholder). Days before `min` (today when not given) can't be picked. clearable: a × empties it.
+// The calendar opens under the field (above it when there is no room) and lives in <body> (lib/popover.js).
+import { ref, computed } from "vue"
 import { MONTHS, WEEKDAYS, faDigits, today, parse, format, compare, daysInMonth, weekday, jalaliText } from "../../lib/jalali.js"
+import { usePopover } from "../../lib/popover.js"
 import Icon from "../Icon.vue"
+import "./picker.css"
 
 const props = defineProps({
   modelValue: { type: String, default: null },
   min: { type: String, default: null },
   placeholder: { type: String, default: "انتخاب تاریخ" },
   label: { type: String, default: "تاریخ" },
+  clearable: { type: Boolean, default: false },
 })
 const emit = defineEmits(["update:modelValue"])
+const { open, field, pop, place, show, close, key } = usePopover()
 
-const open = ref(false), field = ref(null), pop = ref(null), place = ref({})
 const minDay = computed(() => parse(props.min) || today())
 const chosen = computed(() => parse(props.modelValue))
 const view = ref({ y: 0, m: 0 })   // the month on show
@@ -34,56 +37,29 @@ const step = (n) => {
   view.value = { y, m }
 }
 
-const toggle = async () => {
+const toggle = () => {
   if (open.value) return close()
   const start = chosen.value && !past(chosen.value) ? chosen.value : minDay.value
   view.value = { y: start.y, m: start.m }
-  open.value = true
-  await nextTick()
-  position()
-  pop.value?.querySelector(".dp-day.sel, .dp-day.today, .dp-day:not(:disabled)")?.focus()
+  show(".dp-day.sel, .dp-day.today, .dp-day:not(:disabled)")
 }
-const close = () => { open.value = false }
 const pick = (j) => {
   if (past(j)) return
   emit("update:modelValue", format(j))
-  close()
-  field.value?.focus()
+  close(true)
 }
-
-// the calendar takes the field's colours (a page can set them on the field), since it is not inside it
-const COLOURS = ["--dp-panel", "--dp-text", "--dp-muted", "--dp-accent"]
-// under the field, or above it when the screen has no room below; kept inside the screen's width
-const position = () => {
-  if (!field.value || !pop.value) return
-  const css = getComputedStyle(field.value)
-  for (const v of COLOURS) pop.value.style.setProperty(v, css.getPropertyValue(v))
-  const r = field.value.getBoundingClientRect(), h = pop.value.offsetHeight, w = pop.value.offsetWidth
-  const below = window.innerHeight - r.bottom >= h + 12 || r.top < h + 12
-  const left = Math.min(Math.max(8, r.right - w), window.innerWidth - w - 8)
-  place.value = { top: (below ? r.bottom + 6 : r.top - h - 6) + "px", left: left + "px" }
-}
-const outside = (e) => {
-  if (!pop.value?.contains(e.target) && !field.value?.contains(e.target)) close()
-}
-watch(open, (on) => {
-  const f = on ? "addEventListener" : "removeEventListener"
-  document[f]("pointerdown", outside, true)
-  window[f]("resize", close); window[f]("scroll", position, true)
-})
-onBeforeUnmount(() => { open.value = false })
-// Escape closes only the calendar, not the dialog it is in
-const key = (e) => { if (e.key === "Escape") { e.stopPropagation(); close(); field.value?.focus() } }
 </script>
 
 <template>
-  <button ref="field" type="button" :class="['dp-field', { open, empty: !chosen }]" :aria-expanded="open" aria-haspopup="dialog" @click="toggle">
-    <Icon name="calendar" :size="18" />
-    <span class="dp-value">{{ chosen ? jalaliText(chosen) : placeholder }}</span>
-    <Icon name="chevron" :size="16" class="dp-chevron" />
-  </button>
+  <div ref="field" :class="['dp-field', { 'dp-on': open, 'dp-empty': !chosen }]">
+    <button type="button" class="dp-open" :aria-label="label" :aria-expanded="open" aria-haspopup="dialog" @click="toggle">
+      <Icon name="calendar" :size="19" />
+      <span class="dp-value">{{ chosen ? jalaliText(chosen) : placeholder }}</span>
+    </button>
+    <button v-if="clearable && chosen" type="button" class="dp-clear" :aria-label="`پاک کردن ${label}`" @click="emit('update:modelValue', null)"><Icon name="x" :size="16" /></button>
+  </div>
   <Teleport to="body">
-    <div v-if="open" ref="pop" class="dp-pop" role="dialog" :aria-label="label" :style="place" @keydown="key">
+    <div v-if="open" ref="pop" class="dp-pop dp-cal" role="dialog" :aria-label="label" :style="place" @keydown="key">
       <div class="dp-head">
         <button type="button" class="dp-nav" :disabled="!canBack" aria-label="ماه قبل" @click="step(-1)"><Icon name="arrowRight" :size="17" /></button>
         <b>{{ MONTHS[view.m - 1] }} {{ faDigits(view.y) }}</b>
@@ -102,25 +78,9 @@ const key = (e) => { if (e.key === "Escape") { e.stopPropagation(); close(); fie
   </Teleport>
 </template>
 
-<style scoped>
-.dp-field { --dp-panel: var(--panel); --dp-field-bg: var(--panel); --dp-field-line: var(--line); --dp-text: var(--ink); --dp-muted: var(--muted); --dp-accent: var(--primary);
-  display: flex; align-items: center; gap: 10px; width: 100%; height: 48px; padding: 0 14px; border-radius: 12px; cursor: pointer; text-align: right;
-  font: inherit; font-size: 15px; color: var(--dp-text); background: var(--dp-field-bg); border: 1px solid var(--dp-field-line); transition: border-color .2s, box-shadow .2s; }
-.dp-field > .ico:first-child { color: var(--dp-muted); }
-.dp-field.empty .dp-value { color: var(--dp-muted); }
-.dp-field:focus-visible, .dp-field.open { outline: none; border-color: var(--dp-accent); box-shadow: 0 0 0 4px color-mix(in srgb, var(--dp-accent) 22%, transparent); }
-.dp-value { flex: 1; min-width: 0; }
-/* the chevron icon points left; turned to point down, and up while open */
-.dp-chevron { color: var(--dp-muted); transform: rotate(-90deg); transition: transform .2s; }
-.dp-field.open .dp-chevron { transform: rotate(90deg); }
-</style>
-
 <style>
 /* the calendar lives in <body>, so its styles are not scoped */
-.dp-pop { --dp-hover: color-mix(in srgb, var(--dp-accent) 12%, transparent);
-  position: fixed; z-index: 90; width: 300px; max-width: calc(100vw - 16px); padding: 14px; border-radius: 18px; direction: rtl;
-  color: var(--dp-text); background: var(--dp-panel); border: 1px solid color-mix(in srgb, var(--dp-text) 12%, transparent);
-  box-shadow: 0 24px 60px -18px rgba(0,0,0,.55); animation: dp-in .18s ease both; }
+.dp-cal { width: 300px; }
 .dp-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
 .dp-head b { font-size: 15px; }
 .dp-nav { display: grid; place-items: center; width: 36px; height: 36px; border: 0; border-radius: 10px; cursor: pointer; color: var(--dp-text); background: transparent; }
@@ -135,6 +95,4 @@ const key = (e) => { if (e.key === "Escape") { e.stopPropagation(); close(); fie
 .dp-day.sel { color: #fff; font-weight: 700; background: var(--dp-accent); }
 .dp-today { width: 100%; height: 38px; margin-top: 10px; border: 0; border-radius: 10px; cursor: pointer; font: inherit; font-size: 13px; color: var(--dp-accent); background: var(--dp-hover); }
 .dp-today:hover, .dp-today:focus-visible { outline: none; filter: brightness(1.15); }
-@keyframes dp-in { from { opacity: 0; transform: translateY(-6px); } }
-@media (prefers-reduced-motion: reduce) { .dp-pop { animation: none; } }
 </style>

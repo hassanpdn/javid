@@ -1,32 +1,45 @@
 <script setup>
 // Give or change one person's access (permanent account only, access.py): their name, username and password, the
-// assistants they may open (one or more), and an optional last day. After saving with a password, a text ready to send.
-import { ref, reactive, computed, onMounted } from "vue"
+// assistants they may open (one or more), and an optional expiry date and time. After saving with a password, a text ready to send.
+import { ref, reactive, computed, watch, onMounted } from "vue"
 import { access, accessCall, checkAccess } from "../lib/access.js"
-import { addDays, today as browserToday, parse, jalaliText, format } from "../lib/jalali.js"
+import { today as browserToday, jalaliText, format } from "../lib/jalali.js"
 import Icon from "./Icon.vue"
 import DatePicker from "./core/DatePicker.vue"
+import TimePicker from "./core/TimePicker.vue"
 import "./hub-dialog.css"
 
 const props = defineProps({ assistants: Array, person: { type: Object, default: null } })
 const emit = defineEmits(["close", "saved"])
 const editing = !!props.person
 
-// Today comes from the server's clock (access.today); the browser's only if the server hasn't said yet.
-// ready-made expiry dates (they fill the date picker); null = no expiry
+// Today and now come from the server's clock (access.today, access.now); the browser's only if the server hasn't said.
 const todayStr = computed(() => access.today || format(browserToday()))
-const ENDS = computed(() => [{ text: "بدون تاریخ", value: null },
-  ...[[7, "۱ هفته"], [30, "۱ ماه"], [90, "۳ ماه"]].map(([n, text]) => ({ text, value: format(addDays(parse(todayStr.value), n)) }))])
+const nowStr = computed(() => access.now || new Date().toTimeString().slice(0, 5))
+// an access saved before times existed has only a date: it ended at the end of that day
+const [oldDate, oldTime] = (props.person?.expires_on || "").split(" ")
 
 const form = reactive({
   name: props.person?.name || "", username: props.person?.username || "", password: "",
   apps: props.person ? [...props.person.apps] : [props.assistants[0].key],
-  expires_on: editing ? props.person.expires_on : null,
+  date: oldDate || null, time: oldDate ? oldTime || "23:55" : null,   // no date = no expiry
 })
+// on today, times before now are out; a new date gets 20:00, or the next full hour when today is already past it
+const minTime = computed(() => form.date === todayStr.value ? nowStr.value : null)
+watch(() => form.date, (d) => {
+  if (!d) { form.time = null; return }
+  const min = minTime.value
+  if (!form.time) form.time = "20:00"
+  if (min && form.time <= min) {
+    const next = Number(min.slice(0, 2)) + 1
+    form.time = next <= 23 ? `${String(next).padStart(2, "0")}:00` : "23:55"
+  }
+})
+const expiresOn = computed(() => form.date ? `${form.date} ${form.time || "23:55"}` : null)
 const show = ref(!editing), error = ref(""), sending = ref(false), done = ref(null), copied = ref(false)
 const nameEl = ref(null)
 onMounted(() => {
-  checkAccess()   // a fresh «today» from the server
+  checkAccess()   // a fresh «today» and «now» from the server
   if (window.matchMedia("(min-width: 768px)").matches) nameEl.value?.focus()
 })
 
@@ -51,7 +64,7 @@ const save = async () => {
   if (!form.apps.length) { error.value = "دست‌کم یک دستیار را انتخاب کنید."; return }
   sending.value = true; error.value = ""
   try {
-    const body = { name: form.name, username: form.username, password: form.password, apps: form.apps, expires_on: form.expires_on }
+    const body = { name: form.name, username: form.username, password: form.password, apps: form.apps, expires_on: expiresOn.value }
     const p = await accessCall(editing ? `/access/people/${props.person.id}` : "/access/people", body)
     emit("saved")
     if (form.password) done.value = { ...p, password: form.password }
@@ -79,7 +92,7 @@ const copy = async () => {
         <div><dt>نام کاربری</dt><dd dir="ltr">{{ done.username }}</dd></div>
         <div><dt>رمز عبور</dt><dd dir="ltr">{{ done.password }}</dd></div>
         <div><dt>دستیار</dt><dd>{{ names(done.apps) }}</dd></div>
-        <div><dt>تا</dt><dd>{{ done.expires_on ? jalaliText(done.expires_on) : "بدون تاریخ پایان" }}</dd></div>
+        <div><dt>تا</dt><dd>{{ done.expires_on ? jalaliText(done.expires_on) : "بدون تاریخ انقضا" }}</dd></div>
       </dl>
       <button type="button" class="hd-btn" @click="copy"><Icon :name="copied ? 'check' : 'file'" :size="18" />{{ copied ? "کپی شد" : "کپی متن برای فرستادن" }}</button>
     </section>
@@ -130,12 +143,11 @@ const copy = async () => {
 
       <div class="hd-field">
         <span class="hd-label">تاریخ انقضای دسترسی</span>
-        <div class="af-chips">
-          <button v-for="e in ENDS" :key="e.text" type="button" :class="['af-chip', { on: form.expires_on === e.value }]"
-                  :aria-pressed="form.expires_on === e.value" @click="form.expires_on = e.value">{{ e.text }}</button>
+        <div class="af-when">
+          <div class="af-picker"><DatePicker v-model="form.date" :min="todayStr" clearable label="تاریخ انقضا" placeholder="بدون تاریخ انقضا" /></div>
+          <div class="af-picker"><TimePicker v-model="form.time" :min="minTime" :disabled="!form.date" label="ساعت انقضا" /></div>
         </div>
-        <div class="af-picker"><DatePicker v-model="form.expires_on" :min="todayStr" label="تاریخ انقضای دسترسی" placeholder="بدون تاریخ انقضا" /></div>
-        <p class="af-end"><Icon name="info" :size="15" />{{ form.expires_on ? `تا آخر روز ${jalaliText(form.expires_on)} باز است، بعد خودش بسته می‌شود.` : "تاریخ انقضا ندارد؛ تا وقتی خودتان پاکش نکنید باز است." }}</p>
+        <p class="af-end"><Icon name="info" :size="15" />{{ expiresOn ? `تا ${jalaliText(expiresOn)} باز است، بعد خودش بسته می‌شود.` : "خالی بماند یعنی تاریخ انقضا ندارد و تا وقتی خودتان پاکش نکنید باز است." }}</p>
       </div>
 
       <p class="hd-error" role="alert">{{ error }}</p>
@@ -169,13 +181,10 @@ const copy = async () => {
   color: #fff; background: var(--c1); opacity: 0; transform: scale(.5); transition: opacity .2s, transform .25s cubic-bezier(.2,.9,.25,1.4); }
 .af-app.on .af-tick { opacity: 1; transform: none; }
 
-.af-chips { display: flex; flex-wrap: wrap; gap: 8px; }
-.af-chip { height: 38px; padding: 0 14px; border-radius: 12px; cursor: pointer; font: inherit; font-size: 13.5px; color: #dcd8ff;
-  background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.14); }
-.af-chip.on { color: #fff; background: rgba(143,133,255,.28); border-color: #8f85ff; }
-.af-chip:focus-visible { outline: 3px solid #8fefff; outline-offset: 2px; }
-/* the date picker on this always-dark page */
-.af-picker { --dp-panel: #1c1a3f; --dp-field-bg: rgba(10,9,32,.6); --dp-field-line: rgba(255,255,255,.14); --dp-text: #fff; --dp-muted: #9a96c4; --dp-accent: #8f85ff; margin-top: 4px; }
+/* date and time side by side, looking like the other inputs of this always-dark dialog */
+.af-when { display: grid; grid-template-columns: 2fr 1fr; gap: 12px; }
+.af-when > * { min-width: 0; }
+.af-picker { --dp-panel: #1c1a3f; --dp-field-bg: rgba(10,9,32,.6); --dp-field-line: rgba(255,255,255,.14); --dp-text: #fff; --dp-muted: #9a96c4; --dp-accent: #8f85ff; }
 .af-picker :deep(.dp-field) { --dp-panel: inherit; --dp-field-bg: inherit; --dp-field-line: inherit; --dp-text: inherit; --dp-muted: inherit; --dp-accent: inherit; height: 50px; border-radius: 14px; }
 .af-end { display: flex; align-items: center; gap: 6px; margin: 2px 0 0; font-size: 12.5px; color: #b7b3d9; line-height: 1.8; }
 

@@ -55,7 +55,7 @@ const remove = async (p) => {
             <span v-for="k in p.apps" :key="k" :class="['am-app', 'hue-' + app(k).hue]"><Icon :name="app(k).icon" :size="14" />{{ app(k).title }}</span>
           </div>
           <div class="am-meta">
-            <span><Icon name="calendar" :size="14" />{{ p.expires_on ? "تا " + jalaliText(p.expires_on) : "بدون تاریخ پایان" }}</span>
+            <span><Icon name="calendar" :size="14" />{{ p.expires_on ? "تا " + jalaliText(p.expires_on) : "بدون تاریخ انقضا" }}</span>
             <span><Icon name="clock" :size="14" />{{ lastLogin(p.last_login) }}</span>
           </div>
           <div v-if="removing === p.id" class="am-confirm">

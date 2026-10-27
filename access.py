@@ -134,9 +134,13 @@ def today():
     """Today in Tehran as «1405/08/05», from the server's clock (a visitor's computer may have the wrong date)."""
     return jalali.jstr(datetime.now(TEHRAN).date())
 
+def now():
+    """The time in Tehran now, «14:20», from the server's clock."""
+    return datetime.now(TEHRAN).strftime("%H:%M")
+
 def _status(cookie):
     h = _holder(cookie) if ON else None
-    return {"on": ON, "today": today(), "admin": bool(h and h["admin"]), "name": h["name"] if h else "",
+    return {"on": ON, "today": today(), "now": now(), "admin": bool(h and h["admin"]), "name": h["name"] if h else "",
             "apps": h["apps"] if h else ([] if ON else list(APPS)), "expires_on": h["expires_on"] if h else None}
 
 class AccessLogin(BaseModel):
@@ -177,18 +181,20 @@ def _person(p):
             "expires_on": p["expires_on"], "expired": _expired(p), "created_at": p["created_at"], "last_login": p["last_login"]}
 
 def _last_moment(expires_on):
-    """«1405/08/30» → the end of that day in Tehran, as a timestamp. None stays None (no last day)."""
+    """«1405/08/30 18:30» → that minute in Tehran, as a timestamp. Without a time, the end of that day.
+    None stays None (no expiry). The moment must still be ahead."""
     if not expires_on:
         return None
-    m = re.fullmatch(r"(\d{4})/(\d{1,2})/(\d{1,2})", expires_on.strip())
+    m = re.fullmatch(r"(\d{4})/(\d{1,2})/(\d{1,2})(?: (\d{1,2}):(\d{2}))?", expires_on.strip())
     try:
-        d = jalali.to_gregorian(int(m[1]), int(m[2]), int(m[3]))
         assert m and 1 <= int(m[2]) <= 12 and 1 <= int(m[3]) <= 31
+        d = jalali.to_gregorian(int(m[1]), int(m[2]), int(m[3]))
+        hour, minute, second = (int(m[4]), int(m[5]), 0) if m[4] else (23, 59, 59)
+        end = datetime(d.year, d.month, d.day, hour, minute, second, tzinfo=TEHRAN).timestamp()
     except Exception:
-        raise HTTPException(status_code=422, detail="تاریخ درست نیست.")
-    end = datetime(d.year, d.month, d.day, 23, 59, 59, tzinfo=TEHRAN).timestamp()
+        raise HTTPException(status_code=422, detail="تاریخ یا ساعت درست نیست.")
     if end <= time.time():
-        raise HTTPException(status_code=422, detail="تاریخ پایان باید امروز یا بعد از امروز باشد.")
+        raise HTTPException(status_code=422, detail="زمان انقضا باید بعد از همین حالا باشد.")
     return int(end)
 
 class Person(BaseModel):
@@ -196,7 +202,7 @@ class Person(BaseModel):
     username: str = Field(min_length=3, max_length=30)
     password: str = Field("", max_length=100)   # empty when editing = keep the old one
     apps: list[str] = Field(min_length=1)
-    expires_on: str | None = None              # Jalali «1405/08/30», or None for no last day
+    expires_on: str | None = None              # Jalali «1405/08/30 18:30», or None for no expiry
 
 def _clean(req: Person, gid=None):
     username = req.username.strip().lower()

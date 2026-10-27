@@ -39,8 +39,9 @@ export const compare = (a, b) => (a.y - b.y) || (a.m - b.m) || (a.d - b.d)
 
 export const parse = (s) => { if (!s) return null; const [y, m, d] = s.split("/").map(Number); return { y, m, d } }
 export const format = (j) => j ? `${j.y}/${String(j.m).padStart(2, "0")}/${String(j.d).padStart(2, "0")}` : null
-// «1405/08/30» or {y, m, d} → «۳۰ آبان ۱۴۰۵»
+// «1405/08/30» or {y, m, d} → «۳۰ آبان ۱۴۰۵»; «1405/08/30 18:30» → «۳۰ آبان ۱۴۰۵، ساعت ۱۸:۳۰»
 export const jalaliText = (v) => {
-  const j = typeof v === "string" ? parse(v) : v
-  return j ? faDigits(`${j.d} ${MONTHS[j.m - 1]} ${j.y}`) : ""
+  const [day, time] = typeof v === "string" ? v.split(" ") : [v]
+  const j = typeof day === "string" ? parse(day) : day
+  return j ? faDigits(`${j.d} ${MONTHS[j.m - 1]} ${j.y}` + (time ? `، ساعت ${time}` : "")) : ""
 }
