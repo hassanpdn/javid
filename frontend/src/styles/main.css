@@ -560,6 +560,8 @@ body .nav-title h1 { color: var(--ink); font-size: 16px; line-height: 1.5; white
 .letter-card.st-needs_manager, .letter-card.st-forwarded { border-inline-start-color: var(--info); }
 .letter-card.st-done { border-inline-start-color: var(--success); }
 .letter-card.fresh { animation: flash 1.8s ease; }
+/* «تازه» on a letter the assistant just added to the page */
+.tag.new-tag { flex: none; margin-inline-start: auto; color: var(--primary-ink); background: var(--primary-soft); }
 @keyframes flash { 0% { box-shadow: 0 0 0 4px color-mix(in srgb, var(--primary) 45%, transparent), var(--shadow); } 100% { box-shadow: var(--shadow); } }
 .lc-top { display: flex; justify-content: space-between; gap: 10px; align-items: flex-start; }
 .lc-top b { font-size: 15px; color: var(--ink); }

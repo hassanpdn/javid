@@ -7,6 +7,7 @@ import AppLayout from "../components/AppLayout.vue"
 import ReferDialog from "../components/ReferDialog.vue"
 import Icon from "../components/Icon.vue"
 import Skeleton from "../components/Skeleton.vue"
+import AgentProgress from "../components/AgentProgress.vue"
 import CountUp from "../components/CountUp.vue"
 import AiOrb from "../components/AiOrb.vue"
 
@@ -113,7 +114,7 @@ onUnmounted(() => lockScroll(false))
           </div>
           <button v-if="agent.error" class="btn" @click="runAgent"><Icon name="refresh" :size="18" />تلاش دوباره</button>
         </div>
-        <div v-if="agent.running" class="progress"><span :style="{ width: (agent.total ? 100 * agent.processed / agent.total : 0) + '%' }"></span></div>
+        <AgentProgress v-if="agent.running" :processed="agent.processed" :total="agent.total" />
       </section>
 
       <nav v-reveal class="tabs">
