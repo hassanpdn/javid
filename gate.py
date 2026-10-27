@@ -5,7 +5,7 @@ After a correct login the browser gets a signed cookie, so the door stays open f
 The cookie holds only an expiry time and a signature; the signature's key is made from the username and
 password, so nobody can make a valid cookie without knowing the password, and changing the password
 closes the door for every browser at once.
-The permanent account and guest codes (access.py) open the door too, so a guest needs only the one login they were given.
+The permanent account and people's accounts (access.py) open the door too, so each person needs only the one login they were given.
 """
 import os, time, hmac, hashlib
 from fastapi import APIRouter, HTTPException, Request, Response
@@ -53,14 +53,16 @@ def login(req: GateLogin, request: Request, response: Response):
     recent = [t for t in _failed.get(who, []) if now - t < FAIL_WINDOW]
     if len(recent) >= MAX_FAILS:
         raise HTTPException(status_code=429, detail="تلاش‌های ناموفق زیاد بود. چند دقیقه دیگر دوباره امتحان کنید.")
+    # the permanent account or a person's account (access.py) first: its cookie opens the door and the assistants it is
+    # for, so pudineh signs in once even when the door's own username and password are the same
+    got = access.check(req.username, req.password)
+    if got:
+        _failed.pop(who, None)
+        access.set_cookie(request, response, *got)
+        return {"ok": True}
     # compare_digest takes the same time whatever the input, so timing gives nothing away
     good = hmac.compare_digest(req.username.strip().encode(), USER.encode()) & hmac.compare_digest(req.password.encode(), PASSWORD.encode())
     if not good:
-        # the permanent account or a guest code: its cookie opens the door and the assistants it is for
-        got = access.check(req.username, req.password)
-        if got:
-            access.set_cookie(request, response, *got)
-            return {"ok": True}
         _failed[who] = recent + [now]
         raise HTTPException(status_code=401, detail="نام کاربری یا رمز عبور درست نیست")
     _failed.pop(who, None)

@@ -1,52 +1,67 @@
 """Who may open which assistant (the cards on the assistants page).
 
 Two kinds of login, both checked here:
-- the permanent account (ADMIN_USER / ADMIN_PASSWORD in the server's .env): opens every assistant and makes guest codes.
-- a guest code: a username and a one-time password made by the permanent account for chosen assistants and a set time.
-  The password works for the first login only; after that the same browser stays in until the code's time is up.
-  Inside an assistant a guest can do everything (setup form, every role).
+- the permanent account (ADMIN_USER / ADMIN_PASSWORD in the server's .env): opens every assistant, and is the only one
+  who gives access to other people.
+- a person's account, made by the permanent account on the assistants page: a name, a username and password, the
+  assistants (one or more) this person may open, and an optional last day. Inside an assistant they can do everything
+  (setup form, every role); the assistants page shows them only their own cards.
 
 It is on only when ADMIN_PASSWORD is set (the live server). Locally and in tests every assistant opens straight away.
-After a login the browser gets a signed cookie (like gate.py). A guest's cookie is checked against the guest's row on
-every call, so ending a code shuts that browser out at once.
-Guest codes live in their own small database (access.db), so resetting or rebuilding the demo data keeps them.
+After a login the browser gets a signed cookie (like gate.py). A person's cookie is checked against their row on every
+call, so changing their assistants takes effect at once, and deleting them, a new password or their last day passing
+shuts that browser out.
+Accounts live in their own small database (access.db), so resetting or rebuilding the demo data keeps them.
 """
-import os, time, hmac, hashlib, secrets, sqlite3
+import os, re, time, hmac, hashlib, secrets, sqlite3
+from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, HTTPException, Request, Response
 from pydantic import BaseModel, Field
+import jalali
 
 APPS = ("school", "fabric")
 USER = os.getenv("ADMIN_USER", "")
 PASSWORD = os.getenv("ADMIN_PASSWORD", "")
 ON = bool(PASSWORD)
-COOKIE, ADMIN_DAYS = "access", 30
+COOKIE, DAYS = "access", 30
 DB_PATH = os.getenv("ACCESS_DB_PATH", "access.db")
 _KEY = hashlib.sha256(f"access\0{USER}\0{PASSWORD}".encode()).digest()
+TEHRAN = timezone(timedelta(hours=3, minutes=30))   # Iran has had no summer time since 2022
 
 router = APIRouter(prefix="/access")
 
 def _conn():
     c = sqlite3.connect(DB_PATH)
     c.row_factory = sqlite3.Row
-    c.execute("""CREATE TABLE IF NOT EXISTS guests (
-        id INTEGER PRIMARY KEY, label TEXT NOT NULL, username TEXT NOT NULL UNIQUE, password_hash TEXT NOT NULL,
-        apps TEXT NOT NULL, created_at INTEGER NOT NULL, expires_at INTEGER NOT NULL,
-        used_at INTEGER, ended INTEGER NOT NULL DEFAULT 0)""")
+    # pw_ver goes up with every new password, and is part of the cookie, so an old password's logins end
+    c.execute("""CREATE TABLE IF NOT EXISTS people (
+        id INTEGER PRIMARY KEY, name TEXT NOT NULL, username TEXT NOT NULL UNIQUE, password_hash TEXT NOT NULL,
+        pw_ver INTEGER NOT NULL DEFAULT 1, apps TEXT NOT NULL, expires_on TEXT, expires_at INTEGER,
+        created_at INTEGER NOT NULL, last_login INTEGER)""")
     return c
 
-def _hash(password):
-    return hashlib.sha256(f"{password}\0".encode() + _KEY).hexdigest()
+# Passwords are stored salted and stretched (PBKDF2), never as they were typed.
+def _hash(password, salt=None):
+    salt = salt or secrets.token_hex(16)
+    return salt + "$" + hashlib.pbkdf2_hmac("sha256", password.encode(), bytes.fromhex(salt), 120_000).hex()
+
+def _password_ok(password, stored):
+    salt, _, _ = stored.partition("$")
+    return hmac.compare_digest(_hash(password, salt), stored)
 
 def _sign(text):
     return hmac.new(_KEY, text.encode(), hashlib.sha256).hexdigest()
 
 def _cookie(who, expires):
-    """who is "admin" or "g{id}". The cookie is who.expires.signature."""
+    """who is "admin" or "p{id}-{pw_ver}". The cookie is who.expires.signature."""
     body = f"{who}.{expires}"
     return f"{body}.{_sign(body)}"
 
+def _expired(p, now=None):
+    return p["expires_at"] is not None and p["expires_at"] <= (now or time.time())
+
 def holder(request: Request):
-    """Whoever this browser's cookie belongs to: {"admin": bool, "apps": [...], "label", "expires"}, or None."""
+    """Whoever this browser's cookie belongs to: {"admin", "name", "apps", "expires_on"}, or None."""
     return _holder(request.cookies.get(COOKIE, ""))
 
 def _holder(cookie):
@@ -57,24 +72,25 @@ def _holder(cookie):
     if not (expires.isdigit() and int(expires) > time.time() and hmac.compare_digest(sig, _sign(f"{who}.{expires}"))):
         return None
     if who == "admin":
-        return {"admin": True, "apps": list(APPS), "label": "", "expires": int(expires)}
-    if not who[1:].isdigit():
+        return {"admin": True, "name": "", "apps": list(APPS), "expires_on": None}
+    m = re.fullmatch(r"p(\d+)-(\d+)", who)
+    if not m:
         return None
     with _conn() as c:
-        g = c.execute("SELECT * FROM guests WHERE id = ?", (int(who[1:]),)).fetchone()
-    if not g or g["ended"] or g["expires_at"] <= time.time():
+        p = c.execute("SELECT * FROM people WHERE id = ?", (int(m[1]),)).fetchone()
+    if not p or p["pw_ver"] != int(m[2]) or _expired(p):
         return None
-    return {"admin": False, "apps": g["apps"].split(","), "label": g["label"], "expires": g["expires_at"]}
+    return {"admin": False, "name": p["name"], "apps": [a for a in p["apps"].split(",") if a in APPS], "expires_on": p["expires_on"]}
 
 def allows(request: Request, app):
-    """True when the door is off or this browser may open the assistant (app "any": at least one assistant)."""
+    """True when logins are off or this browser may open the assistant (app "any": at least one assistant)."""
     if not ON:
         return True
     h = holder(request)
     return bool(h) and (app == "any" or app in h["apps"])
 
 def app_for(path):
-    """Which assistant an API path belongs to (None: needs no assistant, like the page files or the door)."""
+    """Which assistant an API path belongs to."""
     first = path.strip("/").split("/")[0]
     if first == "fabric":
         return "fabric"
@@ -83,24 +99,23 @@ def app_for(path):
     return "school"
 
 def check(username, password):
-    """The cookie value and its lifetime in seconds for a right username and password, else None.
-    A guest's password is spent here: the second login with it fails."""
+    """The cookie value and its lifetime in seconds for a right username and password, else None."""
     if not ON:
         return None
-    name, now = username.strip(), int(time.time())
-    if hmac.compare_digest(name.encode(), USER.encode()) & hmac.compare_digest(password.encode(), PASSWORD.encode()):
-        expires = now + ADMIN_DAYS * 86400
+    name, now = username.strip().lower(), int(time.time())
+    if hmac.compare_digest(name.encode(), USER.lower().encode()) & hmac.compare_digest(password.encode(), PASSWORD.encode()):
+        expires = now + DAYS * 86400
         return _cookie("admin", expires), expires - now
     with _conn() as c:
-        g = c.execute("SELECT * FROM guests WHERE username = ?", (name.lower(),)).fetchone()
-        if not g or g["ended"] or g["used_at"] or g["expires_at"] <= now:
+        p = c.execute("SELECT * FROM people WHERE username = ?", (name,)).fetchone()
+        if not p:
+            _hash(password)   # the same work as a real check, so the time taken doesn't tell whether the username exists
             return None
-        if not hmac.compare_digest(g["password_hash"], _hash(password.strip())):
+        if _expired(p, now) or not _password_ok(password, p["password_hash"]):
             return None
-        # only one login may spend it, even when two arrive at the same moment
-        if c.execute("UPDATE guests SET used_at = ? WHERE id = ? AND used_at IS NULL", (now, g["id"])).rowcount != 1:
-            return None
-    return _cookie(f"g{g['id']}", g["expires_at"]), g["expires_at"] - now
+        c.execute("UPDATE people SET last_login = ? WHERE id = ?", (now, p["id"]))
+    expires = now + DAYS * 86400 if p["expires_at"] is None else min(now + DAYS * 86400, p["expires_at"])
+    return _cookie(f"p{p['id']}-{p['pw_ver']}", expires), expires - now
 
 def set_cookie(request: Request, response: Response, value, max_age):
     https = request.url.scheme == "https" or request.headers.get("x-forwarded-proto") == "https"
@@ -110,18 +125,15 @@ def set_cookie(request: Request, response: Response, value, max_age):
 _failed = {}
 MAX_FAILS, FAIL_WINDOW = 10, 300
 
-def too_many(request: Request):
+def _too_many(request: Request):
     who, now = request.client.host if request.client else "", time.time()
     _failed[who] = [t for t in _failed.get(who, []) if now - t < FAIL_WINDOW]
     return len(_failed[who]) >= MAX_FAILS
 
-def failed(request: Request):
-    _failed.setdefault(request.client.host if request.client else "", []).append(time.time())
-
 def _status(cookie):
     h = _holder(cookie) if ON else None
-    return {"on": ON, "admin": bool(h and h["admin"]), "apps": h["apps"] if h else ([] if ON else list(APPS)),
-            "guest": {"label": h["label"], "expires": h["expires"]} if h and not h["admin"] else None}
+    return {"on": ON, "admin": bool(h and h["admin"]), "name": h["name"] if h else "",
+            "apps": h["apps"] if h else ([] if ON else list(APPS)), "expires_on": h["expires_on"] if h else None}
 
 class AccessLogin(BaseModel):
     username: str
@@ -129,19 +141,19 @@ class AccessLogin(BaseModel):
 
 @router.get("/status")
 def status(request: Request):
-    """on: cards ask for a login. admin: the permanent account. apps: the assistants this browser may open."""
+    """on: cards need a login. admin: the permanent account. apps: the assistants this browser may open."""
     return _status(request.cookies.get(COOKIE, ""))
 
 @router.post("/login")
 def login(req: AccessLogin, request: Request, response: Response):
     if not ON:
         return _status("")
-    if too_many(request):
+    if _too_many(request):
         raise HTTPException(status_code=429, detail="تلاش‌های ناموفق زیاد بود. چند دقیقه دیگر دوباره امتحان کنید.")
     got = check(req.username, req.password)
     if not got:
-        failed(request)
-        raise HTTPException(status_code=401, detail="نام کاربری یا رمز عبور درست نیست، یا این رمز قبلاً استفاده شده.")
+        _failed.setdefault(request.client.host if request.client else "", []).append(time.time())
+        raise HTTPException(status_code=401, detail="نام کاربری یا رمز عبور درست نیست، یا تاریخ دسترسی تمام شده.")
     set_cookie(request, response, *got)
     return _status(got[0])
 
@@ -150,53 +162,96 @@ def logout(response: Response):
     response.delete_cookie(COOKIE)
     return {"ok": True}
 
-# Guest codes: only the permanent account sees and makes them.
+# People's accounts: only the permanent account sees and changes them.
 def _admin(request: Request):
     h = holder(request) if ON else None
     if not (h and h["admin"]):
         raise HTTPException(status_code=403)
 
-def _guest(g):
-    now = time.time()
-    state = "ended" if g["ended"] else "expired" if g["expires_at"] <= now else "in" if g["used_at"] else "waiting"
-    return {"id": g["id"], "label": g["label"], "username": g["username"], "apps": g["apps"].split(","),
-            "created_at": g["created_at"], "expires_at": g["expires_at"], "used_at": g["used_at"], "state": state}
+def _person(p):
+    return {"id": p["id"], "name": p["name"], "username": p["username"], "apps": [a for a in p["apps"].split(",") if a in APPS],
+            "expires_on": p["expires_on"], "expired": _expired(p), "created_at": p["created_at"], "last_login": p["last_login"]}
 
-class NewGuest(BaseModel):
-    label: str = Field(min_length=1, max_length=60)
+def _last_moment(expires_on):
+    """«1405/08/30» → the end of that day in Tehran, as a timestamp. None stays None (no last day)."""
+    if not expires_on:
+        return None
+    m = re.fullmatch(r"(\d{4})/(\d{1,2})/(\d{1,2})", expires_on.strip())
+    try:
+        d = jalali.to_gregorian(int(m[1]), int(m[2]), int(m[3]))
+        assert m and 1 <= int(m[2]) <= 12 and 1 <= int(m[3]) <= 31
+    except Exception:
+        raise HTTPException(status_code=422, detail="تاریخ درست نیست.")
+    end = datetime(d.year, d.month, d.day, 23, 59, 59, tzinfo=TEHRAN).timestamp()
+    if end <= time.time():
+        raise HTTPException(status_code=422, detail="تاریخ پایان باید امروز یا بعد از امروز باشد.")
+    return int(end)
+
+class Person(BaseModel):
+    name: str = Field(min_length=1, max_length=60)
+    username: str = Field(min_length=3, max_length=30)
+    password: str = Field("", max_length=100)   # empty when editing = keep the old one
     apps: list[str] = Field(min_length=1)
-    hours: int = Field(ge=1, le=24 * 14)
+    expires_on: str | None = None              # Jalali «1405/08/30», or None for no last day
 
-@router.get("/guests")
-def guests(request: Request):
-    _admin(request)
-    with _conn() as c:
-        rows = c.execute("SELECT * FROM guests ORDER BY id DESC LIMIT 50").fetchall()
-    return [_guest(g) for g in rows]
-
-@router.post("/guests")
-def new_guest(req: NewGuest, request: Request):
-    """Makes a username and a 6-digit one-time password. The password is shown only in this reply."""
-    _admin(request)
+def _clean(req: Person, gid=None):
+    username = req.username.strip().lower()
+    if not re.fullmatch(r"[a-z0-9._-]{3,30}", username):
+        raise HTTPException(status_code=422, detail="نام کاربری فقط حروف انگلیسی، عدد، نقطه، خط تیره و زیرخط، دست‌کم ۳ حرف.")
+    if username in {USER.lower(), os.getenv("SITE_USER", "").lower()}:
+        raise HTTPException(status_code=422, detail="این نام کاربری را نمی‌شود داد.")
     apps = [a for a in APPS if a in req.apps]
     if not apps:
         raise HTTPException(status_code=422, detail="دست‌کم یک دستیار را انتخاب کنید.")
-    password, now = f"{secrets.randbelow(10**6):06d}", int(time.time())
-    with _conn() as c:
-        for _ in range(20):
-            username = f"guest{secrets.randbelow(9000) + 1000}"
-            if not c.execute("SELECT 1 FROM guests WHERE username = ?", (username,)).fetchone():
-                break
-        cur = c.execute("""INSERT INTO guests (label, username, password_hash, apps, created_at, expires_at)
-                           VALUES (?, ?, ?, ?, ?, ?)""", (req.label.strip(), username, _hash(password), ",".join(apps), now, now + req.hours * 3600))
-        g = c.execute("SELECT * FROM guests WHERE id = ?", (cur.lastrowid,)).fetchone()
-    return {**_guest(g), "password": password}
+    if (req.password or gid is None) and len(req.password) < 6:
+        raise HTTPException(status_code=422, detail="رمز عبور دست‌کم ۶ حرف باشد.")
+    return username, apps, _last_moment(req.expires_on)
 
-@router.post("/guests/{gid}/end")
-def end_guest(gid: int, request: Request):
-    """Ends a code now: an unused password stops working and a guest who is in is shut out on the next click."""
+def _taken(c, username, gid=None):
+    row = c.execute("SELECT id FROM people WHERE username = ?", (username,)).fetchone()
+    if row and row["id"] != gid:
+        raise HTTPException(status_code=409, detail="این نام کاربری را کس دیگری دارد.")
+
+@router.get("/people")
+def people(request: Request):
     _admin(request)
     with _conn() as c:
-        if c.execute("UPDATE guests SET ended = 1 WHERE id = ?", (gid,)).rowcount != 1:
+        rows = c.execute("SELECT * FROM people ORDER BY id DESC").fetchall()
+    return [_person(p) for p in rows]
+
+@router.post("/people")
+def add_person(req: Person, request: Request):
+    _admin(request)
+    username, apps, expires_at = _clean(req)
+    with _conn() as c:
+        _taken(c, username)
+        cur = c.execute("""INSERT INTO people (name, username, password_hash, apps, expires_on, expires_at, created_at)
+                           VALUES (?, ?, ?, ?, ?, ?, ?)""",
+                        (req.name.strip(), username, _hash(req.password), ",".join(apps), req.expires_on or None, expires_at, int(time.time())))
+        p = c.execute("SELECT * FROM people WHERE id = ?", (cur.lastrowid,)).fetchone()
+    return _person(p)
+
+@router.post("/people/{gid}")
+def edit_person(gid: int, req: Person, request: Request):
+    """Changes take effect at once. A new password ends the logins made with the old one."""
+    _admin(request)
+    username, apps, expires_at = _clean(req, gid)
+    with _conn() as c:
+        if not c.execute("SELECT 1 FROM people WHERE id = ?", (gid,)).fetchone():
+            raise HTTPException(status_code=404)
+        _taken(c, username, gid)
+        c.execute("UPDATE people SET name = ?, username = ?, apps = ?, expires_on = ?, expires_at = ? WHERE id = ?",
+                  (req.name.strip(), username, ",".join(apps), req.expires_on or None, expires_at, gid))
+        if req.password:
+            c.execute("UPDATE people SET password_hash = ?, pw_ver = pw_ver + 1 WHERE id = ?", (_hash(req.password), gid))
+        p = c.execute("SELECT * FROM people WHERE id = ?", (gid,)).fetchone()
+    return _person(p)
+
+@router.post("/people/{gid}/delete")
+def delete_person(gid: int, request: Request):
+    """The person is shut out on their next click."""
+    _admin(request)
+    with _conn() as c:
+        if c.execute("DELETE FROM people WHERE id = ?", (gid,)).rowcount != 1:
             raise HTTPException(status_code=404)
     return {"ok": True}

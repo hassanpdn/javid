@@ -1,13 +1,13 @@
 <script setup>
 // The live site's home after the door: every assistant as a card. A click opens that assistant
 // (its setup form, then its own login and panels). A new assistant is one more entry in ASSISTANTS.
-import { ref, watch, onMounted } from "vue"
+import { ref, computed, watch, onMounted } from "vue"
 import { leaveGate } from "../lib/gate.js"
-import { access, canOpen } from "../lib/access.js"
+import { access, canOpen, forgetAccess, jalaliText } from "../lib/access.js"
 import AuroraBg from "../components/AuroraBg.vue"
 import Icon from "../components/Icon.vue"
 import AccessDialog from "../components/AccessDialog.vue"
-import GuestCodes from "../components/GuestCodes.vue"
+import AccessManager from "../components/AccessManager.vue"
 
 const emit = defineEmits(["open"])
 const ASSISTANTS = [
@@ -26,22 +26,19 @@ const ASSISTANTS = [
 ]
 onMounted(() => { document.title = "Pudineh Agent Center" })
 
-// On the live demo each card needs a login (access.js): a card this browser may not open yet asks for one first
-const asking = ref(null), codes = ref(false)
-const pick = (a) => { if (canOpen(a.key)) emit("open", a.key); else asking.value = a }
-const opened = (key) => { asking.value = null; emit("open", key) }
-// an assistant sent us back here because its login ran out: open its login box again
+// On the live demo (access.js) the permanent account sees every card and «دسترسی‌ها» below them; anyone else sees only
+// the cards they were given. Someone who passed the door without an account of their own sees a login box instead.
+const visible = computed(() => ASSISTANTS.filter((a) => canOpen(a.key)))
+const asking = ref(null), notice = ref("")
+const opened = (key) => { asking.value = null; if (key) emit("open", key) }
+// an assistant sent us back here: this person may no longer open it
 watch(() => access.ask, (key) => {
   if (!key) return
-  asking.value = ASSISTANTS.find((a) => a.key === key) || null
+  const a = ASSISTANTS.find((x) => x.key === key)
+  notice.value = a ? `دسترسی شما به «${a.title}» برداشته شده است.` : ""
   access.ask = ""
 }, { immediate: true })
-const leave = () => {
-  Object.assign(access, { admin: false, apps: [], guest: null })
-  leaveGate()
-}
-const until = (sec) => new Date(sec * 1000).toLocaleTimeString("fa-IR", { hour: "2-digit", minute: "2-digit" })
-const untilDay = (sec) => new Date(sec * 1000).toDateString() === new Date().toDateString() ? "" : new Date(sec * 1000).toLocaleDateString("fa-IR", { day: "numeric", month: "long" }) + "، "
+const leave = () => { forgetAccess(); leaveGate() }
 
 // the light on the card follows the pointer, and the card leans a little toward it
 const move = (e) => {
@@ -59,8 +56,7 @@ const unlean = (e) => { e.currentTarget.style.setProperty("--rx", "0deg"); e.cur
     <header class="h-top">
       <div class="h-brand"><span class="h-mark"><Icon name="sparkles" :size="20" /></span><span dir="ltr" lang="en">Pudineh Agent Center</span></div>
       <div class="h-tools">
-        <span v-if="access.guest" class="h-guest"><Icon name="clock" :size="15" />مهمان، تا {{ untilDay(access.guest.expires) }}ساعت {{ until(access.guest.expires) }}</span>
-        <button v-if="access.admin" class="h-out" @click="codes = true"><Icon name="lock" :size="17" />رمزهای مهمان</button>
+        <span v-if="access.name" class="h-guest"><Icon name="user" :size="15" />{{ access.name }}<template v-if="access.expires_on">، تا {{ jalaliText(access.expires_on) }}</template></span>
         <button class="h-out" @click="leave"><Icon name="logout" :size="17" />خروج</button>
       </div>
     </header>
@@ -70,9 +66,18 @@ const unlean = (e) => { e.currentTarget.style.setProperty("--rx", "0deg"); e.cur
       <h1>انتخاب <span>دستیار</span></h1>
     </section>
 
-    <section class="h-grid">
-      <button v-for="(a, i) in ASSISTANTS" :key="a.key" :class="['h-card', 'hue-' + a.hue]" :style="{ '--i': i }"
-              @pointermove="move" @pointerleave="unlean" @click="pick(a)">
+    <p v-if="notice" class="h-notice" role="status"><Icon name="info" :size="16" />{{ notice }}</p>
+
+    <section v-if="access.on && !visible.length" class="h-none">
+      <span class="h-none-icon"><Icon name="lock" :size="26" /></span>
+      <b>با حساب خودتان وارد شوید</b>
+      <p>نام کاربری و رمزی را که برای دیدن دستیارها گرفته‌اید بنویسید.</p>
+      <button class="h-none-btn" @click="asking = {}">ورود<Icon name="arrowLeft" :size="18" /></button>
+    </section>
+
+    <section v-else class="h-grid">
+      <button v-for="(a, i) in visible" :key="a.key" :class="['h-card', 'hue-' + a.hue]" :style="{ '--i': i }"
+              @pointermove="move" @pointerleave="unlean" @click="emit('open', a.key)">
         <span class="h-glow" aria-hidden="true"></span>
         <span class="h-art" aria-hidden="true">
           <span class="h-rings"><i></i><i></i><i></i></span>
@@ -80,7 +85,7 @@ const unlean = (e) => { e.currentTarget.style.setProperty("--rx", "0deg"); e.cur
           <span v-for="(p, n) in a.perks" :key="p.text" :class="['h-perk', 'p' + n]"><Icon :name="p.icon" :size="14" />{{ p.text }}</span>
         </span>
         <span class="h-body">
-          <span class="h-head"><b>{{ a.title }}</b><span v-if="canOpen(a.key)" class="h-live"><i></i>آماده</span><span v-else class="h-locked"><Icon name="lock" :size="13" />با رمز</span></span>
+          <span class="h-head"><b>{{ a.title }}</b><span class="h-live"><i></i>آماده</span></span>
           <span class="h-desc">{{ a.desc }}</span>
           <span class="h-roles"><span v-for="r in a.roles" :key="r">{{ r }}</span></span>
           <span class="h-go">ورود به دستیار<Icon name="arrowLeft" :size="18" /></span>
@@ -88,8 +93,8 @@ const unlean = (e) => { e.currentTarget.style.setProperty("--rx", "0deg"); e.cur
       </button>
     </section>
 
-    <AccessDialog v-if="asking" :app="asking.key" :title="asking.title" @close="asking = null" @opened="opened" />
-    <GuestCodes v-if="codes" :assistants="ASSISTANTS" @close="codes = false" />
+    <AccessManager v-if="access.admin" :assistants="ASSISTANTS" />
+    <AccessDialog v-if="asking" @close="asking = null" @opened="opened" />
     <p class="h-foot"><Icon name="shield" :size="15" />همه‌ی اطلاعات این نسخه ساختگی است.</p>
   </main>
 </template>
@@ -108,8 +113,17 @@ const unlean = (e) => { e.currentTarget.style.setProperty("--rx", "0deg"); e.cur
 .h-out:hover, .h-out:focus-visible { background: rgba(255,255,255,.12); color: #fff; outline: none; }
 .h-tools { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
 .h-guest { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; color: #c9c5ee; }
-.h-locked { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 999px; font-size: 12px; color: #dcd8ff;
-  background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.16); }
+.h-notice { display: flex; align-items: center; gap: 8px; margin: -8px 0 0; padding: 10px 16px; border-radius: 14px; font-size: 13.5px;
+  color: #ffd38a; background: rgba(255,176,87,.1); border: 1px solid rgba(255,176,87,.3); }
+.h-none { width: min(100%, 420px); display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 32px 24px; text-align: center; border-radius: 28px;
+  background: linear-gradient(165deg, rgba(255,255,255,.12), rgba(255,255,255,.035)); border: 1px solid rgba(255,255,255,.14);
+  backdrop-filter: blur(22px); -webkit-backdrop-filter: blur(22px); animation: h-up 1s cubic-bezier(.2,.9,.25,1) .3s backwards; }
+.h-none-icon { display: grid; place-items: center; width: 64px; height: 64px; border-radius: 20px; color: #fff; background: linear-gradient(135deg, #7367f0, #00bad1); }
+.h-none b { font-size: 18px; color: #fff; }
+.h-none p { margin: 0; font-size: 14px; line-height: 2; color: #b7b3d9; }
+.h-none-btn { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; height: 50px; margin-top: 6px; border: 0; border-radius: 15px; cursor: pointer;
+  font: inherit; font-weight: 700; font-size: 15px; color: #fff; background: linear-gradient(110deg, #6a5cf5, #8f6bff 45%, #1fb8d6); }
+.h-none-btn:focus-visible { outline: 3px solid #8fefff; outline-offset: 3px; }
 
 .h-hero { text-align: center; max-width: 640px; margin-top: 4vh; animation: h-up .9s cubic-bezier(.2,.9,.25,1) .1s both; }
 .h-eyebrow { display: inline-flex; align-items: center; gap: 8px; padding: 6px 14px; border-radius: 999px; font-size: 12.5px; color: #d9d5ff;

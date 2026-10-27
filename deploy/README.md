@@ -4,7 +4,7 @@ The demo runs on 89.45.89.72 at https://agent.pudineh.com.
 
 - App: `/opt/javid`, run by the `javid` user through systemd (`/etc/systemd/system/javid.service`, uvicorn on 127.0.0.1:8000).
 - nginx: `/etc/nginx/sites-available/agent.pudineh.com`, HTTPS by certbot. DNS: `agent` A record in `/etc/bind/zones/pudineh.com.db` on the same server.
-- Models: AvalAI (`qwen3.8-flash`, `gemini-embedding-001`), since OpenRouter refuses this server. Settings in `/opt/javid/.env`, including `SITE_USER`/`SITE_PASSWORD` (the door) and `ADMIN_USER`/`ADMIN_PASSWORD` (the account that opens every assistant and makes guest codes; guest codes are kept in `/opt/javid/access.db`). After changing `.env`: `sudo systemctl restart javid`.
+- Models: AvalAI (`qwen3.8-flash`, `gemini-embedding-001`), since OpenRouter refuses this server. Settings in `/opt/javid/.env`, including `SITE_USER`/`SITE_PASSWORD` (the door) and `ADMIN_USER`/`ADMIN_PASSWORD` (the account that opens every assistant and gives other people access; their accounts are kept in `/opt/javid/access.db`). After changing `.env`: `sudo systemctl restart javid`.
 - pip: PyPI is blocked from Iran; `.venv/pip.conf` points at the Runflare mirror with Liara as a fallback.
 
 ## Automatic updates

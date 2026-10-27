@@ -1,12 +1,12 @@
 <script setup>
-// The login box that opens on a card of the assistants page when this browser may not open it yet (access.js).
-// The permanent account opens every card; a guest's one-time password only the cards it was made for.
+// The login box of the assistants page (access.js): for someone who passed the site's door but has no cards yet,
+// or for a card asked for by name (app). The permanent account opens every card; a person's account only theirs.
 import { ref, onMounted } from "vue"
-import { access, enterAccess, canOpen } from "../lib/access.js"
+import { enterAccess, canOpen } from "../lib/access.js"
 import Icon from "./Icon.vue"
 import "./hub-dialog.css"
 
-const props = defineProps({ app: String, title: String })
+const props = defineProps({ app: { type: String, default: "" }, title: { type: String, default: "" } })
 const emit = defineEmits(["close", "opened"])
 const username = ref(""), password = ref(""), show = ref(false)
 const error = ref(""), sending = ref(false)
@@ -20,7 +20,7 @@ const submit = async () => {
   const msg = await enterAccess(username.value, password.value)
   sending.value = false
   if (msg) { error.value = msg; password.value = ""; return }
-  if (!canOpen(props.app)) { error.value = "این رمز برای دستیار دیگری است."; return }
+  if (props.app && !canOpen(props.app)) { error.value = "این حساب به این دستیار دسترسی ندارد."; return }
   emit("opened", props.app)
 }
 </script>
@@ -30,8 +30,8 @@ const submit = async () => {
     <form class="hd" v-pop @submit.prevent="submit" novalidate>
       <div class="hd-head">
         <div>
-          <h3>ورود به {{ title }}</h3>
-          <p>{{ access.guest ? "رمزی که با آن وارد شده‌اید این دستیار را باز نمی‌کند." : "نام کاربری و رمزی را که گرفته‌اید بنویسید." }}</p>
+          <h3>{{ title ? `ورود به ${title}` : "ورود به دستیارها" }}</h3>
+          <p>نام کاربری و رمزی را که گرفته‌اید بنویسید.</p>
         </div>
         <button type="button" class="hd-x" aria-label="بستن" @click="emit('close')"><Icon name="x" :size="18" /></button>
       </div>
