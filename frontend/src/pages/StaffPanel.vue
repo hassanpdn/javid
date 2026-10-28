@@ -3,6 +3,7 @@
 import { ref, reactive, computed, watch, onMounted, onUnmounted } from "vue"
 import { api, fa, lockScroll } from "../lib/api.js"
 import { CATEGORY_OPTIONS, DOCS_CHAT } from "../lib/constants.js"
+import { STAFF } from "../lib/tours.js"
 import AppLayout from "../components/AppLayout.vue"
 import ReferDialog from "../components/ReferDialog.vue"
 import Icon from "../components/Icon.vue"
@@ -21,7 +22,7 @@ const letters = ref([]), log = ref([]), tab = ref("mine"), open = ref(null), rep
 const compose = reactive({ open: false, sender: "", subject: "", body: "", saving: false, error: "" })
 const referring = ref(null)
 const fresh = ref(new Set())
-const agent = reactive({ running: false, processed: 0, total: 0, current: "", error: "" })
+const agent = reactive({ running: false, processed: 0, total: 0, current: "", error: "", done: false })   // done: first round over (the guide may start)
 const count = (fn) => letters.value.filter(fn).length
 const shown = computed(() => {
   const t = TABS.find((x) => x.key === tab.value)
@@ -47,7 +48,7 @@ const changeCategory = async (l, category) => { await api(`/staff/letters/${l.id
 const runAgent = async () => {
   agent.error = ""
   const queue = letters.value.filter((l) => l.status === "new")
-  if (!queue.length) return
+  if (!queue.length) { agent.done = true; return }
   Object.assign(agent, { running: true, processed: 0, total: queue.length })
   try {
     while (true) {
@@ -62,7 +63,7 @@ const runAgent = async () => {
     }
   } catch (e) {
     if (e.message !== "401") agent.error = "دستیار در حال حاضر پاسخ نمی‌دهد. چند لحظه بعد دوباره امتحان کنید."
-  } finally { agent.running = false; agent.current = "" }
+  } finally { agent.running = false; agent.current = ""; agent.done = true }
 }
 const openLetter = (l) => { open.value = l; reply.value = l.reply || "" }
 const approve = async () => { await api(`/staff/letters/${open.value.id}/approve`, { reply: reply.value }); open.value = null; await load() }
@@ -83,14 +84,14 @@ onUnmounted(() => lockScroll(false))
 </script>
 
 <template>
-  <AppLayout :chat="DOCS_CHAT" title="پنل اداری" subtitle="صندوق نامه‌های اداری" :nav="nav" v-model="view">
+  <AppLayout :chat="DOCS_CHAT" title="پنل اداری" subtitle="صندوق نامه‌های اداری" :nav="nav" v-model="view" :tour="{ ...STAFF, ready: agent.done }">
     <div class="flex flex-col gap-6">
       <section v-reveal class="row-between">
         <div><h2>روز بخیر</h2><p class="muted">دستیار نامه‌ها را می‌خواند، دسته‌بندی می‌کند و متن پاسخ را می‌نویسد. تصمیم با شماست.</p></div>
-        <button class="btn primary" @click="compose.open = true" :disabled="agent.running"><Icon name="plus" :size="18" />ثبت نامه جدید</button>
+        <button class="btn primary" data-tour="s-new" @click="compose.open = true" :disabled="agent.running"><Icon name="plus" :size="18" />ثبت نامه جدید</button>
       </section>
 
-      <div class="grid grid-cols-2 xl:grid-cols-4 gap-6">
+      <div class="grid grid-cols-2 xl:grid-cols-4 gap-6" data-tour="s-stats">
         <Skeleton v-if="!loaded" kind="stat" :count="4" />
         <div v-else v-for="s in stats" :key="s.label" v-reveal class="card stat" :style="{ '--c': 'var(--' + s.tone + ')' }">
           <div class="stat-top"><span :class="['tint', 't-' + s.tone]"><Icon :name="s.icon" :size="22" /></span><div class="stat-num"><CountUp :value="s.value" /></div></div>
@@ -98,7 +99,7 @@ onUnmounted(() => lockScroll(false))
         </div>
       </div>
 
-      <section v-reveal class="card agent" :class="{ running: agent.running }">
+      <section v-reveal class="card agent" :class="{ running: agent.running }" data-tour="s-agent">
         <div class="agent-row">
           <AiOrb :size="64" :busy="agent.running" />
           <div class="agent-text">
@@ -117,7 +118,7 @@ onUnmounted(() => lockScroll(false))
         <AgentProgress v-if="agent.running" :processed="agent.processed" :total="agent.total" />
       </section>
 
-      <nav v-reveal class="tabs">
+      <nav v-reveal class="tabs" data-tour="s-tabs">
         <button v-for="t in TABS" :key="t.key" :class="{ on: tab === t.key }" @click="tab = t.key">
           <Icon :name="t.icon" :size="18" />{{ t.label }}<span v-if="t.match" class="tab-count">{{ fa(count(t.match)) }}</span>
         </button>
@@ -126,7 +127,7 @@ onUnmounted(() => lockScroll(false))
       <section v-if="tab !== 'log'" class="letters">
         <Skeleton v-if="!loaded" kind="letter" :count="3" />
         <div v-else-if="!shown.length" class="card empty-state"><span class="tint lg t-success"><Icon name="check" :size="24" /></span><p>موردی نیست.</p></div>
-        <article v-for="l in shown" :key="l.id" v-reveal :class="['letter-card', 'card', 'st-' + l.status, { fresh: fresh.has(l.id) }]">
+        <article v-for="l in shown" :key="l.id" v-reveal :class="['letter-card', 'card', 'st-' + l.status, { fresh: fresh.has(l.id) }]" data-tour="s-letter">
           <div class="lc-top">
             <b>{{ fa(l.subject) }}</b>
             <span v-if="l.deadline_short && l.status !== 'done'" :class="['chip', { hot: l.days_left <= 3 }]">مهلت {{ fa(l.deadline_short) }}</span>
@@ -149,8 +150,8 @@ onUnmounted(() => lockScroll(false))
             <button v-if="l.status === 'todo'" class="btn success sm" @click="complete(l)"><Icon name="check" :size="16" />انجام شد</button>
             <button v-if="l.reply && l.status === 'done'" class="btn ghost sm" @click="openLetter(l)">مشاهده پاسخ</button>
             <button v-if="!l.reply" class="btn ghost sm" @click="openLetter(l)">متن نامه</button>
-            <button v-if="!['new', 'processing'].includes(l.status)" class="btn sm" @click="referring = l"><Icon name="forward" :size="16" />فرستادن به دیگران</button>
-            <select v-if="l.category" class="cat-select" :value="l.category" @change="changeCategory(l, $event.target.value)" title="اصلاح دسته" aria-label="اصلاح دسته نامه">
+            <button v-if="!['new', 'processing'].includes(l.status)" class="btn sm" data-tour="s-refer" @click="referring = l"><Icon name="forward" :size="16" />فرستادن به دیگران</button>
+            <select v-if="l.category" class="cat-select" data-tour="s-cat" :value="l.category" @change="changeCategory(l, $event.target.value)" title="اصلاح دسته" aria-label="اصلاح دسته نامه">
               <option v-for="[k, v] in CATEGORY_OPTIONS" :key="k" :value="k">دسته: {{ v }}</option>
             </select>
           </div>

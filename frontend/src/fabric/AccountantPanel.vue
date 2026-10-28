@@ -3,6 +3,7 @@
 import { ref, computed, watch } from "vue"
 import { api, fa } from "../lib/api.js"
 import { brand, money } from "./lib.js"
+import { FABRIC_ACCOUNTANT } from "../lib/tours.js"
 import AppLayout from "../components/AppLayout.vue"
 import Avatar from "../components/Avatar.vue"
 import Icon from "../components/Icon.vue"
@@ -31,7 +32,7 @@ watch(view, (v) => { if (v === "customers" && !list.value) load() })
 </script>
 
 <template>
-  <AppLayout app="fabric" :brand="brand()" :chat="CHAT.accountant" :title="TITLES[view]" subtitle="چک‌ها، طلب‌ها و یادآوری" :nav="nav" v-model="view">
+  <AppLayout app="fabric" :brand="brand()" :chat="CHAT.accountant" :title="TITLES[view]" subtitle="چک‌ها، طلب‌ها و یادآوری" :nav="nav" v-model="view" :tour="{ ...FABRIC_ACCOUNTANT, ready: view === 'money' }">
     <ExcelFiles v-if="view === 'files'" />
     <ReconcileView v-else-if="view === 'check'" />
     <ReportView v-else-if="view === 'report'" />

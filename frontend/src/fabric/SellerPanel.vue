@@ -2,6 +2,7 @@
 // The seller's panel: the phone desk first, then the website's orders, the website itself, stock and files.
 import { ref, computed } from "vue"
 import { brand } from "./lib.js"
+import { FABRIC_SELLER } from "../lib/tours.js"
 import AppLayout from "../components/AppLayout.vue"
 import OrderDesk from "./OrderDesk.vue"
 import StockView from "./StockView.vue"
@@ -25,7 +26,7 @@ const TITLES = { desk: "میز تلفن", orders: "سفارش‌های سایت"
 </script>
 
 <template>
-  <AppLayout app="fabric" :brand="brand()" :chat="CHAT.seller" :title="TITLES[view]" subtitle="سفارش تلفنی، فاکتور و موجودی" :nav="nav" v-model="view">
+  <AppLayout app="fabric" :brand="brand()" :chat="CHAT.seller" :title="TITLES[view]" subtitle="سفارش تلفنی، فاکتور و موجودی" :nav="nav" v-model="view" :tour="{ ...FABRIC_SELLER, ready: view === 'desk' }">
     <StockView v-if="view === 'stock'" />
     <WebOrders v-else-if="view === 'orders'" @shop="view = 'shop'" />
     <ShopView v-else-if="view === 'shop'" @orders="view = 'orders'" />

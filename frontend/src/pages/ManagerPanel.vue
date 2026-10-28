@@ -4,6 +4,7 @@ import { ref, reactive, computed, watch, onMounted, onUnmounted } from "vue"
 import { api, fa, session, lockScroll } from "../lib/api.js"
 import { DOCS_CHAT } from "../lib/constants.js"
 import { toast, busy, idle } from "../lib/notify.js"
+import { MANAGER, MANAGER_LETTERS } from "../lib/tours.js"
 import AppLayout from "../components/AppLayout.vue"
 import BarChart from "../components/BarChart.vue"
 import RadialGauge from "../components/RadialGauge.vue"
@@ -23,6 +24,9 @@ const ALERT_LOOK = {
   letter_deadline: { icon: "calendar", tone: "warning" },
 }
 const user = computed(() => session.user)
+// the first-visit guide: the dashboard's once its numbers are in, the letters page's once the assistant has read them
+const lettersReady = ref(false)
+const tour = computed(() => view.value === "letters" ? { ...MANAGER_LETTERS, ready: lettersReady.value } : { ...MANAGER, ready: !!data.value })
 const data = ref(null), brief = ref(""), view = ref("home"), focusLetter = ref(null)
 const drawer = ref(null)   // "attendance" or "lates" while one of the detail drawers is open
 const draft = reactive({ open: false, alert: null, text: "", loading: false, saving: false, verified: null, missing: [] })
@@ -95,11 +99,11 @@ watch(view, (v) => { if (v !== "letters") focusLetter.value = null })
 </script>
 
 <template>
-  <AppLayout :chat="DOCS_CHAT" :title="view === 'letters' ? 'نامه‌ها' : 'داشبورد مدیر'" :subtitle="data ? fa(data.today) : ''" :nav="nav" v-model="view">
-    <ManagerLetters v-if="view === 'letters'" :focus="focusLetter" @changed="load" />
+  <AppLayout :chat="DOCS_CHAT" :title="view === 'letters' ? 'نامه‌ها' : 'داشبورد مدیر'" :subtitle="data ? fa(data.today) : ''" :nav="nav" v-model="view" :tour="tour">
+    <ManagerLetters v-if="view === 'letters'" :focus="focusLetter" @changed="load" @ready="lettersReady = true" />
     <div v-else class="flex flex-col gap-6">
       <div class="grid grid-cols-12 gap-6">
-        <section v-reveal class="card welcome brief col-span-12 xl:col-span-8">
+        <section v-reveal class="card welcome brief col-span-12 xl:col-span-8" data-tour="m-brief">
           <div class="welcome-text">
             <h2>روز بخیر، {{ user.full_name }}</h2>
             <div class="flex items-center gap-2 text-primary font-bold text-sm"><Icon name="sparkles" :size="18" /> خلاصه امروز به قلم دستیار</div>
@@ -108,7 +112,7 @@ watch(view, (v) => { if (v !== "letters") focusLetter.value = null })
           </div>
           <div class="welcome-art"><AiOrb :size="150" :busy="!brief" /></div>
         </section>
-        <section v-reveal class="card col-span-12 xl:col-span-4 flex flex-col">
+        <section v-reveal class="card col-span-12 xl:col-span-4 flex flex-col" data-tour="m-attendance">
           <div class="card-head"><span class="grow">حضور امروز <small>دانش‌آموزان</small></span>
             <button class="btn ghost sm" @click="drawer = 'attendance'">جزئیات</button></div>
           <template v-if="data">
@@ -123,7 +127,7 @@ watch(view, (v) => { if (v !== "letters") focusLetter.value = null })
         </section>
       </div>
 
-      <div class="grid grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-6">
+      <div class="grid grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-6" data-tour="m-stats">
         <Skeleton v-if="!data" kind="stat" :count="4" />
         <component v-else :is="s.go ? 'button' : 'div'" v-for="s in stats" :key="s.label" v-reveal class="card stat" :style="{ '--c': 'var(--' + s.tone + ')' }" @click="openStat(s.go)">
           <div class="stat-top"><span :class="['tint', 'lg', 't-' + s.tone]"><Icon :name="s.icon" :size="24" /></span>
@@ -133,7 +137,7 @@ watch(view, (v) => { if (v !== "letters") focusLetter.value = null })
       </div>
 
       <div class="grid grid-cols-12 gap-6">
-        <section v-reveal class="card col-span-12 2xl:col-span-6">
+        <section v-reveal class="card col-span-12 2xl:col-span-6" data-tour="m-alerts">
           <div class="card-head">نیاز به توجه شما <span v-if="data" class="count">{{ fa(open) }}</span></div>
           <Skeleton v-if="!data" kind="row" :count="4" />
           <p v-else-if="!data.alerts.length" class="muted">موردی نیست.</p>
@@ -152,7 +156,7 @@ watch(view, (v) => { if (v !== "letters") focusLetter.value = null })
           </ul>
         </section>
 
-        <section v-reveal class="card col-span-12 2xl:col-span-6 flex flex-col">
+        <section v-reveal class="card col-span-12 2xl:col-span-6 flex flex-col" data-tour="m-trend">
           <div class="card-head"><span class="grow">درصد حضور دانش‌آموزان در ده روز اخیر</span>
             <span class="legend-dot" style="--c: var(--primary)">۹۵٪ و بیشتر</span><span class="legend-dot" style="--c: var(--warning)">کمتر از ۹۵٪</span></div>
           <BarChart v-if="data" :points="data.trend" />

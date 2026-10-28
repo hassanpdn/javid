@@ -68,7 +68,7 @@ const confirm = async () => {
 <template>
   <div class="desk">
     <div class="desk-side">
-      <section class="card desk-find">
+      <section class="card desk-find" data-tour="fd-find">
         <div class="card-head"><Icon name="message" :size="18" />چه کسی زنگ زده؟</div>
         <div class="desk-search">
           <Icon name="search" :size="18" />
@@ -87,7 +87,7 @@ const confirm = async () => {
       <div v-if="cid" class="desk-card"><CustomerCard ref="cardRef" :id="cid" compact /></div>
     </div>
 
-    <div class="desk-main">
+    <div class="desk-main" data-tour="fd-main">
       <section v-if="!cid" class="card desk-empty">
         <Icon name="message" :size="40" />
         <b>منتظر تماس</b>

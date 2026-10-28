@@ -36,7 +36,7 @@ const send = async () => {
   <div class="flex flex-col gap-6">
     <template v-if="!d"><div class="card"><Skeleton :lines="4" /></div><div class="card"><Skeleton kind="row" :count="4" /></div></template>
     <template v-else>
-      <section v-reveal :class="['card', 'fm-week', { short }]">
+      <section v-reveal :class="['card', 'fm-week', { short }]" data-tour="fm-week">
         <div class="card-head"><span class="grow">چک‌های {{ fa(d.week.days) }} روز آینده</span>
           <span :class="['tag', short ? 'st-bad' : 'st-done']">{{ short ? 'کسری ' + money(-d.week.left) : 'پول کافی است' }}</span></div>
         <div class="fm-flow">
@@ -66,7 +66,7 @@ const send = async () => {
         </div>
       </section>
 
-      <section v-if="d.bounced.length" v-reveal class="card">
+      <section v-if="d.bounced.length" v-reveal class="card" data-tour="fm-bounced">
         <div class="card-head">چک‌های برگشتی <span class="count">{{ fa(d.bounced.length) }}</span></div>
         <ul class="alerts">
           <li v-for="q in d.bounced" :key="q.id" class="alert">
@@ -78,7 +78,7 @@ const send = async () => {
         </ul>
       </section>
 
-      <section v-reveal class="card">
+      <section v-reveal class="card" data-tour="fm-debtors">
         <div class="card-head">بیشترین طلب‌ها</div>
         <ul class="fm-debtors">
           <li v-for="r in d.debtors" :key="r.id">

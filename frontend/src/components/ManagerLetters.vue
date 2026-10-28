@@ -10,7 +10,7 @@ import AiOrb from "./AiOrb.vue"
 import AgentProgress from "./AgentProgress.vue"
 
 const props = defineProps({ focus: { default: null } })   // id of a letter to open right away (from a dashboard alert)
-const emit = defineEmits(["changed"])
+const emit = defineEmits(["changed", "ready"])   // ready: the assistant has finished, the page is complete (its guide may start)
 // the office's statuses, worded for the manager ("waiting for you" in the office panel means the office)
 const OFFICE_STATUS = { new: "هنوز خوانده نشده", processing: "دستیار در حال خواندن", awaiting_approval: "پاسخ آماده است، دفتر باید تأیید کند", todo: "دفتر در حال انجام کار" }
 const data = ref(null), open = ref(null), note = ref(""), saving = ref(false)
@@ -69,7 +69,8 @@ onMounted(async () => {
   await load()
   const d = data.value, l = props.focus && [...d.decide, ...d.info, ...d.office].find((x) => x.id === props.focus)
   if (l) show(l)
-  runAgent()
+  await runAgent()
+  emit("ready")
 })
 onUnmounted(() => { lockScroll(false); idle("agent") })
 </script>
@@ -94,7 +95,7 @@ onUnmounted(() => { lockScroll(false); idle("agent") })
 
     <div v-if="!data" class="letters"><Skeleton kind="letter" :count="2" /></div>
     <template v-else>
-      <section class="letters">
+      <section class="letters" data-tour="ml-decide">
         <h3 class="group-head">منتظر تصمیم شما <span v-if="data.decide.length" class="count">{{ fa(data.decide.length) }}</span></h3>
         <p v-if="!data.decide.length && !agent.running" class="muted small">نامه‌ای منتظر تصمیم شما نیست.</p>
         <article v-for="l in data.decide" :key="l.id" v-reveal :class="['letter-card', 'card', 'st-needs_manager', { fresh: fresh.has(l.id) }]">
@@ -111,7 +112,7 @@ onUnmounted(() => { lockScroll(false); idle("agent") })
         <Skeleton v-if="agent.running" kind="letter" />
       </section>
 
-      <section class="letters">
+      <section class="letters" data-tour="ml-info">
         <h3 class="group-head">برای اطلاع شما</h3>
         <p v-if="!data.info.length && !agent.running" class="muted small">نامه‌ای برای اطلاع شما نیامده.</p>
         <article v-for="l in data.info" :key="l.id" v-reveal :class="['letter-card', 'card', 'st-' + l.status, { fresh: fresh.has(l.id) }]">
@@ -130,7 +131,7 @@ onUnmounted(() => { lockScroll(false); idle("agent") })
         <Skeleton v-if="agent.running" kind="letter" />
       </section>
 
-      <section v-reveal class="card">
+      <section v-reveal class="card" data-tour="ml-office">
         <div class="card-head">در حال پیگیری در دفتر <small>دفتر مدرسه این نامه‌ها را پیگیری می‌کند. اینجا فقط وضعیتشان را می‌بینید.</small></div>
         <p v-if="queued && !agent.running" class="muted small">{{ fa(queued) }} نامه هنوز خوانده نشده است.</p>
         <p v-if="!data.office.length" class="muted small">دفتر نامه بازی ندارد.</p>

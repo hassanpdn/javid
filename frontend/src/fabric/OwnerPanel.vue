@@ -6,6 +6,7 @@ import { ref, computed, onMounted, onUnmounted } from "vue"
 import { api, fa, fabricSession } from "../lib/api.js"
 import { busy, idle } from "../lib/notify.js"
 import { brand, money } from "./lib.js"
+import { FABRIC_OWNER } from "../lib/tours.js"
 import AppLayout from "../components/AppLayout.vue"
 import Icon from "../components/Icon.vue"
 import Skeleton from "../components/Skeleton.vue"
@@ -72,7 +73,7 @@ onUnmounted(() => idle("brief"))
 </script>
 
 <template>
-  <AppLayout app="fabric" :brand="brand()" :chat="CHAT.owner" :title="TITLES[view]" :subtitle="d ? fa(d.today) : ''" :nav="nav" v-model="view">
+  <AppLayout app="fabric" :brand="brand()" :chat="CHAT.owner" :title="TITLES[view]" :subtitle="d ? fa(d.today) : ''" :nav="nav" v-model="view" :tour="{ ...FABRIC_OWNER, ready: !!d && view === 'home' }">
     <ReconcileView v-if="view === 'check'" events />
     <WebOrders v-else-if="view === 'orders'" @shop="view = 'shop'" />
     <ShopView v-else-if="view === 'shop'" @orders="view = 'orders'" />
@@ -81,7 +82,7 @@ onUnmounted(() => idle("brief"))
     <StockView v-else-if="view === 'stock'" :focus="stockFilter" />
     <ExcelFiles v-else-if="view === 'files'" />
     <div v-else class="flex flex-col gap-6">
-      <section v-reveal class="card welcome brief">
+      <section v-reveal class="card welcome brief" data-tour="fo-brief">
         <div class="welcome-text">
           <h2>روز بخیر، {{ fabricSession.user.full_name }}</h2>
           <div class="flex items-center gap-2 text-primary font-bold text-sm"><Icon name="sparkles" :size="18" /> خلاصه‌ی امروز به قلم دستیار</div>
@@ -91,10 +92,10 @@ onUnmounted(() => idle("brief"))
         <div class="welcome-art"><AiOrb :size="150" :busy="!brief" /></div>
       </section>
 
-      <FilesGlance v-if="d" v-reveal :glance="d.glance" :pulse="pulse" @details="view = 'check'" />
+      <FilesGlance v-if="d" data-tour="fo-glance" v-reveal :glance="d.glance" :pulse="pulse" @details="view = 'check'" />
       <div v-else class="card"><Skeleton :lines="4" /></div>
 
-      <div class="grid grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-6">
+      <div class="grid grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-6" data-tour="fo-stats">
         <Skeleton v-if="!d" kind="stat" :count="4" />
         <div v-else v-for="s in stats" :key="s.label" v-reveal class="card stat stat-how" :style="{ '--c': 'var(--' + s.tone + ')' }">
           <div class="stat-top"><span :class="['tint', 'lg', 't-' + s.tone]"><Icon :name="s.icon" :size="24" /></span><span class="grow"></span><HowTip :lines="s.how" /></div>
@@ -103,7 +104,7 @@ onUnmounted(() => idle("brief"))
       </div>
 
       <div class="grid grid-cols-12 gap-6">
-        <section v-reveal class="card col-span-12 xl:col-span-7">
+        <section v-reveal class="card col-span-12 xl:col-span-7" data-tour="fo-alerts">
           <div class="card-head">کارهای امروز <span v-if="d" class="count">{{ fa(d.alerts.length) }}</span></div>
           <Skeleton v-if="!d" kind="row" :count="5" />
           <ul v-else class="alerts">
@@ -115,7 +116,7 @@ onUnmounted(() => idle("brief"))
           </ul>
         </section>
         <div class="col-span-12 xl:col-span-5 flex flex-col gap-6">
-          <EventFeed @changed="changed" />
+          <EventFeed data-tour="fo-feed" @changed="changed" />
           <section v-reveal class="card flex flex-col">
             <div class="card-head"><span class="grow">فروش روزانه <small>میلیون تومان، دو هفته‌ی کاری اخیر</small></span></div>
             <SalesChart v-if="d" :points="d.trend" />

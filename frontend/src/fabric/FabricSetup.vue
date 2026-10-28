@@ -1,6 +1,8 @@
 <script setup>
 // First step of a fabric demo: the shop's name and its three people. «ساخت دمو» makes three Excel files
 // (stock, sales, accounts) with four months of business for these names; the card beside the form shows them being made.
+import { runTour } from "../lib/tour.js"
+import { FABRIC_SETUP } from "../lib/tours.js"
 import { ref, reactive, onMounted, onUnmounted } from "vue"
 import { api, fa } from "../lib/api.js"
 import { gate } from "../lib/gate.js"
@@ -60,7 +62,10 @@ async function build() {
   }
 }
 let ctx
+// the first-visit guide (lib/tours.js); «راهنما» runs it again
+const guide = (force = false) => runTour("fabric-setup", FABRIC_SETUP, { force })
 onMounted(() => {
+  guide()
   if (!motion) return
   ctx = gsap.context(() => {
     gsap.to(".setup-blob.a", { x: 80, y: 40, duration: 9, yoyo: true, repeat: -1, ease: "sine.inOut" })
@@ -75,11 +80,12 @@ onUnmounted(() => ctx?.revert())
   <main class="setup" ref="page">
     <i class="setup-blob a" aria-hidden="true"></i><i class="setup-blob b" aria-hidden="true"></i>
     <div class="setup-layout">
-      <form class="setup-form card" @submit.prevent="build" novalidate>
+      <form class="setup-form card" data-tour="fs-form" @submit.prevent="build" novalidate>
         <div class="setup-top">
           <div><h1>راه‌اندازی دمو برای پارچه‌فروشی</h1>
             <p class="muted small">یک عمده‌فروشی پارچه در تهران با مشتری از سراسر کشور. سه فایل اکسل انبار، فروش و حسابداری با همین نام‌ها ساخته می‌شود.</p></div>
           <span class="flex flex-col items-end gap-1">
+            <button type="button" class="link small" data-tour="fs-help" @click="guide(true)">راهنما</button>
             <button v-if="gate.hub" type="button" class="link small" @click="gate.app = ''">همه‌ی دستیارها</button>
             <button v-if="shop.set_up" type="button" class="link small" @click="shop.setupOpen = false">بازگشت به ورود</button>
           </span>
@@ -103,12 +109,12 @@ onUnmounted(() => ctx?.revert())
         </div>
         <div class="quick">
           <span class="small muted">یا با یک کلیک:</span>
-          <button type="button" class="chip-btn" @click="useDefault"><Icon name="refresh" :size="14" />تنظیمات پیش‌فرض</button>
+          <button type="button" class="chip-btn" data-tour="fs-default" @click="useDefault"><Icon name="refresh" :size="14" />تنظیمات پیش‌فرض</button>
         </div>
         <p v-if="shop.set_up" class="check bad small">داده‌ها و فایل‌های فعلی پاک و از نو ساخته می‌شوند و همه از حساب خارج می‌شوند.</p>
         <p v-if="error" class="error-text">{{ error }}</p>
         <div class="step-actions"><span class="grow"></span>
-          <button class="btn primary" type="submit" :disabled="!!building"><Icon name="sparkles" :size="18" />ساخت دمو</button></div>
+          <button class="btn primary" type="submit" data-tour="fs-go" :disabled="!!building"><Icon name="sparkles" :size="18" />ساخت دمو</button></div>
       </form>
 
       <aside class="setup-aside">

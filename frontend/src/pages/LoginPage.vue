@@ -1,5 +1,7 @@
 <script setup>
 // Login: an animated illustration on one side, the demo roles on the other
+import { runTour } from "../lib/tour.js"
+import { LOGIN } from "../lib/tours.js"
 import { ref, onMounted, onUnmounted } from "vue"
 import { computed } from "vue"
 import { api, session, store } from "../lib/api.js"
@@ -39,7 +41,10 @@ const login = async (username, password) => {
   } finally { busy.value = false }
 }
 let ctx
+// the first-visit guide (lib/tours.js); «راهنما» runs it again
+const guide = (force = false) => runTour("login", LOGIN, { force })
 onMounted(() => {
+  guide()
   if (!motion) return
   ctx = gsap.context(() => {
     const clear = { clearProps: "opacity,transform" }
@@ -98,7 +103,7 @@ onUnmounted(() => ctx?.revert())
         <h1>به دستیار هوشمند {{ school.name }} خوش آمدید</h1>
         <p class="muted">نسخه آزمایشی. با یکی از نقش‌ها وارد شوید؛ هر نقش پنل و دسترسی‌های خودش را دارد.</p>
         <p v-if="error" class="error-text">{{ error }}</p>
-        <TransitionGroup name="role" tag="div" class="role-list">
+        <TransitionGroup name="role" tag="div" class="role-list" data-tour="login-roles">
           <button v-for="d in demo" :key="d.u" type="button" class="role-card" :style="{ '--c': 'var(--' + d.tone + ')' }"
                   :disabled="busy" @click="login(d.u, '1234')">
             <span :class="['tint', 't-' + d.tone]"><Icon :name="d.icon" :size="20" /></span>
@@ -110,9 +115,10 @@ onUnmounted(() => ctx?.revert())
         </TransitionGroup>
         <p class="auth-note"><Icon name="shield" :size="16" /> همه داده‌های این نسخه ساختگی است.</p>
         <div class="login-tools">
-          <button type="button" class="link switch-school new-demo" @click="setupUi.open = true"><Icon name="school" :size="16" />دموی جدید برای مدرسه دیگر</button>
-          <button v-if="gate.hub" type="button" class="link switch-school" @click="gate.app = ''"><Icon name="dashboard" :size="16" />همه‌ی دستیارها</button>
-          <button type="button" class="link switch-school roles-toggle" :aria-expanded="rolesOpen" @click="rolesOpen = !rolesOpen"><Icon name="users" :size="16" />چه کسانی وارد شوند</button>
+          <button type="button" class="link switch-school new-demo" data-tour="login-new" @click="setupUi.open = true"><Icon name="school" :size="16" />دموی جدید برای مدرسه دیگر</button>
+          <button v-if="gate.hub" type="button" class="link switch-school" data-tour="login-hub" @click="gate.app = ''"><Icon name="dashboard" :size="16" />همه‌ی دستیارها</button>
+          <button type="button" class="link switch-school roles-toggle" data-tour="login-roles-toggle" :aria-expanded="rolesOpen" @click="rolesOpen = !rolesOpen"><Icon name="users" :size="16" />چه کسانی وارد شوند</button>
+          <button type="button" class="link switch-school" data-tour="login-help" @click="guide(true)"><Icon name="info" :size="16" />راهنما</button>
         </div>
         <div v-if="rolesOpen" v-pop:drop class="roles-panel"><FeatureToggles /></div>
       </div>

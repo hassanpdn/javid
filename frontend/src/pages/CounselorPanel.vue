@@ -3,6 +3,7 @@
 import { ref, computed, watch, onMounted, onUnmounted } from "vue"
 import { api, fa, lockScroll } from "../lib/api.js"
 import { groupSignals, DOCS_CHAT } from "../lib/constants.js"
+import { COUNSELOR } from "../lib/tours.js"
 import AppLayout from "../components/AppLayout.vue"
 import StudentProfile from "../components/StudentProfile.vue"
 import Icon from "../components/Icon.vue"
@@ -32,9 +33,9 @@ onUnmounted(() => lockScroll(false))
 </script>
 
 <template>
-  <AppLayout :chat="DOCS_CHAT" title="پنل مشاور" subtitle="دانش‌آموزانی که این روزها به توجه شما نیاز دارند" :nav="nav" v-model="page">
+  <AppLayout :chat="DOCS_CHAT" title="پنل مشاور" subtitle="دانش‌آموزانی که این روزها به توجه شما نیاز دارند" :nav="nav" v-model="page" :tour="{ ...COUNSELOR, ready: loaded }">
     <div class="flex flex-col gap-6">
-      <div class="grid grid-cols-2 xl:grid-cols-4 gap-6">
+      <div class="grid grid-cols-2 xl:grid-cols-4 gap-6" data-tour="c-stats">
         <div v-for="s in stats" :key="s.label" v-reveal class="card stat" :style="{ '--c': 'var(--' + s.tone + ')' }">
           <div class="stat-top"><span :class="['tint', 't-' + s.tone]"><Icon :name="s.icon" :size="22" /></span><div class="stat-num"><CountUp :value="s.value" /></div></div>
           <div><div class="stat-label">{{ s.label }}</div><div class="stat-sub">{{ s.sub }}</div></div>
@@ -43,7 +44,7 @@ onUnmounted(() => lockScroll(false))
 
       <section v-reveal class="card p-0 overflow-hidden">
         <div class="toolbar">
-          <div class="segmented">
+          <div class="segmented" data-tour="c-filter">
             <button :class="{ on: view === 'flagged' }" @click="view = 'flagged'">نیاز به توجه <span>{{ fa(flagged.length) }}</span></button>
             <button :class="{ on: view === 'all' }" @click="view = 'all'">همه <span>{{ fa(list.length) }}</span></button>
           </div>
@@ -53,7 +54,7 @@ onUnmounted(() => lockScroll(false))
         <div v-if="!loaded" class="p-6"><Skeleton kind="row" round :count="6" /></div>
         <div v-else-if="!shown.length" class="empty-state"><span class="tint lg t-success"><Icon name="check" :size="24" /></span><p>موردی نیست.</p></div>
         <div v-else class="student-list">
-          <button v-for="s in shown" :key="s.id" v-reveal class="student-row" @click="openId = s.id">
+          <button v-for="s in shown" :key="s.id" v-reveal class="student-row" data-tour="c-student" @click="openId = s.id">
             <Avatar :name="s.name" />
             <span class="sr-main">
               <b>{{ s.name }}</b>

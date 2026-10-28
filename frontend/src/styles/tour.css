@@ -1,0 +1,49 @@
+/* The first-visit guides (lib/tour.js, driver.js): the box takes the site's font, colours and corners, right to left,
+   in light and dark. .pd-tour-dark is for the always-dark assistants page. */
+.driver-popover.pd-tour {
+  --t-bg: var(--panel); --t-ink: var(--ink); --t-text: var(--text); --t-muted: var(--muted); --t-line: var(--line);
+  --t-accent: var(--primary); --t-soft: var(--primary-soft);
+  direction: rtl; text-align: right; font-family: inherit; color: var(--t-text);
+  min-width: 280px; max-width: min(360px, calc(100vw - 24px)); padding: 22px 20px 16px; border-radius: 18px; overflow: hidden;
+  background: var(--t-bg); border: 1px solid var(--t-line); box-shadow: 0 28px 70px -22px rgba(20, 16, 60, .45);
+}
+/* driver.css gives every part of the box its own Latin font; ours instead */
+.driver-popover.pd-tour, .driver-popover.pd-tour * { font-family: Vazirmatn, Tahoma, sans-serif; }
+.driver-popover.pd-tour-dark {
+  --t-bg: #1c1a3f; --t-ink: #fff; --t-text: #d6d3f5; --t-muted: #a9a5d3; --t-line: rgba(255,255,255,.14);
+  --t-accent: #8f85ff; --t-soft: rgba(143,133,255,.22);
+}
+.pd-tour .pd-tour-bar { position: absolute; inset: 0 0 auto 0; height: 4px; background: var(--t-soft); }
+.pd-tour .pd-tour-bar::after { content: ""; position: absolute; inset: 0 0 0 auto; width: var(--p); border-radius: 0 0 0 4px;
+  background: linear-gradient(270deg, var(--t-accent), var(--info, #00bad1)); transition: width .35s ease; }
+.pd-tour .driver-popover-title { font: inherit; font-size: 16.5px; font-weight: 700; line-height: 1.7; color: var(--t-ink); margin: 0 0 6px; padding-left: 28px; }
+.pd-tour .driver-popover-description { font: inherit; font-size: 14px; line-height: 2; color: var(--t-text); margin: 0; }
+.pd-tour .driver-popover-close-btn { right: auto; left: 10px; top: 12px; width: 30px; height: 30px; border-radius: 9px; font-size: 20px; line-height: 1; color: var(--t-muted); }
+.pd-tour .driver-popover-close-btn:hover, .pd-tour .driver-popover-close-btn:focus-visible { color: var(--t-ink); background: var(--t-soft); outline: none; }
+.pd-tour .driver-popover-footer { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 16px; }
+.pd-tour .driver-popover-progress-text { order: 1; font-size: 12.5px; color: var(--t-muted); }
+.pd-tour .pd-tour-skip { order: 2; padding: 4px 2px; border: 0; background: none; cursor: pointer; font: inherit; font-size: 12.5px; color: var(--t-muted); text-decoration: underline; text-underline-offset: 3px; }
+.pd-tour .pd-tour-skip:hover, .pd-tour .pd-tour-skip:focus-visible { color: var(--t-ink); outline: none; }
+/* right to left: «قبلی» on the right, «بعدی» on the left, the way the guide moves */
+.pd-tour .driver-popover-navigation-btns { order: 3; margin-inline-start: auto; display: flex; gap: 8px; flex-grow: 0; }
+.pd-tour .driver-popover-navigation-btns button { font: inherit; font-size: 13.5px; text-shadow: none; padding: 7px 14px; border-radius: 10px; cursor: pointer;
+  color: var(--t-ink); background: transparent; border: 1px solid var(--t-line); transition: background .2s, border-color .2s; }
+.pd-tour .driver-popover-navigation-btns button:hover { background: var(--t-soft); }
+.pd-tour .driver-popover-navigation-btns .driver-popover-next-btn { color: #fff; font-weight: 700; border-color: transparent; background: var(--t-accent); }
+.pd-tour .driver-popover-navigation-btns .driver-popover-next-btn:hover { filter: brightness(1.08); background: var(--t-accent); }
+.pd-tour .driver-popover-navigation-btns button:focus-visible { outline: 3px solid color-mix(in srgb, var(--t-accent) 45%, transparent); outline-offset: 2px; }
+.pd-tour .driver-popover-btn-disabled { opacity: .4; pointer-events: none; }
+/* while a guide runs, a lit part is scrolled clear of the fixed top bar (and the bottom tab bar on phones) */
+html:has(body.driver-active) { scroll-padding-top: 96px; scroll-padding-bottom: 96px; }
+
+/* the arrow is drawn with borders in the box's own colour */
+.pd-tour .driver-popover-arrow { border-width: 7px; }
+.pd-tour .driver-popover-arrow-side-left { border-left-color: var(--t-bg); }
+.pd-tour .driver-popover-arrow-side-right { border-right-color: var(--t-bg); }
+.pd-tour .driver-popover-arrow-side-top { border-top-color: var(--t-bg); }
+.pd-tour .driver-popover-arrow-side-bottom { border-bottom-color: var(--t-bg); }
+/* phones: the box sits clear of the lit part and fills the width */
+@media (max-width: 767px) {
+  .driver-popover.pd-tour { min-width: 0; width: calc(100vw - 24px); padding: 20px 16px 14px; }
+}
+@media (prefers-reduced-motion: reduce) { .pd-tour .pd-tour-bar::after { transition: none; } }
