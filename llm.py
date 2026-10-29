@@ -1,6 +1,8 @@
 import os, re, json
+from contextvars import ContextVar
 from openai import OpenAI
 from dotenv import load_dotenv
+import access
 
 load_dotenv()
 client = OpenAI(base_url=os.getenv("LLM_BASE_URL"), api_key=os.getenv("LLM_API_KEY"))
@@ -10,7 +12,19 @@ EXTRA = json.loads(os.getenv("LLM_EXTRA") or "{}")
 # "/no_think" is how a local Qwen3 (Ollama) is told not to think first; a hosted API uses LLM_EXTRA instead
 NO_THINK = "" if os.getenv("LLM_NO_THINK") == "0" else "\n/no_think"
 
+# Which assistant the current request belongs to («school», «fabric»). app.py sets it for every API call, because the
+# AI switch is per assistant (access.ai_on).
+assistant = ContextVar("assistant", default="school")
+
+class ModelOff(Exception):
+    """The AI of this assistant is switched off: the caller answers with text built by code (offline.py)."""
+
+def ai_on():
+    return access.ai_on(assistant.get())
+
 def ask_llm(system, user, max_tokens=500, temperature=0.2):
+    if not ai_on():
+        raise ModelOff()
     r = client.chat.completions.create(
         model=MODEL, temperature=temperature, max_tokens=max_tokens,
         messages=[{"role": "system", "content": system + NO_THINK},

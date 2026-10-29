@@ -6,6 +6,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from common import normalize, embed, collection
+import llm, offline
 from llm import ask_llm
 from auth import get_token, current_user
 import db
@@ -52,6 +53,7 @@ async def site_gate(request: Request, call_next):
     need = access.app_for(path)
     if not access.allows(request, need):
         return JSONResponse({"detail": "access", "app": need}, status_code=401)
+    llm.assistant.set(need)   # the AI switch is per assistant (llm.ai_on)
     return await call_next(request)
 
 @app.middleware("http")
@@ -216,6 +218,8 @@ def chat(req: ChatRequest, user: dict = Depends(current_user)):
 def answer_question(q, role):
     if len(q.replace("؟", "").split()) < 2:
         return {"answer": UNCLEAR, "sources": []}
+    if not llm.ai_on():
+        return answer_offline(q, role)
     formal = rewrite(q)
     if formal is None:
         return {"answer": UNCLEAR, "sources": []}
@@ -232,6 +236,18 @@ def answer_question(q, role):
         "top_score": top_score,
         "sources": [{"doc": h["short"], "article": h["article"], "score": round(h["score"], 2)} for h in shown],
     }
+
+def answer_offline(q, role):
+    """AI switched off (access.ai_on): the article that shares the most words with the question, quoted from the
+    documents themselves. No model and no embedding: the articles are read from the vector store as stored text."""
+    got = collection().get(where={f"access_{role}": True}, include=["documents", "metadatas"])
+    chunks = [{"text": doc, "article": m["article"], "short": m.get("short", m["title"])}
+              for doc, m in zip(got["documents"], got["metadatas"])]
+    hit = offline.best_article(q, chunks)
+    if not hit:
+        return {"answer": NOT_FOUND, "sources": [], "rewritten": q, "top_score": 0}
+    return {"answer": offline.answer_from(hit), "rewritten": q, "top_score": hit["score"],
+            "sources": [{"doc": hit["short"], "article": hit["article"], "score": hit["score"]}]}
 
 app.include_router(manager.router)
 app.include_router(notifications.router)

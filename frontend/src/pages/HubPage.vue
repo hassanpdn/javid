@@ -3,7 +3,7 @@
 // (its setup form, then its own login and panels). A new assistant is one more entry in ASSISTANTS.
 import { ref, computed, watch, onMounted, defineAsyncComponent } from "vue"
 import { leaveGate } from "../lib/gate.js"
-import { access, canOpen, forgetAccess, jalaliText } from "../lib/access.js"
+import { access, canOpen, forgetAccess, jalaliText, setAi } from "../lib/access.js"
 import AuroraBg from "../components/AuroraBg.vue"
 import Icon from "../components/Icon.vue"
 import BrandMark from "../components/core/BrandMark.vue"
@@ -42,6 +42,15 @@ watch(() => access.ask, (key) => {
 }, { immediate: true })
 const leave = () => { forgetAccess(); leaveGate() }
 
+// the permanent account's AI switch under each card (nobody else sees it)
+const switching = ref("")
+async function flipAi(a) {
+  switching.value = a.key; notice.value = ""
+  try { await setAi(a.key, !access.ai[a.key]) }
+  catch (e) { notice.value = e.message }
+  finally { switching.value = "" }
+}
+
 // the light on the card follows the pointer, and the card leans a little toward it
 const move = (e) => {
   const el = e.currentTarget, r = el.getBoundingClientRect()
@@ -78,7 +87,8 @@ const unlean = (e) => { e.currentTarget.style.setProperty("--rx", "0deg"); e.cur
     </section>
 
     <section v-else class="h-grid">
-      <button v-for="(a, i) in visible" :key="a.key" :class="['h-card', 'hue-' + a.hue]" :style="{ '--i': i }"
+      <div v-for="(a, i) in visible" :key="a.key" class="h-slot" :style="{ '--i': i }">
+      <button :class="['h-card', 'hue-' + a.hue]"
               @pointermove="move" @pointerleave="unlean" @click="emit('open', a.key)">
         <span class="h-glow" aria-hidden="true"></span>
         <span class="h-art" aria-hidden="true">
@@ -93,6 +103,14 @@ const unlean = (e) => { e.currentTarget.style.setProperty("--rx", "0deg"); e.cur
           <span class="h-go">ورود به دستیار<Icon name="arrowLeft" :size="18" /></span>
         </span>
       </button>
+      <button v-if="access.admin" type="button" role="switch" :aria-checked="!!access.ai[a.key]"
+              :class="['h-ai', { on: access.ai[a.key] }]" :disabled="switching === a.key" @click="flipAi(a)">
+        <Icon name="sparkles" :size="17" />
+        <span class="h-ai-text"><b>هوش مصنوعی {{ access.ai[a.key] ? 'روشن' : 'خاموش' }}</b>
+          <small>{{ access.ai[a.key] ? 'متن‌ها را مدل می‌نویسد' : 'بدون درخواست به مدل؛ متن‌ها را کد می‌نویسد' }}</small></span>
+        <span class="h-ai-switch" aria-hidden="true"><i></i></span>
+      </button>
+      </div>
     </section>
 
     <AccessManager v-if="access.admin" :assistants="ASSISTANTS" />
@@ -138,7 +156,22 @@ h1 span { background: linear-gradient(90deg, #a99fff, #5fe3f3 60%, #ff9fc6); -we
 .h-grid { width: min(100%, 1120px); display: grid; gap: 24px; justify-content: center;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 400px)); margin-top: 8px; perspective: 1200px; }
 
-/* one assistant */
+/* one assistant, and under it the permanent account's AI switch */
+.h-slot { display: flex; flex-direction: column; gap: 12px; }
+.h-ai { display: flex; align-items: center; gap: 12px; width: 100%; padding: 12px 16px; border-radius: 18px; cursor: pointer; text-align: right;
+  font: inherit; color: #d9d5ff; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.14); transition: background .2s, border-color .2s;
+  animation: h-up 1s cubic-bezier(.2,.9,.25,1) calc(.45s + var(--i) * .12s) backwards; }
+.h-ai:hover { background: rgba(255,255,255,.1); }
+.h-ai:focus-visible { outline: 3px solid #8fefff; outline-offset: 3px; }
+.h-ai:disabled { cursor: wait; }
+.h-ai-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.h-ai-text b { font-size: 14px; color: #fff; }
+.h-ai-text small { font-size: 12px; line-height: 1.8; color: #b7b3d9; }
+.h-ai-switch { flex: none; position: relative; width: 42px; height: 24px; border-radius: 999px; background: rgba(255,255,255,.2); transition: background .25s; }
+.h-ai-switch i { position: absolute; top: 3px; right: 3px; width: 18px; height: 18px; border-radius: 50%; background: #fff; transition: transform .25s; }
+.h-ai.on { border-color: rgba(62,224,143,.4); }
+.h-ai.on .h-ai-switch { background: #1f9d63; }
+.h-ai.on .h-ai-switch i { transform: translateX(-18px); }
 .h-card { --mx: 50%; --my: 0%; --rx: 0deg; --ry: 0deg; --c1: #7367f0; --c2: #00bad1;
   position: relative; display: flex; flex-direction: column; overflow: hidden; padding: 0; text-align: right; cursor: pointer;
   font: inherit; color: inherit; border-radius: 28px; border: 1px solid rgba(255,255,255,.14);

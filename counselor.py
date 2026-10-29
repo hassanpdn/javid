@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
-import db, students, school
+import db, students, school, offline
 from auth import require_role
-from llm import ask_llm, ask_json
+from llm import ask_llm, ask_json, ModelOff
 from manager import today
 from jalali import jstr
 
@@ -54,6 +54,8 @@ def insight(sid: int, user: dict = Depends(counselor_only)):
                     "چه نشانه‌هایی ممکن است به هم ربط داشته باشند. تشخیص پزشکی یا روان‌شناختی نده و از «ممکن است» استفاده کن. "
                     "فقط از اطلاعات داده‌شده استفاده کن.",
                     students.facts_text(f, include_private=True), max_tokens=180)
+            except ModelOff:
+                return {"text": offline.insight(f["signals"])}   # AI switched off: built by code, not kept
             except Exception:
                 raise HTTPException(status_code=503, detail="دستیار در دسترس نیست")
     return {"text": _insights[key]}
@@ -86,6 +88,8 @@ def draft_suggestion(sid: int, user: dict = Depends(counselor_only)):
             "یادداشت‌های مشاور و جزئیات فرم‌ها را عینا نقل نکن.\n"
             "فقط از اطلاعات داده‌شده استفاده کن.",
             students.facts_text(f, include_private=True), max_tokens=450) or {}
+    except ModelOff:
+        r = offline.suggestion(f, school.full_name())   # AI switched off: built by code; the counselor still edits it
     except Exception:
         r = {}
     for_counselor, for_parent = (r.get("for_counselor") or "").strip(), (r.get("for_parent") or "").strip()

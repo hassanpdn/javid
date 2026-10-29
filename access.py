@@ -12,6 +12,11 @@ After a login the browser gets a signed cookie (like gate.py). A person's cookie
 call, so changing their assistants takes effect at once, and deleting them, a new password or their last day passing
 shuts that browser out.
 Accounts live in their own small database (access.db), so resetting or rebuilding the demo data keeps them.
+
+The same database keeps the AI switch of each assistant (ai_on), flipped by the permanent account on the cards. Off,
+no request goes to the model for that assistant; it answers with texts built by code (offline.py) and looks the same,
+so the people with accounts see no switch and no sign of it. A new assistant starts off. With logins off (local runs,
+tests) the AI is always on.
 """
 import os, re, time, hmac, hashlib, secrets, sqlite3
 from datetime import datetime, timedelta, timezone
@@ -38,6 +43,7 @@ def _conn():
         id INTEGER PRIMARY KEY, name TEXT NOT NULL, username TEXT NOT NULL UNIQUE, password_hash TEXT NOT NULL,
         pw_ver INTEGER NOT NULL DEFAULT 1, apps TEXT NOT NULL, expires_on TEXT, expires_at INTEGER,
         created_at INTEGER NOT NULL, last_login INTEGER)""")
+    c.execute("CREATE TABLE IF NOT EXISTS ai (app TEXT PRIMARY KEY, enabled INTEGER NOT NULL)")
     return c
 
 # Passwords are stored salted and stretched (PBKDF2), never as they were typed.
@@ -138,10 +144,21 @@ def now():
     """The time in Tehran now, «14:20», from the server's clock."""
     return datetime.now(TEHRAN).strftime("%H:%M")
 
+def ai_on(app):
+    """Whether this assistant may call the model. Always on without logins; on the live site off until switched on."""
+    if not ON or app not in APPS:
+        return True
+    with _conn() as c:
+        row = c.execute("SELECT enabled FROM ai WHERE app = ?", (app,)).fetchone()
+    return bool(row and row["enabled"])
+
 def _status(cookie):
     h = _holder(cookie) if ON else None
-    return {"on": ON, "today": today(), "now": now(), "admin": bool(h and h["admin"]), "name": h["name"] if h else "",
-            "apps": h["apps"] if h else ([] if ON else list(APPS)), "expires_on": h["expires_on"] if h else None}
+    admin = bool(h and h["admin"])
+    return {"on": ON, "today": today(), "now": now(), "admin": admin, "name": h["name"] if h else "",
+            "apps": h["apps"] if h else ([] if ON else list(APPS)), "expires_on": h["expires_on"] if h else None,
+            # the AI switches only for the permanent account: nobody else may learn whether the AI is on
+            "ai": {a: ai_on(a) for a in APPS} if admin else {}}
 
 class AccessLogin(BaseModel):
     username: str
@@ -265,3 +282,18 @@ def delete_person(gid: int, request: Request):
         if c.execute("DELETE FROM people WHERE id = ?", (gid,)).rowcount != 1:
             raise HTTPException(status_code=404)
     return {"ok": True}
+
+# The AI switch on each card (see the top of this file). Only the permanent account flips it.
+class AiSwitch(BaseModel):
+    app: str
+    on: bool
+
+@router.post("/ai")
+def set_ai(req: AiSwitch, request: Request):
+    _admin(request)
+    if req.app not in APPS:
+        raise HTTPException(status_code=422)
+    with _conn() as c:
+        c.execute("INSERT INTO ai (app, enabled) VALUES (?, ?) ON CONFLICT(app) DO UPDATE SET enabled = excluded.enabled",
+                  (req.app, int(req.on)))
+    return {"ai": {a: ai_on(a) for a in APPS}}

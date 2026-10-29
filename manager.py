@@ -2,9 +2,9 @@ import os
 from datetime import date, timedelta
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
-import db, checks, school, students
+import db, checks, school, students, offline
 from auth import require_role
-from llm import ask_llm
+from llm import ask_llm, ModelOff
 from jalali import jstr, to_jalali, MONTHS
 
 router = APIRouter(prefix="/manager")
@@ -122,12 +122,12 @@ _briefing_cache = {}
 @router.get("/briefing")
 def briefing(user: dict = Depends(manager_only)):
     key = today().isoformat()
-    if key not in _briefing_cache:
-        try:
-            _write_briefing(key)
-        except Exception:
-            raise HTTPException(status_code=503, detail="دستیار در دسترس نیست")
-    return {"text": _briefing_cache[key]}
+    if key in _briefing_cache:
+        return {"text": _briefing_cache[key]}
+    try:
+        return {"text": _write_briefing(key)}
+    except Exception:
+        raise HTTPException(status_code=503, detail="دستیار در دسترس نیست")
 
 def _write_briefing(key):
     """Morning summary for the manager, written by the model from computed facts."""
@@ -141,21 +141,28 @@ def _write_briefing(key):
         f"نامه‌های باز: {d['open_letters']}\n"
         "موارد نیازمند اقدام، به ترتیب اهمیت:\n" + "\n".join(f"{i + 1}. {t}" for i, t in enumerate(actions))
     )
-    text = ask_llm(
-        f"تو دستیار مدیر {school.full_name()} هستی. از روی اطلاعات زیر یک خلاصه صبحگاهی دو یا سه جمله‌ای به فارسی روان بنویس.\n"
-        "قوانین:\n"
-        "- جمله اول درباره مورد شماره ۱ باشد و اسم شخص یا نامه را دقیق بیاورد.\n"
-        "- جمله دوم دو مورد مهم بعدی را با اسم بگوید.\n"
-        "- در پایان وضعیت حضور امروز را با عدد بگو.\n"
-        "- کلی‌گویی نکن. فقط از اسم‌ها و عددهای داده‌شده استفاده کن. سلام ننویس.\n"
-        "مثال لحن: «تأخیرهای خانم الف در یک ماه اخیر به سه بار رسیده و منتظر تصمیم شماست. مهلت نامه ب و پیگیری غیبت‌های ج هم نزدیک است. امروز ۲۸ نفر از ۳۰ دانش‌آموز حاضرند.»",
-        facts, max_tokens=220, temperature=0.2)
+    off = False
+    try:
+        text = ask_llm(
+            f"تو دستیار مدیر {school.full_name()} هستی. از روی اطلاعات زیر یک خلاصه صبحگاهی دو یا سه جمله‌ای به فارسی روان بنویس.\n"
+            "قوانین:\n"
+            "- جمله اول درباره مورد شماره ۱ باشد و اسم شخص یا نامه را دقیق بیاورد.\n"
+            "- جمله دوم دو مورد مهم بعدی را با اسم بگوید.\n"
+            "- در پایان وضعیت حضور امروز را با عدد بگو.\n"
+            "- کلی‌گویی نکن. فقط از اسم‌ها و عددهای داده‌شده استفاده کن. سلام ننویس.\n"
+            "مثال لحن: «تأخیرهای خانم الف در یک ماه اخیر به سه بار رسیده و منتظر تصمیم شماست. مهلت نامه ب و پیگیری غیبت‌های ج هم نزدیک است. امروز ۲۸ نفر از ۳۰ دانش‌آموز حاضرند.»",
+            facts, max_tokens=220, temperature=0.2)
+    except ModelOff:
+        text, off = None, True   # AI switched off: the summary below, built by code
     # every number in the summary must come from the facts; otherwise use a plain summary built by code
-    if not checks.only_known_numbers(text, facts):
+    if not text or not checks.only_known_numbers(text, facts):
         s = d["students"]
         text = ((f"مهم‌ترین مورد امروز: {actions[0]}. " if actions else "امروز مورد فوری‌ای نیست. ")
                 + f"امروز {s['present']} نفر از {s['total']} دانش‌آموز حاضرند و {s['absent']} نفر غایب‌اند.")
-    _briefing_cache[key] = text
+    # kept for the day, except with the AI off, so switching it on shows the model's summary at once
+    if not off:
+        _briefing_cache[key] = text
+    return text
 
 class DraftRequest(BaseModel):
     teacher_id: int
@@ -166,13 +173,16 @@ def draft_warning(req: DraftRequest, user: dict = Depends(manager_only)):
         alert = next((a for a in collect(c)["alerts"] if a.get("teacher_id") == req.teacher_id), None)
     if not alert:
         raise HTTPException(status_code=404, detail="هشداری برای این معلم پیدا نشد")
-    text = ask_llm(
-        "تو دستیار مدیر یک دبستان هستی. یک تذکر کتبی کوتاه، رسمی و محترمانه به فارسی برای یک معلم بنویس. "
-        "ساختار: «همکار گرامی، خانم ...»، بیان تأخیرها با تاریخ و ساعت دقیق، یادآوری اینکه ساعت حضور ۷:۳۰ است، "
-        f"درخواست رعایت در ادامه، و در پایان «{school.signature()}». "
-        "فقط از تاریخ‌ها و ساعت‌های داده‌شده استفاده کن. لحن تهدیدآمیز نباشد.",
-        f"نام معلم: {alert['name']}\nتعداد تأخیر در ۳۰ روز اخیر: {alert['count']}\nتأخیرها: {alert['dates']}",
-        max_tokens=350, temperature=0.3)
+    try:
+        text = ask_llm(
+            "تو دستیار مدیر یک دبستان هستی. یک تذکر کتبی کوتاه، رسمی و محترمانه به فارسی برای یک معلم بنویس. "
+            "ساختار: «همکار گرامی، خانم ...»، بیان تأخیرها با تاریخ و ساعت دقیق، یادآوری اینکه ساعت حضور ۷:۳۰ است، "
+            f"درخواست رعایت در ادامه، و در پایان «{school.signature()}». "
+            "فقط از تاریخ‌ها و ساعت‌های داده‌شده استفاده کن. لحن تهدیدآمیز نباشد.",
+            f"نام معلم: {alert['name']}\nتعداد تأخیر در ۳۰ روز اخیر: {alert['count']}\nتأخیرها: {alert['dates']}",
+            max_tokens=350, temperature=0.3)
+    except ModelOff:
+        text = offline.warning(alert, school.signature())   # AI switched off: the same letter, built by code
     # Check the draft against the database: every late day must appear with its own arrival time
     missing = checks.missing_dated_times(text, alert["facts"])
     return {"text": text, "verified": not missing, "missing": missing}

@@ -2,9 +2,9 @@ import re, threading
 from datetime import date, timedelta
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
-import db, stats, checks, school
+import db, stats, checks, school, offline
 from auth import require_role
-from llm import ask_llm, ask_json
+from llm import ask_llm, ask_json, ModelOff
 from jalali import MONTHS, to_jalali, to_gregorian, jstr
 from manager import today, jdate_short, _briefing_cache
 
@@ -55,11 +55,14 @@ def draft_stats_reply(c, letter):
     data = stats.absence_text(c, month) if ("غیبت" in text and month) else stats.students_text(c)
     example = c.execute("SELECT reply FROM letters WHERE category = 'stats' AND reply IS NOT NULL ORDER BY id DESC LIMIT 1").fetchone()
     fallback = f"با سلام و احترام\nدر پاسخ به نامه شما، {data}\n{school.signature()}"
-    reply = ask_llm(
-        "تو کارمند دفتر یک دبستان هستی. برای نامه زیر یک پاسخ اداری کوتاه بنویس. "
-        "دقیقا همان قالب و لحن «پاسخ قبلی» را رعایت کن و فقط از عددهای «داده‌ها» استفاده کن. هیچ عددی را تغییر نده.",
-        f"نامه: {letter['subject']}\n\nپاسخ قبلی مدرسه به نامه مشابه:\n{example['reply'] if example else fallback}\n\nداده‌ها:\n{data}",
-        max_tokens=300)
+    try:
+        reply = ask_llm(
+            "تو کارمند دفتر یک دبستان هستی. برای نامه زیر یک پاسخ اداری کوتاه بنویس. "
+            "دقیقا همان قالب و لحن «پاسخ قبلی» را رعایت کن و فقط از عددهای «داده‌ها» استفاده کن. هیچ عددی را تغییر نده.",
+            f"نامه: {letter['subject']}\n\nپاسخ قبلی مدرسه به نامه مشابه:\n{example['reply'] if example else fallback}\n\nداده‌ها:\n{data}",
+            max_tokens=300)
+    except ModelOff:   # AI switched off: the template with the database's numbers, told the same way as a passed draft
+        return stats.to_fa(fallback), "پاسخ با قالب پاسخ‌های قبلی و عددهای واقعی پایگاه داده نوشته شد."
     # Safety check: after each grade the draft must have exactly that grade's numbers, and no number
     # that isn't in the data. Otherwise use the plain template with the database numbers.
     if not reply or not checks.grade_lines_match(reply, data) or not checks.only_known_numbers(reply, data):
@@ -93,7 +96,10 @@ def handle(letter):
     if fixed:
         lessons = "\nنمونه‌هایی که کارمند مدرسه دسته‌شان را اصلاح کرده (از این‌ها یاد بگیر):\n" + "\n".join(
             f"- «{f['subject']}: {f['body'][:120]}» ← {f['category']}" for f in fixed)
-    result = ask_json(CLASSIFY + lessons, f"فرستنده: {letter['sender']}\nموضوع: {letter['subject']}\nمتن: {letter['body']}") or {}
+    try:
+        result = ask_json(CLASSIFY + lessons, f"فرستنده: {letter['sender']}\nموضوع: {letter['subject']}\nمتن: {letter['body']}") or {}
+    except ModelOff:
+        result = offline.classify_letter(letter)   # AI switched off: read from the letter's words
     category = result.get("category") if result.get("category") in CATEGORIES else "request"
     # Safety rule: acknowledgements are closed automatically, so only accept "ack" when the letter really asks for it
     if category == "ack" and "وصول" not in letter["body"]:
@@ -321,11 +327,14 @@ def suggest(lid: int, user: dict = Depends(staff_or_manager)):
         groups, people = recipient_options(c)
     choices = groups + [p for p in people if p["kind"] != "parent"]
     menu = "\n".join(f"{p['key']}: {p['label']}" + (f" ({p['sub']})" if p.get("sub") else "") for p in choices)
-    result = ask_json(
-        "تو دستیار دفتر یک دبستان هستی. از فهرست زیر، مناسب‌ترین گیرنده یا گیرنده‌های این نامه را انتخاب کن "
-        "(حداکثر سه مورد). اگر نامه گفته به اولیا اطلاع داده شود، گروه اولیای مناسب را هم انتخاب کن.\n"
-        "کلیدها: keys (فهرستی از کلیدهای دقیق فهرست)، reason (یک جمله کوتاه فارسی).\n\nفهرست:\n" + menu,
-        f"موضوع: {l['subject']}\nمتن: {l['body']}", max_tokens=200) or {}
+    try:
+        result = ask_json(
+            "تو دستیار دفتر یک دبستان هستی. از فهرست زیر، مناسب‌ترین گیرنده یا گیرنده‌های این نامه را انتخاب کن "
+            "(حداکثر سه مورد). اگر نامه گفته به اولیا اطلاع داده شود، گروه اولیای مناسب را هم انتخاب کن.\n"
+            "کلیدها: keys (فهرستی از کلیدهای دقیق فهرست)، reason (یک جمله کوتاه فارسی).\n\nفهرست:\n" + menu,
+            f"موضوع: {l['subject']}\nمتن: {l['body']}", max_tokens=200) or {}
+    except ModelOff:
+        result = offline.recipients(l, choices)   # AI switched off: the groups the letter's words name
     valid = {p["key"] for p in choices}
     keys = [k for k in (result.get("keys") or []) if k in valid][:3]
     return {"keys": keys, "reason": (result.get("reason") or "").strip()}
@@ -335,11 +344,14 @@ def parent_draft(lid: int, user: dict = Depends(staff_or_manager)):
     """Rewrite an official letter as a short, friendly message for parents."""
     with db.conn() as c:
         l = get_letter(c, lid)
-    text = ask_llm(
-        "تو دفتر یک دبستان هستی. این نامه اداری را به یک پیام کوتاه، ساده و مؤدبانه برای اولیای دانش‌آموزان تبدیل کن. "
-        "شماره بخشنامه و اصطلاحات اداری را حذف کن. فقط آنچه برای اولیا مهم است را بگو: چه خبر است، چه کاری از آن‌ها خواسته شده و تا چه زمانی. "
-        f"حداکثر چهار جمله. در پایان بنویس «{school.full_name()}».",
-        f"موضوع: {l['subject']}\nمتن: {l['body']}", max_tokens=250, temperature=0.3)
+    try:
+        text = ask_llm(
+            "تو دفتر یک دبستان هستی. این نامه اداری را به یک پیام کوتاه، ساده و مؤدبانه برای اولیای دانش‌آموزان تبدیل کن. "
+            "شماره بخشنامه و اصطلاحات اداری را حذف کن. فقط آنچه برای اولیا مهم است را بگو: چه خبر است، چه کاری از آن‌ها خواسته شده و تا چه زمانی. "
+            f"حداکثر چهار جمله. در پایان بنویس «{school.full_name()}».",
+            f"موضوع: {l['subject']}\nمتن: {l['body']}", max_tokens=250, temperature=0.3)
+    except ModelOff:
+        text = offline.parent_message(l, school.full_name())   # AI switched off: built from the letter itself
     return {"text": stats.to_fa(text)}
 
 class ReferRequest(BaseModel):

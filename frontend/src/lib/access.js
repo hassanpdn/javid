@@ -7,11 +7,12 @@ import { gate } from "./gate.js"
 // ask: the card whose login box should open (an assistant's call came back 401 "access" while it was open).
 // today, now: the date and time in Tehran from the server's clock («1405/08/05», «14:20»), so a visitor's wrong clock
 // can't move them
-export const access = reactive({ on: false, today: null, now: null, admin: false, name: "", apps: ["school", "fabric"], expires_on: null, ask: "" })
+// ai: the AI switch of each assistant ({school: true, fabric: false}), sent only to the permanent account
+export const access = reactive({ on: false, today: null, now: null, admin: false, name: "", apps: ["school", "fabric"], expires_on: null, ask: "", ai: {} })
 
 export const canOpen = (app) => !access.on || access.apps.includes(app)
 
-const take = (s) => Object.assign(access, { on: s.on === true, today: s.today || access.today, now: s.now || access.now, admin: s.admin === true, name: s.name || "", apps: s.apps || [], expires_on: s.expires_on || null })
+const take = (s) => Object.assign(access, { on: s.on === true, today: s.today || access.today, now: s.now || access.now, admin: s.admin === true, name: s.name || "", apps: s.apps || [], expires_on: s.expires_on || null, ai: s.ai || {} })
 
 export async function checkAccess() {
   try {
@@ -32,7 +33,7 @@ export async function enterAccess(username, password) {
   } catch { return "اتصال برقرار نشد. اینترنت را بررسی کنید." }
 }
 
-export const forgetAccess = () => Object.assign(access, { admin: false, name: "", apps: [], expires_on: null })
+export const forgetAccess = () => Object.assign(access, { admin: false, name: "", apps: [], expires_on: null, ai: {} })
 
 // an assistant's call said this browser may not open it (their last day passed, their access was changed or removed)
 export async function accessDenied(app) {
@@ -46,6 +47,12 @@ export async function accessCall(path, body) {
   const data = await res.json().catch(() => ({}))
   if (!res.ok) throw new Error(typeof data.detail === "string" ? data.detail : "کار انجام نشد. دوباره امتحان کنید.")
   return data
+}
+
+// The permanent account turns an assistant's AI on or off (access.py ai_on). Off, the assistant answers with texts built
+// by code and looks the same. Throws the server's message when it did not work.
+export async function setAi(app, on) {
+  access.ai = (await accessCall("/access/ai", { app, on })).ai
 }
 
 // Jalali dates live in lib/jalali.js; the assistants page takes them from here too
