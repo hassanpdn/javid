@@ -3,7 +3,8 @@
 // a finished step shows solid with a check, the step being filled shows faded, later steps show placeholders.
 // It tilts towards the mouse, and plays the build checklist and the success burst at the end.
 import { ref, computed, onMounted, onUnmounted } from "vue"
-import { gsap, motion } from "../lib/motion.js"
+import gsap from "gsap"
+import { motion } from "../lib/motion.js"
 import Icon from "./Icon.vue"
 
 const props = defineProps({

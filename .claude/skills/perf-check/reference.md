@@ -36,6 +36,12 @@ Learned on this codebase; each line says what to do and why.
   panel's code at the same time as `/login`; `App.vue` asks `/gate/status` and `/access/status` together, `/school`
   and `/me` together, and fetches the setup and login pages while `/school` is on its way.
 - driver.js and its CSS are imported inside `runTour` (`lib/tour.js`), only when a guide is about to run.
+- GSAP is not in the first download (it was 26 KB of the door's 37 KB first file, PageSpeed's "unused JavaScript").
+  `lib/motion.js` loads it a second after the page's load event; its directives show the element without animating
+  until it is there. Components that animate import `gsap` themselves, in the pages' own files. Never import GSAP
+  from anything `main.js` loads.
+- The door (`GatePage.vue`) is all English and uses the system font, so it downloads no font; Vazirmatn (two 50 KB
+  files) loads with the first Persian page.
 - No `<link rel="preload">` for the fonts: on a slow phone connection they took bandwidth from the JavaScript the first
   screen needs. They load with `font-display: swap`.
 - `app.py` serves `static/assets/*` (hashed names) with a one-year immutable cache and everything else with

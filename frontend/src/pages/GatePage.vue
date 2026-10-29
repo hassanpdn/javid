@@ -86,6 +86,9 @@ const fail = (msg) => {
 
 <style scoped>
 .gate {
+  /* the door is all English: the phone's own font instead of Vazirmatn (whose Latin letters are Roboto anyway), so
+     the door downloads no font at all; Vazirmatn comes with the first Persian page */
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --g1: #7367f0; --g2: #00bad1; --g3: #ff6fa8; --g4: #ffb057;
   position: relative; min-height: 100vh; min-height: 100dvh; overflow: hidden; isolation: isolate;
   display: grid; grid-template-columns: minmax(0, 1fr); place-items: center; padding: max(24px, env(safe-area-inset-top)) 16px max(24px, env(safe-area-inset-bottom));

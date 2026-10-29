@@ -3,7 +3,8 @@
 // Every role gets one; the props decide which endpoint, examples and texts it uses.
 import { ref, watch, onMounted, onUnmounted, defineAsyncComponent } from "vue"
 import { chatUi } from "../lib/chat.js"
-import { gsap, motion } from "../lib/motion.js"
+import gsap from "gsap"
+import { motion } from "../lib/motion.js"
 import Icon from "./Icon.vue"
 // shown only when opened, so their code is downloaded only then
 const ChatBox = defineAsyncComponent(() => import("./ChatBox.vue"))

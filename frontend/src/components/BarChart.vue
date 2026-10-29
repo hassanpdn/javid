@@ -3,7 +3,8 @@
 // The chart is drawn at the real pixel size of its box, so it fills the card at any height and the text never shrinks.
 import { ref, computed, onMounted, onBeforeUnmount, nextTick } from "vue"
 import { fa } from "../lib/api.js"
-import { gsap, motion } from "../lib/motion.js"
+import gsap from "gsap"
+import { motion } from "../lib/motion.js"
 
 const props = defineProps(["points"])
 const box = ref(null), svg = ref(null), W = ref(0), H = ref(0)

@@ -2,7 +2,8 @@
 // Small trend line for one subject (levels 1..4)
 import { ref, computed, onMounted } from "vue"
 import { LEVEL_NAMES } from "../lib/constants.js"
-import { gsap, motion } from "../lib/motion.js"
+import gsap from "gsap"
+import { motion } from "../lib/motion.js"
 
 const props = defineProps(["points", "change"])
 // right to left: the oldest point on the right, today on the left

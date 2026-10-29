@@ -3,7 +3,8 @@
 import { ref, onMounted, onUnmounted } from "vue"
 import { api, fa, setFabricSession } from "../lib/api.js"
 import { gate } from "../lib/gate.js"
-import { gsap, motion } from "../lib/motion.js"
+import gsap from "gsap"
+import { motion } from "../lib/motion.js"
 import { shop, ROLES } from "./lib.js"
 import Icon from "../components/Icon.vue"
 

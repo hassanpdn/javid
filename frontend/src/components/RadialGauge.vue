@@ -2,7 +2,8 @@
 // Round gauge for a percentage, drawn with plain SVG
 import { ref, onMounted } from "vue"
 import { fa } from "../lib/api.js"
-import { gsap, motion } from "../lib/motion.js"
+import gsap from "gsap"
+import { motion } from "../lib/motion.js"
 
 defineProps(["value", "label"])
 const C = 2 * Math.PI * 56, arc = ref(null)

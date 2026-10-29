@@ -2,7 +2,8 @@
 // Text written by the assistant appears letter by letter, like it is being typed
 import { reactive, ref, computed, watch, onUnmounted } from "vue"
 import { fa } from "../lib/api.js"
-import { gsap, motion } from "../lib/motion.js"
+import gsap from "gsap"
+import { motion } from "../lib/motion.js"
 
 const props = defineProps(["text"])
 const state = reactive({ n: 0 }), typing = ref(false)

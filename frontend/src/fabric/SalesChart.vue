@@ -3,7 +3,8 @@
 // Bars are scaled to the best day; the value on each bar is in millions of toman.
 import { ref, computed, onMounted, onBeforeUnmount, nextTick } from "vue"
 import { fa } from "../lib/api.js"
-import { gsap, motion } from "../lib/motion.js"
+import gsap from "gsap"
+import { motion } from "../lib/motion.js"
 
 const props = defineProps(["points"])
 const box = ref(null), svg = ref(null), W = ref(0), H = ref(0)

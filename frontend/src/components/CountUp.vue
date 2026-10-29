@@ -2,7 +2,8 @@
 // A number that counts up to its value (the value itself always comes from the server)
 import { reactive, watch, onUnmounted } from "vue"
 import { fa } from "../lib/api.js"
-import { gsap, motion } from "../lib/motion.js"
+import gsap from "gsap"
+import { motion } from "../lib/motion.js"
 
 const props = defineProps({ value: { type: Number, default: 0 } })
 const state = reactive({ n: 0 })

@@ -4,7 +4,8 @@
 import { ref, reactive, onMounted, onUnmounted } from "vue"
 import { api, fa } from "../lib/api.js"
 import { gate } from "../lib/gate.js"
-import { gsap, motion } from "../lib/motion.js"
+import gsap from "gsap"
+import { motion } from "../lib/motion.js"
 import { shop, loadShop } from "./lib.js"
 import Icon from "../components/Icon.vue"
 

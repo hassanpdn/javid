@@ -7,7 +7,8 @@ import { schoolInfo, setupUi } from "../lib/school.js"
 import { gate } from "../lib/gate.js"
 import { PANELS } from "../lib/panels.js"
 import FeatureToggles from "../components/FeatureToggles.vue"
-import { gsap, motion } from "../lib/motion.js"
+import gsap from "gsap"
+import { motion } from "../lib/motion.js"
 import Icon from "../components/Icon.vue"
 
 const ROLES = [

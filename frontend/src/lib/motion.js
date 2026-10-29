@@ -1,16 +1,24 @@
-import gsap from "gsap"
-
 // All animation goes through these helpers. They do nothing when the person
 // asked their system for less motion.
 export const motion = !window.matchMedia("(prefers-reduced-motion: reduce)").matches
-export { gsap }
+
+// GSAP is not part of the first download: the site's door uses none of it, and on a slow phone it made the door
+// wait (PageSpeed). It comes in the background once the first page is on screen. The directives below just show
+// their element without the animation until it is here. Components that animate import "gsap" themselves; they
+// live in the pages' own files, which are downloaded later anyway.
+let gsap = null
+const fetchGsap = () => import("gsap").then((m) => { gsap = m.default }).catch(() => {})
+// a second after the page has loaded, so it does not take a slow connection away from the first page's own files
+const afterLoad = () => setTimeout(fetchGsap, 1000)
+if (document.readyState === "complete") afterLoad()
+else window.addEventListener("load", afterLoad, { once: true })
 
 // v-reveal: an element fades up when it appears. Elements that appear in the same
 // frame are animated together with a small delay between them, so a page builds up in order.
 let revealBatch = []
 export const vReveal = {
   mounted(el) {
-    if (!motion) return
+    if (!motion || !gsap) return
     gsap.set(el, { opacity: 0, y: 18 })
     revealBatch.push(el)
     if (revealBatch.length > 1) return
@@ -44,7 +52,7 @@ function releaseFocus(el) {
 
 // On phones, dialogs and drawers are sheets that come up from the bottom of the screen
 const isPhone = () => window.matchMedia("(max-width: 767px)").matches
-const slideUp = (el) => motion && gsap.fromTo(el, { yPercent: 100 }, { yPercent: 0, duration: .5, ease: "power4.out", clearProps: "transform" })
+const slideUp = (el) => motion && gsap && gsap.fromTo(el, { yPercent: 100 }, { yPercent: 0, duration: .5, ease: "power4.out", clearProps: "transform" })
 
 // A sheet follows the finger when it is pulled down from its top part, and closes past 110px (or a quick flick).
 // Closing is a click on the overlay behind it, the same thing that closes it on a computer.
@@ -79,7 +87,7 @@ export const vPop = {
   mounted(el, { arg }) {
     const drop = arg === "drop"
     if (!drop) { el.setAttribute("role", "dialog"); el.setAttribute("aria-modal", "true"); trapFocus(el); draggable(el) }
-    if (!motion) return
+    if (!motion || !gsap) return
     if (isPhone() && !drop) return slideUp(el)
     gsap.fromTo(el, drop ? { opacity: 0, y: -10, scale: .96 } : { opacity: 0, y: 30, scale: .94 },
       { opacity: 1, y: 0, scale: 1, duration: drop ? .3 : .45, ease: drop ? "power2.out" : "back.out(1.5)", clearProps: "opacity,transform" })
@@ -91,7 +99,7 @@ export const vDrawer = {
   unmounted(el) { releaseFocus(el); el._undrag?.() },
   mounted(el) {
     el.setAttribute("role", "dialog"); el.setAttribute("aria-modal", "true"); trapFocus(el); draggable(el)
-    if (!motion) return
+    if (!motion || !gsap) return
     if (isPhone()) return slideUp(el)
     gsap.fromTo(el, { xPercent: 100 }, { xPercent: 0, duration: .5, ease: "power4.out", clearProps: "transform" })
   },
