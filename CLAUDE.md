@@ -62,6 +62,32 @@ A Tehran fabric wholesaler (عمده‌فروشی پارچه) with customers all
 - «سایت فروشگاه» (`shop.py`, `ShopView.vue`): the shop's website as an end customer sees it, with an assistant that takes orders in short sentences, asks only what it needs (which colour, how many rolls, a mobile number; a known number is recognised) and gives an order number. The model only reads what the customer wrote; prices, stock and totals are written by code from the stock file, and «پشت صحنه» shows which file each answer came from. An order goes into `web_orders` and the sales file's «سفارش‌های سایت» sheet as «پرداخت نشده», is logged, and owner and seller get a toast and a badge (`webOrders.js`). Once paid, «پرداخت شد، ثبت فاکتور» makes a normal invoice through `api.make_invoice` (a new customer is added to the accounts file first). Website orders are not invoices, so they do not touch stock or the reconciliation until then.
 - The live site resets it with the school (`RESET_ON_LOAD`). Locally the assistants page only shows with `HUB=1`; without it the school opens straight away, so the school's e2e tests are unchanged. `tests/test_fabric.py` covers it.
 
+## How we work
+
+The code is written fast by a model and nobody else reviews it, so these keep it from drifting.
+
+1. Where code lives.
+   - Backend: numbers and rules live in plain functions in their own modules (`students.py`, `stats.py`, `checks.py`, `jalali.py`, `fabric/facts.py`, ...).
+   - Routers are thin: check the input and the role, call those functions, return the result.
+   - Model calls go through `llm.py`. Model text is checked by `checks.py` before anyone sees it.
+   - Frontend: pages and components show data and send actions. They never work out a business number themselves; the server sends it. They reach the server only through `lib/api.js` (or the small `lib/*.js` stores built on it).
+   - Shared pieces go in `components/core/` (general) or `components/` (this app).
+2. One request, one mode.
+   - PLAN: Hassan asks a question, «نظرت چیه», or describes a new feature. Discuss the approach and the spec. Write no code.
+   - IMPLEMENT: he says to build or fix something. Do that one narrow task, nothing beside it.
+   - REVIEW: he asks for a review. Critique the diff against this file. Change nothing unless he asks.
+   - If it is unclear which mode a request is, it is PLAN.
+3. Don'ts.
+   - No new dependency (pnpm or pip) without asking first. The server installs Python packages from an Iranian mirror, so a new one may not even be installable there.
+   - No refactoring, renaming or "cleaning up" of code the request did not mention. If something nearby looks wrong, say so; don't fix it on the side.
+   - No code "for the future": no options, settings, hooks or abstractions nothing uses yet.
+4. Done means:
+   - `pnpm build` passes and the new `static/` is in the same commit.
+   - The tests for the part that changed pass (see the testing rule below; the full suite only when Hassan asks or a change touches every panel).
+   - A new backend module gets a test file next to the others in `tests/`.
+   - A new screen or list was looked at on desktop and at 360px.
+   - Then a small commit: one change, one slice through the layers it needs, with a message that says what and why.
+
 ## Rules that must not break
 
 - Words on screen are standard written Persian (فارسی معیار, as the dictionaries have it) that any parent, teacher or manager understands at once. Not colloquial: «جدید» not «تازه», «اکنون» or «در حال حاضر» not «الان», «می‌توانید» not «می‌تونید», «را» not «رو», «در» not «توی», «است» not «ـه». Not office jargon either (no «ارجاع», «رؤیت», «صدور», «در دست اقدام», «اعلام وصول»): say «فرستادن», «دیدن», «در حال انجام», «تأیید دریافت». This covers buttons, example questions, built-in answers and what the prompts ask the model to write. What users type stays as they type it (the patterns that read questions still accept colloquial words). Official letter texts the model writes keep their formal tone.
