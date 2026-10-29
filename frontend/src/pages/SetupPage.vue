@@ -1,8 +1,6 @@
 <script setup>
 // First step of a demo: the school's details, in four short steps. The card next to the form fills in as
 // each step is finished; the last step rebuilds all demo data with these names and opens the login page.
-import { runTour } from "../lib/tour.js"
-import { SETUP } from "../lib/tours.js"
 import { ref, reactive, nextTick, onMounted, onUnmounted } from "vue"
 import { api } from "../lib/api.js"
 import { schoolInfo, setupUi, loadSchool } from "../lib/school.js"
@@ -105,10 +103,7 @@ async function build() {
 }
 
 let blobs
-// the first-visit guide (lib/tours.js); «راهنما» runs it again
-const guide = (force = false) => runTour("setup", SETUP, { force })
 onMounted(() => {
-  guide()
   if (!motion) return
   blobs = gsap.context(() => {
     gsap.to(".setup-blob.a", { x: 80, y: 40, duration: 9, yoyo: true, repeat: -1, ease: "sine.inOut" })
@@ -127,13 +122,12 @@ onUnmounted(() => blobs?.revert())
         <div class="setup-top">
           <div><h1>راه‌اندازی دمو برای مدرسه</h1><p class="muted small">چند قدم کوتاه؛ همه صفحه‌ها، نامه‌ها و پیام‌ها با همین نام‌ها ساخته می‌شوند.</p></div>
           <span class="flex flex-col items-end gap-1">
-            <button type="button" class="link small" data-tour="setup-help" @click="guide(true)">راهنما</button>
             <button v-if="gate.hub" type="button" class="link small" @click="gate.app = ''">همه‌ی دستیارها</button>
             <button v-if="schoolInfo.set_up" type="button" class="link small" @click="setupUi.open = false">بازگشت به ورود</button>
           </span>
         </div>
 
-        <ol class="stepper" aria-label="مراحل" data-tour="setup-steps">
+        <ol class="stepper" aria-label="مراحل">
           <span class="stepper-line" aria-hidden="true"><span ref="lineFill"></span></span>
           <li v-for="(s, i) in STEPS" :key="s.title" :class="{ on: step === i, done: done.has(i) }">
             <button type="button" :disabled="!canOpen(i) || !!building" @click="go(i)" :aria-current="step === i ? 'step' : undefined">
@@ -168,7 +162,7 @@ onUnmounted(() => blobs?.revert())
               </div>
               <div class="quick">
                 <span class="small muted">یا همه مراحل با یک کلیک:</span>
-                <button type="button" class="chip-btn" data-tour="setup-default" @click="useDefault"><Icon name="refresh" :size="14" />تنظیمات پیش‌فرض</button>
+                <button type="button" class="chip-btn" @click="useDefault"><Icon name="refresh" :size="14" />تنظیمات پیش‌فرض</button>
               </div>
             </section>
 
@@ -208,14 +202,14 @@ onUnmounted(() => blobs?.revert())
           <button v-if="step > 0" type="button" class="btn ghost" :disabled="!!building" @click="back">
             <Icon name="chevron" :size="18" class="flip" />قبلی</button>
           <span class="grow"></span>
-          <button class="btn primary" type="submit" data-tour="setup-next" :disabled="!!building">
+          <button class="btn primary" type="submit" :disabled="!!building">
             <template v-if="step < STEPS.length - 1">بعدی<Icon name="chevron" :size="18" /></template>
             <template v-else><Icon name="sparkles" :size="18" />ساخت دمو</template>
           </button>
         </div>
       </form>
 
-      <aside class="setup-aside" data-tour="setup-card">
+      <aside class="setup-aside">
         <SchoolCard ref="cardRef" :form="form" :done="done" :step="step" :building="building" :success="success" />
         <p class="muted small center">پیش‌نمایش زنده: کارت با تکمیل هر مرحله پر می‌شود.</p>
       </aside>

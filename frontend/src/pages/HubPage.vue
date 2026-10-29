@@ -9,8 +9,6 @@ import Icon from "../components/Icon.vue"
 import AccessDialog from "../components/AccessDialog.vue"
 import AccessManager from "../components/AccessManager.vue"
 import BrandMark from "../components/core/BrandMark.vue"
-import { runTour } from "../lib/tour.js"
-import { HUB } from "../lib/tours.js"
 
 const emit = defineEmits(["open"])
 const ASSISTANTS = [
@@ -42,9 +40,6 @@ watch(() => access.ask, (key) => {
   access.ask = ""
 }, { immediate: true })
 const leave = () => { forgetAccess(); leaveGate() }
-// the first-visit guide (lib/tours.js), once the cards this visitor may open are known; «راهنما» runs it again
-const guide = (force = false) => runTour(access.admin ? "hub-admin" : "hub", HUB(access.admin), { force, dark: true })
-watch(() => visible.value.length, (n) => { if (n) guide() }, { immediate: true })
 
 // the light on the card follows the pointer, and the card leans a little toward it
 const move = (e) => {
@@ -62,9 +57,8 @@ const unlean = (e) => { e.currentTarget.style.setProperty("--rx", "0deg"); e.cur
     <header class="h-top">
       <div class="h-brand"><span class="h-mark"><BrandMark :size="24" /></span><span dir="ltr" lang="en">Pudineh Agent Center</span></div>
       <div class="h-tools">
-        <span v-if="access.name" class="h-guest" data-tour="hub-me"><Icon name="user" :size="15" />{{ access.name }}<template v-if="access.expires_on">، تا {{ jalaliText(access.expires_on) }}</template></span>
-        <button v-if="visible.length" class="h-out" data-tour="hub-help" @click="guide(true)"><Icon name="info" :size="17" />راهنما</button>
-        <button class="h-out" data-tour="hub-out" @click="leave"><Icon name="logout" :size="17" />خروج</button>
+        <span v-if="access.name" class="h-guest"><Icon name="user" :size="15" />{{ access.name }}<template v-if="access.expires_on">، تا {{ jalaliText(access.expires_on) }}</template></span>
+        <button class="h-out" @click="leave"><Icon name="logout" :size="17" />خروج</button>
       </div>
     </header>
 
@@ -82,7 +76,7 @@ const unlean = (e) => { e.currentTarget.style.setProperty("--rx", "0deg"); e.cur
       <button class="h-none-btn" @click="asking = {}">ورود<Icon name="arrowLeft" :size="18" /></button>
     </section>
 
-    <section v-else class="h-grid" data-tour="hub-cards">
+    <section v-else class="h-grid">
       <button v-for="(a, i) in visible" :key="a.key" :class="['h-card', 'hue-' + a.hue]" :style="{ '--i': i }"
               @pointermove="move" @pointerleave="unlean" @click="emit('open', a.key)">
         <span class="h-glow" aria-hidden="true"></span>
@@ -95,12 +89,12 @@ const unlean = (e) => { e.currentTarget.style.setProperty("--rx", "0deg"); e.cur
           <span class="h-head"><b>{{ a.title }}</b><span class="h-live"><i></i>آماده</span></span>
           <span class="h-desc">{{ a.desc }}</span>
           <span class="h-roles"><span v-for="r in a.roles" :key="r">{{ r }}</span></span>
-          <span class="h-go" data-tour="hub-go">ورود به دستیار<Icon name="arrowLeft" :size="18" /></span>
+          <span class="h-go">ورود به دستیار<Icon name="arrowLeft" :size="18" /></span>
         </span>
       </button>
     </section>
 
-    <AccessManager v-if="access.admin" :assistants="ASSISTANTS" data-tour="hub-access" />
+    <AccessManager v-if="access.admin" :assistants="ASSISTANTS" />
     <AccessDialog v-if="asking" @close="asking = null" @opened="opened" />
     <p class="h-foot"><Icon name="shield" :size="15" />همه‌ی اطلاعات این نسخه ساختگی است.</p>
   </main>
@@ -206,7 +200,7 @@ h1 span { background: linear-gradient(90deg, #a99fff, #5fe3f3 60%, #ff9fc6); -we
 }
 @media (hover: none) { .h-card { transform: none; } }
 
-@keyframes h-up { from { opacity: 0; transform: translateY(30px); filter: blur(6px); } to { opacity: 1; filter: none; } }
+@keyframes h-up { from { opacity: 0; transform: translateY(30px); } }
 @keyframes h-fade { from { opacity: 0; } }
 @keyframes h-pulse { 0% { box-shadow: 0 0 0 0 rgba(62,224,143,.6); } 70% { box-shadow: 0 0 0 8px rgba(62,224,143,0); } 100% { box-shadow: 0 0 0 0 rgba(62,224,143,0); } }
 @keyframes h-ring { from { transform: scale(1); opacity: .9; } to { transform: scale(2.6); opacity: 0; } }

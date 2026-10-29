@@ -1,7 +1,5 @@
 <script setup>
 // The fabric demo's login: shelves of fabric rolls on one side, the three roles on the other.
-import { runTour } from "../lib/tour.js"
-import { FABRIC_LOGIN } from "../lib/tours.js"
 import { ref, onMounted, onUnmounted } from "vue"
 import { api, fa, setFabricSession } from "../lib/api.js"
 import { gate } from "../lib/gate.js"
@@ -23,10 +21,7 @@ const login = async (username) => {
   finally { busy.value = false }
 }
 let ctx
-// the first-visit guide (lib/tours.js); «راهنما» runs it again
-const guide = (force = false) => runTour("fabric-login", FABRIC_LOGIN, { force })
 onMounted(() => {
-  guide()
   if (!motion) return
   ctx = gsap.context(() => {
     gsap.timeline({ defaults: { ease: "power3.out" } })
@@ -71,7 +66,7 @@ onUnmounted(() => ctx?.revert())
         <h1>دستیار {{ shop.business.name }}</h1>
         <p class="muted">عمده‌فروشی پارچه · {{ shop.business.place }}. با یکی از نقش‌ها وارد شوید.</p>
         <p v-if="error" class="error-text">{{ error }}</p>
-        <div class="role-list" data-tour="fl-roles">
+        <div class="role-list">
           <button v-for="(r, u) in ROLES" :key="u" type="button" class="role-card" :style="{ '--c': 'var(--' + r.tone + ')' }" :disabled="busy" @click="login(u)">
             <span :class="['tint', 't-' + r.tone]"><Icon :name="r.icon" :size="20" /></span>
             <span class="role-text"><b>{{ r.role }}</b><span>{{ shop.business[r.who] }} · {{ r.desc }}</span></span>
@@ -81,9 +76,8 @@ onUnmounted(() => ctx?.revert())
         </div>
         <p class="auth-note"><Icon name="shield" :size="16" /> همه‌ی داده‌ها و فایل‌های این نسخه ساختگی است.</p>
         <div class="login-tools">
-          <button type="button" class="link switch-school" data-tour="fl-new" @click="shop.setupOpen = true"><Icon name="refresh" :size="16" />دموی جدید برای فروشگاه دیگر</button>
+          <button type="button" class="link switch-school" @click="shop.setupOpen = true"><Icon name="refresh" :size="16" />دموی جدید برای فروشگاه دیگر</button>
           <button v-if="gate.hub" type="button" class="link switch-school" @click="gate.app = ''"><Icon name="dashboard" :size="16" />همه‌ی دستیارها</button>
-          <button type="button" class="link switch-school" data-tour="fl-help" @click="guide(true)"><Icon name="info" :size="16" />راهنما</button>
         </div>
       </div>
     </div>

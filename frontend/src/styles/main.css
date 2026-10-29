@@ -228,9 +228,10 @@ body .nav-title h1 { color: var(--ink); font-size: 16px; line-height: 1.5; white
 
 /* ---------- demo setup (first step): steps on one side, the school card on the other ---------- */
 .setup { position: relative; min-height: 100vh; display: grid; place-items: center; padding: 32px 18px; overflow: hidden; }
-.setup-blob { position: absolute; width: 520px; height: 520px; border-radius: 50%; filter: blur(70px); opacity: .55; pointer-events: none; }
-.setup-blob.a { background: var(--primary-soft); top: -160px; right: -120px; }
-.setup-blob.b { background: var(--info-soft); bottom: -180px; left: -140px; }
+/* soft clouds as radial gradients (a blur filter on them is heavy on phones, see AuroraBg.vue) */
+.setup-blob { position: absolute; width: 680px; height: 680px; border-radius: 50%; opacity: .8; pointer-events: none; background: radial-gradient(closest-side, var(--c), transparent); }
+.setup-blob.a { --c: var(--primary-soft); top: -240px; right: -200px; }
+.setup-blob.b { --c: var(--info-soft); bottom: -260px; left: -220px; }
 .setup-layout { position: relative; width: 100%; max-width: 1080px; display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 28px; align-items: start; }
 .setup-form { display: flex; flex-direction: column; gap: 22px; padding: 28px; }
 .setup-form p { margin: 0; }
@@ -1281,3 +1282,11 @@ select:not([multiple]) {
   background-repeat: no-repeat; background-size: 16px; background-position: left 12px center;
 }
 [dir="ltr"] select:not([multiple]), select[dir="ltr"]:not([multiple]) { background-position: right 12px center; }
+
+/* Phones and touch screens: no frosted glass on the dark pages (door, assistants page, their dialogs). Blurring what is
+   behind a card, over a moving background, on every frame is what made iPhone Safari kill the page. The cards keep
+   their see-through colour, so they look nearly the same. */
+@media (hover: none), (max-width: 767px) {
+  .gate, .gate *, .hub, .hub *, .hd-overlay, .hd-overlay * { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
+  .hub .h-card, .hub .am, .gate .g-card { background: linear-gradient(165deg, rgba(40,36,92,.92), rgba(18,16,48,.92)); }
+}

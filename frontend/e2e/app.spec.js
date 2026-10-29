@@ -294,9 +294,8 @@ test("first-visit guide: shown once, can be skipped or closed, comes back from t
   await page.addInitScript(() => localStorage.setItem("tour:test", "1"))
   await page.goto("/")
   const pop = page.locator(".driver-popover")
-  await expect(pop).toContainText("ورود به دمو", { timeout: 15_000 })   // the login page's own guide
-  await page.keyboard.press("Escape")
-  await expect(pop).toHaveCount(0)
+  await page.waitForTimeout(1500)
+  await expect(pop).toHaveCount(0)   // the login page has no guide, only the panels do
   await page.locator(".role-card", { has: page.locator('b:text-is("مشاور")') }).click()
   await expect(pop).toContainText("به پنل مشاور خوش آمدید", { timeout: 15_000 })
   await expect(pop.locator(".driver-popover-progress-text")).toContainText("۱ از")
@@ -310,10 +309,15 @@ test("first-visit guide: shown once, can be skipped or closed, comes back from t
   await expect(page.locator(".navbar")).toBeVisible()
   await page.waitForTimeout(2500)
   await expect(pop).toHaveCount(0)
-  // but the account menu runs it again, and × closes it
+  // but the account menu runs it again, and Escape or × close it
   await page.locator(".avatar-btn").click()
   await page.locator(".dd-item", { hasText: "راهنمای این صفحه" }).click()
   await expect(pop).toContainText("به پنل مشاور خوش آمدید", { timeout: 15_000 })
+  await page.keyboard.press("Escape")
+  await expect(pop).toHaveCount(0)
+  await page.locator(".avatar-btn").click()
+  await page.locator(".dd-item", { hasText: "راهنمای این صفحه" }).click()
+  await expect(pop).toBeVisible({ timeout: 15_000 })
   await pop.locator(".driver-popover-close-btn").click()
   await expect(pop).toHaveCount(0)
   expect(errors).toEqual([])

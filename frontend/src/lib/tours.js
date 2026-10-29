@@ -1,50 +1,11 @@
-// What every first-visit guide says (lib/tour.js runs them). One entry per page or panel. el points at a
+// What every first-visit guide says (lib/tour.js runs them). Guides are only inside the assistants' panels: the
+// assistants page, the login pages and the setup forms have none. One entry per panel (or page of a panel). el points at a
 // data-tour="..." mark in that page's template; optional: true means the part may not be on screen (no letters yet,
 // no counselor message, ...) and the step is then left out. Panels inside AppLayout get their intro, the pages of the
-// menu (pages), the assistant (chat), notifications, the account menu and a last step from AppLayout; pages outside it
-// (login, setup, assistants page) list everything themselves.
+// menu (pages), the assistant (chat), notifications, the account menu and a last step from AppLayout.
 // Words: standard written Persian, short, what the part is for and what happens when it is used.
 
 const T = (name) => `[data-tour="${name}"]`
-
-// ---------- assistants page (after the site's door) ----------
-export const HUB = (admin) => [
-  { title: "به مرکز دستیارهای پودینه خوش آمدید", text: "در چند قدم کوتاه این صفحه را معرفی می‌کنیم. هر وقت خواستید، با × یا «رد کردن راهنما» آن را ببندید." },
-  { el: T("hub-cards"), side: "top", title: "دستیارها",
-    text: admin ? "هر کارت یک دستیار است. شما به همه‌ی دستیارها دسترسی دارید." : "هر کارت دستیاری است که برای شما باز شده است. دستیارهای دیگر این‌جا دیده نمی‌شوند." },
-  { el: T("hub-go"), side: "top", title: "ورود به دستیار",
-    text: "با انتخاب کارت، همان دستیار باز می‌شود: اول تنظیمات نمونه، بعد ورود با یکی از نقش‌ها. داخل هر دستیار راهنمای جداگانه‌ی خودش را دارد." },
-  ...(admin ? [
-    { el: T("hub-access"), side: "top", title: "دسترسی‌ها",
-      text: "این بخش فقط برای شماست. هر کسی را که باید دمو را ببیند این‌جا تعریف کنید: نام، نام کاربری، رمز، دستیارهایی که می‌بیند و در صورت نیاز تاریخ و ساعت انقضا." },
-    { el: T("hub-add"), side: "bottom", title: "دسترسی جدید",
-      text: "فرم ساخت حساب باز می‌شود. بعد از ذخیره، متن آماده‌ی ارسال با نشانی سایت، نام کاربری و رمز را می‌توانید کپی کنید. هر تغییری بلافاصله اعمال می‌شود." },
-  ] : [
-    { el: T("hub-me"), side: "bottom", optional: true, title: "حساب شما", text: "نام شما و، اگر دسترسی‌تان تاریخ انقضا دارد، زمان پایان آن." },
-  ]),
-  { el: T("hub-help"), side: "bottom", title: "راهنما", text: "این راهنما را از این دکمه دوباره ببینید." },
-  { el: T("hub-out"), side: "bottom", title: "خروج", text: "از سایت خارج می‌شوید و دفعه‌ی بعد باید دوباره وارد شوید." },
-]
-
-// ---------- school: setup form ----------
-export const SETUP = [
-  { title: "راه‌اندازی دمو برای یک مدرسه", text: "در چهار مرحله‌ی کوتاه مشخصات مدرسه را وارد می‌کنید و همه‌ی صفحه‌ها، نامه‌ها و پیام‌های نمونه با همین نام‌ها ساخته می‌شوند." },
-  { el: T("setup-steps"), side: "bottom", title: "مراحل", text: "نام و نوع مدرسه، شهر و منطقه، نام کارکنان و در پایان ساخت دمو. مرحله‌های تکمیل‌شده علامت تیک می‌گیرند و می‌توانید به آن‌ها برگردید." },
-  { el: T("setup-default"), side: "top", optional: true, title: "تنظیمات پیش‌فرض", text: "اگر فقط می‌خواهید سیستم را ببینید، این گزینه همه‌ی مراحل را با یک مدرسه‌ی نمونه پر می‌کند و شما را به مرحله‌ی آخر می‌برد." },
-  { el: T("setup-card"), side: "left", optional: true, title: "پیش‌نمایش زنده", text: "کارت مدرسه با تکمیل هر مرحله پر می‌شود تا ببینید نتیجه چه شکلی خواهد بود." },
-  { el: T("setup-next"), side: "top", title: "مرحله‌ی بعد", text: "هر مرحله پیش از رفتن به مرحله‌ی بعد بررسی می‌شود. در مرحله‌ی آخر همین دکمه دمو را می‌سازد و صفحه‌ی ورود باز می‌شود." },
-  { el: T("setup-help"), side: "bottom", title: "راهنما", text: "این راهنما را از این‌جا دوباره ببینید." },
-]
-
-// ---------- school: login page ----------
-export const LOGIN = [
-  { title: "ورود به دمو", text: "این نسخه‌ی آزمایشی است و همه‌ی داده‌ها ساختگی است. برای ورود رمزی لازم نیست؛ کافی است یک نقش را انتخاب کنید." },
-  { el: T("login-roles"), side: "left", title: "نقش‌ها", text: "هر نقش پنل و دسترسی‌های خودش را دارد: مدیر، پرسنل اداری، مشاور، ولی و دیگران. نقش‌هایی که «فعلاً فقط پرسش از آیین‌نامه‌ها» دارند هنوز پنل کامل ندارند." },
-  { el: T("login-new"), side: "top", title: "دموی جدید", text: "فرم راه‌اندازی دوباره باز می‌شود تا دمو را برای مدرسه‌ی دیگری بسازید. داده‌های فعلی پاک و از نو ساخته می‌شوند." },
-  { el: T("login-roles-toggle"), side: "top", title: "چه کسانی وارد شوند", text: "ورود اولیا و دانش‌آموزان را روشن یا خاموش کنید. با خاموش کردن هر دو، سیستم فقط برای کارکنان مدرسه است." },
-  { el: T("login-hub"), side: "top", optional: true, title: "همه‌ی دستیارها", text: "بازگشت به صفحه‌ی دستیارها." },
-  { el: T("login-help"), side: "top", title: "راهنما", text: "این راهنما را از این‌جا دوباره ببینید." },
-]
 
 // ---------- school panels (inside AppLayout) ----------
 export const MANAGER = {
@@ -126,21 +87,6 @@ export const CHAT_ROLE = {
 }
 
 // ---------- fabric wholesaler ----------
-export const FABRIC_SETUP = [
-  { title: "راه‌اندازی دمو برای یک فروشگاه", text: "نام فروشگاه، نشانی کوتاه و نام صاحب کار، فروشنده و حسابدار را وارد کنید. سه فایل اکسل انبار، فروش و حسابداری با چهار ماه داده‌ی نمونه با همین نام‌ها ساخته می‌شوند." },
-  { el: T("fs-form"), side: "left", title: "مشخصات فروشگاه", text: "این نام‌ها در پنل‌ها، فاکتورها، پیام‌ها و سایت فروشگاه دیده می‌شوند." },
-  { el: T("fs-default"), side: "top", optional: true, title: "تنظیمات پیش‌فرض", text: "اگر فقط می‌خواهید سیستم را ببینید، این گزینه همه‌ی خانه‌ها را با یک فروشگاه نمونه پر می‌کند." },
-  { el: T("fs-go"), side: "top", title: "ساخت دمو", text: "فایل‌ها ساخته می‌شوند و صفحه‌ی ورود باز می‌شود." },
-  { el: T("fs-help"), side: "top", title: "راهنما", text: "این راهنما را از این‌جا دوباره ببینید." },
-]
-
-export const FABRIC_LOGIN = [
-  { title: "ورود به دستیار پارچه‌فروشی", text: "یک عمده‌فروشی پارچه در تهران با مشتریانی از سراسر کشور، که کارش با سه فایل اکسل و تلفن می‌گذرد. همه‌ی داده‌ها ساختگی است." },
-  { el: T("fl-roles"), side: "left", title: "نقش‌ها", text: "صاحب کار همه چیز را می‌بیند. فروشنده سفارش تلفنی و فاکتور را ثبت می‌کند. حسابدار چک‌ها و طلب‌ها را پیگیری می‌کند. برای ورود رمزی لازم نیست." },
-  { el: T("fl-new"), side: "top", title: "دموی جدید", text: "فرم راه‌اندازی دوباره باز می‌شود تا دمو را برای فروشگاه دیگری بسازید." },
-  { el: T("fl-help"), side: "top", title: "راهنما", text: "این راهنما را از این‌جا دوباره ببینید." },
-]
-
 const FABRIC_CHAT = "سؤال‌هایی مثل «جمع چک‌های این هفته چقدر است؟» یا «از مخمل سرمه‌ای چقدر مانده است؟» را بپرسید. عددها از فایل‌های اکسل خوانده و با حساب برنامه بررسی می‌شوند."
 const FABRIC_PAGES = {
   home: "همین صفحه: خلاصه‌ی روز، وضعیت سه فایل، عددهای اصلی و کارهای امروز.",
