@@ -20,7 +20,7 @@ import ToastHost from "./ToastHost.vue"
 import ActivityPill from "./ActivityPill.vue"
 import { chatUi } from "../lib/chat.js"
 import { phone } from "../lib/viewport.js"
-import { runTour } from "../lib/tour.js"
+import { runTour, prepareTour } from "../lib/tour.js"
 import { toast } from "../lib/notify.js"
 
 const page = defineModel()
@@ -37,6 +37,8 @@ const tabs = computed(() => (props.nav || []).filter((i) => i.key && !i.more))
 const moreItems = computed(() => (props.nav || []).filter((i) => i.key && i.more))
 const meOpen = ref(false)
 watch(meOpen, lockScroll)
+// the account menu holds «راهنمای این صفحه»: once it opens, the guide's code starts downloading
+watch([userOpen, meOpen], ([a, b]) => { if (props.tour && (a || b)) prepareTour() })
 
 const pick = (k) => { page.value = k; menuOpen.value = false; window.scrollTo({ top: 0, behavior: "smooth" }) }
 const logout = async () => {

@@ -12,7 +12,12 @@ import { store } from "./api.js"
 //
 // driver.js and its styles are loaded only when a guide is about to run (most visits have none), so they are not part
 // of the code every page downloads first.
-const loadDriver = () => Promise.all([import("driver.js"), import("driver.js/dist/driver.css"), import("../styles/tour.css")]).then(([m]) => m.driver)
+// prepareTour starts that download early (the account menu calls it when it opens, so the guide's code is usually here
+// before «راهنمای این صفحه» is pressed); the download happens once, later calls get the same one.
+let loading = null
+const loadDriver = () => (loading ||= Promise.all([import("driver.js"), import("driver.js/dist/driver.css"), import("../styles/tour.css")])
+  .then(([m]) => m.driver).catch((e) => { loading = null; throw e }))
+export const prepareTour = () => { loadDriver().catch(() => {}) }
 
 export const tourState = reactive({ running: false })
 const SEEN = (key) => "tour:" + key
@@ -26,14 +31,15 @@ const visible = (sel) => [...document.querySelectorAll(sel)].find((e) => {
 const find = (el) => (Array.isArray(el) ? el : [el]).map(visible).find(Boolean)
 
 // wait until the page has settled: no skeletons left (content loaded) and the first lit part is on screen
-async function settle(steps, timeout = 8000) {
+// quick: opened from the menu, the page is already there and still, so no extra wait once it is found
+async function settle(steps, { timeout = 8000, quick = false } = {}) {
   const first = steps.find((s) => s.el)
   const until = Date.now() + timeout
   while (Date.now() < until) {
     if (!document.querySelector(".sk") && (!first || find(first.el))) break
     await new Promise((ok) => setTimeout(ok, 200))
   }
-  await new Promise((ok) => setTimeout(ok, 500))   // let the cards finish sliding in (v-reveal)
+  if (!quick) await new Promise((ok) => setTimeout(ok, 500))   // let the cards finish sliding in (v-reveal)
 }
 
 /**
@@ -51,7 +57,7 @@ export async function runTour(key, steps, { force = false, dark = false, onClose
   // steps may be a function: then it is asked once the page has settled, so it sees the page as it really is
   const make = typeof steps === "function" ? steps : () => steps
   let driver
-  try { [driver] = await Promise.all([loadDriver(), settle(make())]) }
+  try { [driver] = await Promise.all([loadDriver(), settle(make(), { quick: force })]) }
   catch { tourState.running = false; return }   // the guide's code did not arrive (connection dropped): no guide this time
   // start from the top: a page opened after scrolling another one (login → panel) keeps that scroll, and a part half
   // under the fixed top bar still counts as on screen, so it would not be scrolled clear
