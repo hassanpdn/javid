@@ -1,14 +1,15 @@
 <script setup>
 // The live site's home after the door: every assistant as a card. A click opens that assistant
 // (its setup form, then its own login and panels). A new assistant is one more entry in ASSISTANTS.
-import { ref, computed, watch, onMounted } from "vue"
+import { ref, computed, watch, onMounted, defineAsyncComponent } from "vue"
 import { leaveGate } from "../lib/gate.js"
 import { access, canOpen, forgetAccess, jalaliText } from "../lib/access.js"
 import AuroraBg from "../components/AuroraBg.vue"
 import Icon from "../components/Icon.vue"
-import AccessDialog from "../components/AccessDialog.vue"
-import AccessManager from "../components/AccessManager.vue"
 import BrandMark from "../components/core/BrandMark.vue"
+// shown only when opened, so their code is downloaded only then
+const AccessManager = defineAsyncComponent(() => import("../components/AccessManager.vue"))
+const AccessDialog = defineAsyncComponent(() => import("../components/AccessDialog.vue"))
 
 const emit = defineEmits(["open"])
 const ASSISTANTS = [

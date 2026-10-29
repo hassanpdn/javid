@@ -2,7 +2,7 @@
 // The owner's dashboard: the assistant's morning summary, the three files in one picture (do they agree?),
 // today's and this month's sales, money owed and next week's cheques (each with «از کجا؟»), what needs doing
 // today, what is happening right now (the event log), and two weeks of sales.
-import { ref, computed, onMounted, onUnmounted } from "vue"
+import { ref, computed, onMounted, onUnmounted, defineAsyncComponent } from "vue"
 import { api, fa, fabricSession } from "../lib/api.js"
 import { busy, idle } from "../lib/notify.js"
 import { brand, money } from "./lib.js"
@@ -13,19 +13,20 @@ import Skeleton from "../components/Skeleton.vue"
 import TypeText from "../components/TypeText.vue"
 import AiOrb from "../components/AiOrb.vue"
 import SalesChart from "./SalesChart.vue"
-import CustomerDrawer from "./CustomerDrawer.vue"
-import MoneyView from "./MoneyView.vue"
-import StockView from "./StockView.vue"
-import ExcelFiles from "./ExcelFiles.vue"
 import FilesGlance from "./FilesGlance.vue"
 import EventFeed from "./EventFeed.vue"
-import ReconcileView from "./ReconcileView.vue"
-import ReportView from "./ReportView.vue"
 import HowTip from "./HowTip.vue"
-import ShopView from "./ShopView.vue"
-import WebOrders from "./WebOrders.vue"
 import { useWebOrders } from "./webOrders.js"
 import { CHAT } from "./chat.js"
+// shown only when opened, so their code is downloaded only then
+const ReconcileView = defineAsyncComponent(() => import("./ReconcileView.vue"))
+const WebOrders = defineAsyncComponent(() => import("./WebOrders.vue"))
+const ShopView = defineAsyncComponent(() => import("./ShopView.vue"))
+const ReportView = defineAsyncComponent(() => import("./ReportView.vue"))
+const MoneyView = defineAsyncComponent(() => import("./MoneyView.vue"))
+const StockView = defineAsyncComponent(() => import("./StockView.vue"))
+const ExcelFiles = defineAsyncComponent(() => import("./ExcelFiles.vue"))
+const CustomerDrawer = defineAsyncComponent(() => import("./CustomerDrawer.vue"))
 
 const view = ref("home"), d = ref(null), brief = ref(""), openId = ref(null), stockFilter = ref(""), pulse = ref([])
 const nav = computed(() => [

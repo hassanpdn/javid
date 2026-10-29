@@ -1,19 +1,20 @@
 <script setup>
 // Parent: weekly report and progress for their own child only
-import { ref, computed, watch, onMounted, onUnmounted } from "vue"
+import { ref, computed, watch, onMounted, onUnmounted, defineAsyncComponent } from "vue"
 import { api, fa, lockScroll } from "../lib/api.js"
 import { chatUi } from "../lib/chat.js"
 import { PARENT } from "../lib/tours.js"
 import AppLayout from "../components/AppLayout.vue"
 import Sparkline from "../components/Sparkline.vue"
 import LevelChip from "../components/LevelChip.vue"
-import HealthFormDialog from "../components/HealthFormDialog.vue"
 import Icon from "../components/Icon.vue"
 import Skeleton from "../components/Skeleton.vue"
 import Avatar from "../components/Avatar.vue"
 import CountUp from "../components/CountUp.vue"
 import TypeText from "../components/TypeText.vue"
 import AiOrb from "../components/AiOrb.vue"
+// shown only when opened, so their code is downloaded only then
+const HealthFormDialog = defineAsyncComponent(() => import("../components/HealthFormDialog.vue"))
 
 const f = ref(null), report = ref(""), formKind = ref(null), view = ref("child")
 const load = async () => { f.value = await api("/parent/child") }

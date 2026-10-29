@@ -1,13 +1,14 @@
 <script setup>
 // Cheques and debts: next week's cheques in and out against the bank balance, bounced cheques, and the
 // customers who owe the most, each with a reminder text the assistant drafts and a person sends.
-import { ref, reactive, computed, watch, onMounted } from "vue"
+import { ref, reactive, computed, watch, onMounted, defineAsyncComponent } from "vue"
 import { api, fa, lockScroll } from "../lib/api.js"
 import { toast, busy, idle } from "../lib/notify.js"
 import { money } from "./lib.js"
 import Icon from "../components/Icon.vue"
 import Skeleton from "../components/Skeleton.vue"
-import CustomerDrawer from "./CustomerDrawer.vue"
+// shown only when opened, so their code is downloaded only then
+const CustomerDrawer = defineAsyncComponent(() => import("./CustomerDrawer.vue"))
 
 const d = ref(null), openId = ref(null)
 const draft = reactive({ open: false, who: null, text: "", loading: false, checked: undefined, saving: false })

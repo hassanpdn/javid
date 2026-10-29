@@ -1,15 +1,16 @@
 <script setup>
 // Counselor: students who need attention, with their file in a drawer
-import { ref, computed, watch, onMounted, onUnmounted } from "vue"
+import { ref, computed, watch, onMounted, onUnmounted, defineAsyncComponent } from "vue"
 import { api, fa, lockScroll } from "../lib/api.js"
 import { groupSignals, DOCS_CHAT } from "../lib/constants.js"
 import { COUNSELOR } from "../lib/tours.js"
 import AppLayout from "../components/AppLayout.vue"
-import StudentProfile from "../components/StudentProfile.vue"
 import Icon from "../components/Icon.vue"
 import Skeleton from "../components/Skeleton.vue"
 import Avatar from "../components/Avatar.vue"
 import CountUp from "../components/CountUp.vue"
+// shown only when opened, so their code is downloaded only then
+const StudentProfile = defineAsyncComponent(() => import("../components/StudentProfile.vue"))
 
 const list = ref([]), loaded = ref(false), view = ref("flagged"), q = ref(""), openId = ref(null), page = ref("students")
 const flagged = computed(() => list.value.filter((s) => s.signals.length))

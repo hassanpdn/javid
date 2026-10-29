@@ -63,8 +63,7 @@ let ctx
 onMounted(() => {
   if (!motion) return
   ctx = gsap.context(() => {
-    gsap.to(".setup-blob.a", { x: 80, y: 40, duration: 9, yoyo: true, repeat: -1, ease: "sine.inOut" })
-    gsap.to(".setup-blob.b", { x: -70, y: -50, duration: 11, yoyo: true, repeat: -1, ease: "sine.inOut" })
+    // the two background clouds drift with CSS (.setup-blob in main.css)
     gsap.from(".setup-form > *, .xl-card", { y: 20, opacity: 0, stagger: .06, duration: .6, ease: "power3.out", clearProps: "opacity,transform" })
   }, page.value)
 })

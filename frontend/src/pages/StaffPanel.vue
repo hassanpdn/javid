@@ -1,16 +1,17 @@
 <script setup>
 // Staff: smart letter inbox. The agent reads queued letters one by one; people approve replies.
-import { ref, reactive, computed, watch, onMounted, onUnmounted } from "vue"
+import { ref, reactive, computed, watch, onMounted, onUnmounted, defineAsyncComponent } from "vue"
 import { api, fa, lockScroll } from "../lib/api.js"
 import { CATEGORY_OPTIONS, DOCS_CHAT } from "../lib/constants.js"
 import { STAFF } from "../lib/tours.js"
 import AppLayout from "../components/AppLayout.vue"
-import ReferDialog from "../components/ReferDialog.vue"
 import Icon from "../components/Icon.vue"
 import Skeleton from "../components/Skeleton.vue"
 import AgentProgress from "../components/AgentProgress.vue"
 import CountUp from "../components/CountUp.vue"
 import AiOrb from "../components/AiOrb.vue"
+// shown only when opened, so their code is downloaded only then
+const ReferDialog = defineAsyncComponent(() => import("../components/ReferDialog.vue"))
 
 const TABS = [
   { key: "mine", label: "منتظر شما", icon: "inbox", match: (l) => ["new", "processing", "awaiting_approval", "todo"].includes(l.status) },

@@ -1,7 +1,4 @@
 import { reactive } from "vue"
-import { driver } from "driver.js"
-import "driver.js/dist/driver.css"
-import "../styles/tour.css"
 import { store } from "./api.js"
 
 // First-visit guides (driver.js): the page darkens, one part stays lit, and a box beside it explains it, with
@@ -12,6 +9,10 @@ import { store } from "./api.js"
 // A step: { el, title, text, side }. el is a CSS selector, or a list of them: the first one that is on screen is used
 // (e.g. the sidebar item on wide screens, the bottom tab on phones). A step whose el is not on screen is shown in the
 // middle of the page, unless it says optional: true, then it is left out. No el: a box in the middle (welcome, end).
+//
+// driver.js and its styles are loaded only when a guide is about to run (most visits have none), so they are not part
+// of the code every page downloads first.
+const loadDriver = () => Promise.all([import("driver.js"), import("driver.js/dist/driver.css"), import("../styles/tour.css")]).then(([m]) => m.driver)
 
 export const tourState = reactive({ running: false })
 const SEEN = (key) => "tour:" + key
@@ -49,7 +50,9 @@ export async function runTour(key, steps, { force = false, dark = false, onClose
   tourState.running = true
   // steps may be a function: then it is asked once the page has settled, so it sees the page as it really is
   const make = typeof steps === "function" ? steps : () => steps
-  await settle(make())
+  let driver
+  try { [driver] = await Promise.all([loadDriver(), settle(make())]) }
+  catch { tourState.running = false; return }   // the guide's code did not arrive (connection dropped): no guide this time
   // start from the top: a page opened after scrolling another one (login → panel) keeps that scroll, and a part half
   // under the fixed top bar still counts as on screen, so it would not be scrolled clear
   window.scrollTo({ top: 0 })
@@ -65,6 +68,7 @@ export async function runTour(key, steps, { force = false, dark = false, onClose
     over = true
     store.set(SEEN(key), "seen")
     tourState.running = false
+    document.documentElement.classList.remove("touring")
     onClose?.(finished)
   }
   const d = driver({
@@ -100,5 +104,6 @@ export async function runTour(key, steps, { force = false, dark = false, onClose
     // driver.js calls this before closing in every case (its onDestroyed is skipped when the step lights nothing)
     onDestroyStarted: (el, step, { driver: drv }) => { finish(); drv.destroy() },
   })
+  document.documentElement.classList.add("touring")
   d.drive()
 }

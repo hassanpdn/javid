@@ -21,8 +21,8 @@
   --color-page: var(--bg);
 }
 
-@font-face { font-family: Vazirmatn; src: url(/fonts/Vazirmatn-Regular.woff2) format("woff2"); font-weight: 400; }
-@font-face { font-family: Vazirmatn; src: url(/fonts/Vazirmatn-Bold.woff2) format("woff2"); font-weight: 700; }
+@font-face { font-family: Vazirmatn; src: url(/fonts/Vazirmatn-Regular.woff2) format("woff2"); font-display: swap; font-weight: 400; }
+@font-face { font-family: Vazirmatn; src: url(/fonts/Vazirmatn-Bold.woff2) format("woff2"); font-display: swap; font-weight: 700; }
 /* B Nazanin is the usual font of official Persian letters. It is not shipped with the app (it is not freely licensed);
    computers that have it installed (most Windows PCs in Iran) use it, the rest fall back to Vazirmatn. */
 @font-face { font-family: "B Nazanin"; src: local("B Nazanin"), local("BNazanin"), local("B Nazanin Regular"); font-weight: 400; }
@@ -198,8 +198,8 @@ body .nav-title h1 { color: var(--ink); font-size: 16px; line-height: 1.5; white
 /* ---------- avatars ---------- */
 .avatar { flex: none; border-radius: 50%; display: grid; place-items: center; font-weight: 700; }
 
-/* ---------- AI orb (animated in JS) ---------- */
-.orb { display: block; overflow: visible; }
+/* ---------- AI orb (AiOrb.vue, animated with CSS) ---------- */
+.orb { display: block; }
 
 /* ---------- login ---------- */
 .auth { min-height: 100vh; display: flex; background: var(--panel); }
@@ -466,6 +466,14 @@ body .nav-title h1 { color: var(--ink); font-size: 16px; line-height: 1.5; white
 .fab-chat:hover .fab-core { box-shadow: 0 14px 34px color-mix(in srgb, var(--primary) 65%, transparent); }
 .fab-chat:focus-visible { outline: 3px solid var(--primary-ink); outline-offset: 4px; }
 .fab-chat.open .fab-ring { display: none; }
+@media (prefers-reduced-motion: no-preference) {
+  /* a soft ring keeps pulsing out of the button, and the button breathes a little */
+  .fab-ring { animation: fab-ring 1.8s ease-out infinite; }
+  .fab-ring + .fab-ring { animation-delay: .9s; }
+  .fab-core { animation: fab-breathe 1.4s ease-in-out infinite alternate; }
+}
+@keyframes fab-ring { from { scale: 1; opacity: .45; } to { scale: 1.9; opacity: 0; } }
+@keyframes fab-breathe { to { scale: 1.06; } }
 .fab-label { position: absolute; right: 74px; top: 50%; transform: translateY(-50%) translateX(8px); white-space: nowrap; padding: 6px 12px;
   border-radius: 999px; background: var(--ink); color: var(--panel); font-size: 13px; opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s; }
 .fab-chat:hover .fab-label { opacity: 1; transform: translateY(-50%); }
@@ -1128,7 +1136,7 @@ section.card > .fs-search { margin-bottom: 12px; }
 .fg-icon em { position: absolute; bottom: -6px; left: -8px; font-style: normal; font-size: 8.5px; font-weight: 700; padding: 1px 4px; border-radius: 5px; background: var(--panel); color: #1f6f43; box-shadow: var(--shadow); }
 .fg-link { position: relative; flex: 1; min-width: 40px; height: 4px; border-radius: 4px; overflow: hidden; background: color-mix(in srgb, var(--success) 25%, transparent); }
 .fg-link.off { background: color-mix(in srgb, var(--danger) 25%, transparent); }
-.fg-link i { position: absolute; top: 0; width: 22%; height: 100%; border-radius: 4px; background: var(--success); animation: fg-run 2.4s linear infinite; }
+.fg-link i { position: absolute; top: 0; right: -25%; width: 22%; height: 100%; border-radius: 4px; background: var(--success); animation: fg-run 2.4s linear infinite; }
 .fg-link.off i { background: var(--danger); }
 .fg-link i:nth-child(2) { animation-delay: -.8s; }
 .fg-link i:nth-child(3) { animation-delay: -1.6s; }
@@ -1138,7 +1146,8 @@ section.card > .fs-search { margin-bottom: 12px; }
 .fg-checks li.ok .ico { color: var(--success-ink); }
 .fg-checks li.off .ico { color: var(--danger-ink); }
 .fg-checks b { color: var(--ink); margin-inline-end: 4px; }
-@keyframes fg-run { from { right: -25%; } to { right: 105%; } }
+/* moved with transform (the graphics card does it), not right/top (which re-lays the page on every frame) */
+@keyframes fg-run { to { transform: translateX(-591%); } }
 @keyframes fg-pulse { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--primary) 55%, transparent); } 100% { box-shadow: 0 0 0 16px transparent; } }
 
 /* «همین حالا»: the event log */
@@ -1195,13 +1204,13 @@ section.card > .fs-search { margin-bottom: 12px; }
   .fg-node { width: auto; flex-direction: row; flex-wrap: wrap; justify-content: flex-start; text-align: right; gap: 4px 10px; padding: 12px; }
   .fg-node b { margin: 0; }
   .fg-link { flex: none; width: 4px; height: 26px; min-width: 0; margin-inline-start: 34px; }
-  .fg-link i { width: 100%; height: 30%; animation-name: fg-run-v; }
+  .fg-link i { top: -35%; right: 0; width: 100%; height: 30%; animation-name: fg-run-v; }
   .fg-checks { grid-template-columns: 1fr; }
   .fg-head { flex-wrap: wrap; }
   .fg-head .grow { flex: 1 1 0; }
   .fg-head > .btn { flex-basis: 100%; }
 }
-@keyframes fg-run-v { from { top: -35%; } to { top: 105%; } }
+@keyframes fg-run-v { to { transform: translateY(467%); } }
 @media (prefers-reduced-motion: reduce) { .fg-link i, .ef-live i { animation: none; } .desk-flow li { opacity: 1; animation: none; } }
 .stat.stat-how { overflow: visible; }
 
@@ -1290,3 +1299,34 @@ select:not([multiple]) {
   .gate, .gate *, .hub, .hub *, .hd-overlay, .hd-overlay * { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
   .hub .h-card, .hub .am, .gate .g-card { background: linear-gradient(165deg, rgba(40,36,92,.92), rgba(18,16,48,.92)); }
 }
+
+/* ---------- endless decorative motion ----------
+   Plain CSS animations of translate/scale/rotate/opacity only: the browser runs them on the graphics card, without
+   JavaScript and without laying the page out again. (They used to be endless GSAP tweens, which wrote a new style
+   from JavaScript on every frame, all the time, on every page.) The one-off entrances stay in GSAP; translate, scale
+   and rotate here add to GSAP's transform instead of fighting it. */
+@media (prefers-reduced-motion: no-preference) {
+  .float-card { animation: float-y 2.6s ease-in-out 1.8s infinite alternate; --fy: -12px; }
+  .float-card.fc2 { animation-duration: 3.1s; --fy: 10px; }
+  .float-card.fc3 { animation-duration: 2.2s; --fy: -9px; }
+  .setup-blob.a { animation: drift 9s ease-in-out infinite alternate; --dx: 80px; --dy: 40px; }
+  .setup-blob.b { animation: drift 11s ease-in-out infinite alternate; --dx: -70px; --dy: -50px; }
+  /* the login page's drawing (LoginPage.vue); in an svg, px are the drawing's own units */
+  .auth-art .cloud.c1 { animation: drift 8s ease-in-out infinite alternate; --dx: 40px; --dy: 0px; }
+  .auth-art .cloud.c2 { animation: drift 10s ease-in-out infinite alternate; --dx: -30px; --dy: 0px; }
+  .auth-art .flag { transform-box: fill-box; transform-origin: left center; animation: flag .9s ease-in-out infinite alternate; }
+  .auth-art .hand { transform-origin: 280px 190px; animation: turn 8s linear infinite; }
+  .auth-art .win.lit { animation: dim 1.4s ease-in-out infinite alternate; }
+  .auth-art .spk { transform-box: fill-box; transform-origin: center; animation: sparkle 1.5s ease-in-out infinite alternate; }
+  .auth-art .spk.b { animation-delay: .7s; }
+}
+@keyframes float-y { to { translate: 0 var(--fy); } }
+@keyframes drift { to { translate: var(--dx) var(--dy); } }
+@keyframes flag { to { scale: .82 1; } }
+@keyframes turn { to { rotate: 360deg; } }
+@keyframes dim { to { opacity: .2; } }
+@keyframes sparkle { to { scale: 1.3; rotate: 25deg; } }
+/* while a first-visit guide is open the page behind it stands still, so only the guide moves */
+.driver-active :is(.fab-ring, .fab-core, .orb *, .ap-dot i, .ef-live i, .fg-link i, .progress span) { animation-play-state: paused; }
+/* and the frosted bars lose their blur: under the dark overlay it cannot be seen, but it is redrawn on every scroll */
+.driver-active :is(.navbar-inner, .tabbar) { backdrop-filter: none; -webkit-backdrop-filter: none; }

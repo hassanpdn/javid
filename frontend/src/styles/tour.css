@@ -33,8 +33,9 @@
 .pd-tour .driver-popover-navigation-btns .driver-popover-next-btn:hover { filter: brightness(1.08); background: var(--t-accent); }
 .pd-tour .driver-popover-navigation-btns button:focus-visible { outline: 3px solid color-mix(in srgb, var(--t-accent) 45%, transparent); outline-offset: 2px; }
 .pd-tour .driver-popover-btn-disabled { opacity: .4; pointer-events: none; }
-/* while a guide runs, a lit part is scrolled clear of the fixed top bar (and the bottom tab bar on phones) */
-html:has(body.driver-active) { scroll-padding-top: 96px; scroll-padding-bottom: 96px; }
+/* while a guide runs, a lit part is scrolled clear of the fixed top bar (and the bottom tab bar on phones). tour.js sets
+   the class on <html>: a html:has(...) rule made the browser re-check the whole page on every change. */
+html.touring { scroll-padding-top: 96px; scroll-padding-bottom: 96px; }
 
 /* the arrow is drawn with borders in the box's own colour */
 .pd-tour .driver-popover-arrow { border-width: 7px; }

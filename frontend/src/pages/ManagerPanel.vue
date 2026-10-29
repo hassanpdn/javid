@@ -1,6 +1,6 @@
 <script setup>
 // Manager dashboard: today's brief, attendance, alerts that need a decision, 10-day trend
-import { ref, reactive, computed, watch, onMounted, onUnmounted } from "vue"
+import { ref, reactive, computed, watch, onMounted, onUnmounted, defineAsyncComponent } from "vue"
 import { api, fa, session, lockScroll } from "../lib/api.js"
 import { DOCS_CHAT } from "../lib/constants.js"
 import { toast, busy, idle } from "../lib/notify.js"
@@ -13,9 +13,10 @@ import Skeleton from "../components/Skeleton.vue"
 import CountUp from "../components/CountUp.vue"
 import TypeText from "../components/TypeText.vue"
 import AiOrb from "../components/AiOrb.vue"
-import ManagerLetters from "../components/ManagerLetters.vue"
-import AttendanceDrawer from "../components/AttendanceDrawer.vue"
-import TeacherLatesDrawer from "../components/TeacherLatesDrawer.vue"
+// shown only when opened, so their code is downloaded only then
+const ManagerLetters = defineAsyncComponent(() => import("../components/ManagerLetters.vue"))
+const AttendanceDrawer = defineAsyncComponent(() => import("../components/AttendanceDrawer.vue"))
+const TeacherLatesDrawer = defineAsyncComponent(() => import("../components/TeacherLatesDrawer.vue"))
 
 const ALERT_LOOK = {
   teacher_late: { icon: "clock", tone: "danger" },

@@ -1,16 +1,17 @@
 <script setup>
 // The seller's panel: the phone desk first, then the website's orders, the website itself, stock and files.
-import { ref, computed } from "vue"
+import { ref, computed, defineAsyncComponent } from "vue"
 import { brand } from "./lib.js"
 import { FABRIC_SELLER } from "../lib/tours.js"
 import AppLayout from "../components/AppLayout.vue"
 import OrderDesk from "./OrderDesk.vue"
-import StockView from "./StockView.vue"
-import ExcelFiles from "./ExcelFiles.vue"
 import { CHAT } from "./chat.js"
-import ShopView from "./ShopView.vue"
-import WebOrders from "./WebOrders.vue"
 import { useWebOrders } from "./webOrders.js"
+// shown only when opened, so their code is downloaded only then
+const StockView = defineAsyncComponent(() => import("./StockView.vue"))
+const ExcelFiles = defineAsyncComponent(() => import("./ExcelFiles.vue"))
+const ShopView = defineAsyncComponent(() => import("./ShopView.vue"))
+const WebOrders = defineAsyncComponent(() => import("./WebOrders.vue"))
 
 const view = ref("desk")
 const web = useWebOrders(() => { view.value = "orders" })   // a toast and a badge when the website takes an order

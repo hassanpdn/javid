@@ -244,5 +244,13 @@ app.include_router(access.router)
 app.include_router(fabric_api.router)
 app.include_router(fabric_shop.router)
 
-# Serve the built frontend (frontend/ -> npm run build -> static/) at http://localhost:8000. Must come after the API routes
-app.mount("/", StaticFiles(directory="static", html=True), name="static")
+# Serve the built frontend (frontend/ -> npm run build -> static/) at http://localhost:8000. Must come after the API routes.
+# Files in assets/ have a hash of their content in the name (a new build gives new names), so the browser keeps them
+# for a year without asking again; everything else (index.html first) is checked on every load, so a release shows at once.
+class Site(StaticFiles):
+    async def get_response(self, path, scope):
+        response = await super().get_response(path, scope)
+        response.headers["Cache-Control"] = "public, max-age=31536000, immutable" if path.startswith("assets/") else "no-cache"
+        return response
+
+app.mount("/", Site(directory="static", html=True), name="static")

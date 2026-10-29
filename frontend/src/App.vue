@@ -1,21 +1,26 @@
 <script setup>
 // Root: the site's door and the list of assistants (live demo only), the school setup form (first run, or when asked for),
 // the login page, or the panel for the user's role
-import { computed, watch, onMounted } from "vue"
+import { computed, watch, onMounted, defineAsyncComponent } from "vue"
 import { api, session, clearSession, clearFabricSession, lockScroll } from "./lib/api.js"
 import { schoolInfo, setupUi, loadSchool } from "./lib/school.js"
 import { gate, checkGate } from "./lib/gate.js"
 import { access, checkAccess, canOpen } from "./lib/access.js"
-import GatePage from "./pages/GatePage.vue"
-import HubPage from "./pages/HubPage.vue"
-import FabricApp from "./fabric/FabricApp.vue"
-import SetupPage from "./pages/SetupPage.vue"
-import LoginPage from "./pages/LoginPage.vue"
-import ManagerPanel from "./pages/ManagerPanel.vue"
-import StaffPanel from "./pages/StaffPanel.vue"
-import CounselorPanel from "./pages/CounselorPanel.vue"
-import ParentPanel from "./pages/ParentPanel.vue"
-import ChatPage from "./pages/ChatPage.vue"
+import { PANELS } from "./lib/panels.js"
+// Each page is its own file in the build, downloaded only when it is shown: a visitor gets the code of the page they
+// are on, not of every panel at once
+const page = (load) => defineAsyncComponent(load)
+const loadSetup = () => import("./pages/SetupPage.vue"), loadLogin = () => import("./pages/LoginPage.vue")
+const GatePage = page(() => import("./pages/GatePage.vue"))
+const HubPage = page(() => import("./pages/HubPage.vue"))
+const FabricApp = page(() => import("./fabric/FabricApp.vue"))
+const SetupPage = page(loadSetup)
+const LoginPage = page(loadLogin)
+const ManagerPanel = page(PANELS.manager)
+const StaffPanel = page(PANELS.staff)
+const CounselorPanel = page(PANELS.counselor)
+const ParentPanel = page(PANELS.parent)
+const ChatPage = page(PANELS.chat)
 
 const user = computed(() => session.user)
 // Runs once this browser may open an assistant (on the live demo each one needs its own login, access.js),
@@ -29,14 +34,22 @@ const boot = async () => {
     clearSession(); clearFabricSession()
   }
   if (!canOpen("school") || schoolInfo.loaded) return
+  // signed out, the next page is the setup form or the login page: download both while the school's details arrive,
+  // so the phone does not wait for one, then the other
+  if (!session.token) { loadSetup().catch(() => {}); loadLogin().catch(() => {}) }
+  // signed in: who it is, asked at the same time as the school's details
+  const me = session.token ? api("/me").catch(() => null) : null
   try { await loadSchool() } catch { schoolInfo.loaded = true }
   if (!session.token) return
-  try { session.user = await api("/me") } catch { clearSession() }
+  const user = await me
+  if (user) session.user = user
+  else clearSession()
 }
 onMounted(async () => {
-  await checkGate()
+  // both questions at once (one wait instead of two on a slow phone connection). With the door closed the access
+  // answer is a refusal and means nothing; entered() asks again once the door opens.
+  await Promise.all([checkGate(), checkAccess()])
   if (!gate.ok) return
-  await checkAccess()
   await boot()
 })
 // the door page calls this after a correct username and password (the door also takes the assistants' logins)

@@ -1,11 +1,12 @@
 <script setup>
 // The floating assistant: a round button in the bottom-right corner that opens a chat window.
 // Every role gets one; the props decide which endpoint, examples and texts it uses.
-import { ref, watch, onMounted, onUnmounted } from "vue"
+import { ref, watch, onMounted, onUnmounted, defineAsyncComponent } from "vue"
 import { chatUi } from "../lib/chat.js"
 import { gsap, motion } from "../lib/motion.js"
 import Icon from "./Icon.vue"
-import ChatBox from "./ChatBox.vue"
+// shown only when opened, so their code is downloaded only then
+const ChatBox = defineAsyncComponent(() => import("./ChatBox.vue"))
 
 defineProps({
   title: { default: "دستیار هوشمند" }, subtitle: { default: "" }, endpoint: { default: "/chat" },
@@ -34,9 +35,7 @@ onMounted(() => {
   if (!motion) return
   ctx = gsap.context(() => {
     gsap.from(fab.value, { scale: 0, rotation: -180, duration: .8, ease: "back.out(1.8)", delay: .6 })
-    // a soft ring keeps pulsing out of the button, and the button breathes a little
-    gsap.fromTo(".fab-ring", { scale: 1, opacity: .45 }, { scale: 1.9, opacity: 0, duration: 1.8, repeat: -1, ease: "power1.out", stagger: .9 })
-    gsap.to(".fab-core", { scale: 1.06, duration: 1.4, yoyo: true, repeat: -1, ease: "sine.inOut" })
+    // the pulsing ring and the breathing button are CSS animations in main.css (.fab-ring, .fab-core)
   }, fab.value)
 })
 onUnmounted(() => { ctx?.revert(); chatUi.open = false })

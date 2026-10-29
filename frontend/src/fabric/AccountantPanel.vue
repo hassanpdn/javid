@@ -1,6 +1,6 @@
 <script setup>
 // The accountant's panel: cheques and debts first, then customers' cards and the Excel files.
-import { ref, computed, watch } from "vue"
+import { ref, computed, watch, defineAsyncComponent } from "vue"
 import { api, fa } from "../lib/api.js"
 import { brand, money } from "./lib.js"
 import { FABRIC_ACCOUNTANT } from "../lib/tours.js"
@@ -9,11 +9,12 @@ import Avatar from "../components/Avatar.vue"
 import Icon from "../components/Icon.vue"
 import Skeleton from "../components/Skeleton.vue"
 import MoneyView from "./MoneyView.vue"
-import ExcelFiles from "./ExcelFiles.vue"
-import CustomerDrawer from "./CustomerDrawer.vue"
-import ReconcileView from "./ReconcileView.vue"
-import ReportView from "./ReportView.vue"
 import { CHAT } from "./chat.js"
+// shown only when opened, so their code is downloaded only then
+const ExcelFiles = defineAsyncComponent(() => import("./ExcelFiles.vue"))
+const ReconcileView = defineAsyncComponent(() => import("./ReconcileView.vue"))
+const ReportView = defineAsyncComponent(() => import("./ReportView.vue"))
+const CustomerDrawer = defineAsyncComponent(() => import("./CustomerDrawer.vue"))
 
 const view = ref("money"), q = ref(""), list = ref(null), openId = ref(null)
 const nav = computed(() => [
