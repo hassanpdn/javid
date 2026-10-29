@@ -17,6 +17,9 @@ Learned on this codebase; each line says what to do and why.
 - `main.css` pauses the endless loops while a guide is open (`.driver-active ... { animation-play-state: paused }`) and
   turns off the bars' blur under the guide's overlay. A new endless loop on a panel goes into that list.
 - Wrap new endless animations in `@media (prefers-reduced-motion: no-preference)`.
+- The first thing a page shows (its LCP element: the door's card, a hero title) never fades in from `opacity: 0`.
+  Text that starts invisible counts as not shown until the fade ends: the door's 0.9 s fade put PageSpeed's LCP at
+  2.6 s. Slide or scale it in instead (door: 2.5 s -> 1.8 s on the phone profile).
 
 ## Class names
 
