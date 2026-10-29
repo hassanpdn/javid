@@ -154,7 +154,9 @@ h1 { margin: 0; font-size: 26px; font-weight: 700; line-height: 1.5;
   h1 { font-size: 23px; }
 }
 
-@keyframes g-in { from { opacity: 0; transform: translateY(26px) scale(.96); } to { opacity: 1; transform: none; } }
+/* the card slides up but does not fade in: text that starts invisible counts as not shown until the fade ends,
+   which held back the page's first paint (PageSpeed's LCP) by about 0.7 s */
+@keyframes g-in { from { transform: translateY(26px) scale(.96); } to { transform: none; } }
 @keyframes g-shake { 10%, 90% { transform: translateX(-2px); } 20%, 80% { transform: translateX(4px); } 30%, 50%, 70% { transform: translateX(-8px); } 40%, 60% { transform: translateX(8px); } }
 @keyframes g-shine { 0% { transform: translateX(120%) skewX(-20deg); } 35%, 100% { transform: translateX(-160%) skewX(-20deg); } }
 @keyframes g-rot { to { transform: rotate(360deg); } }
