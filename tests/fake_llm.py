@@ -38,6 +38,13 @@ def reply(system, user):
             return json.dumps({"keys": ["group:teachers"], "reason": "دلیل."}, ensure_ascii=False)
         if "for_parent" in system:    # counselor message
             return json.dumps({"for_counselor": "گام مشاور.", "for_parent": "پیام برای ولی."}, ensure_ascii=False)
+        if "deed_number" in system:   # the deed assistant: values from the clean sample, plus one made up (777)
+            if MODE == "evil":
+                return json.dumps({"deed_number": "999999", "owners": [{"name": "کسی دیگر", "national_id": "1111111111"}]}, ensure_ascii=False)
+            return json.dumps({"deed_number": "482913", "issue_date": "1384/06/15", "book": "777", "main_plate": "87", "sub_plate": "1520",
+                               "area": "245.50", "area_unit": "مترمربع", "boundaries": {"north": "به طول 12 متر دیوار به دیوار پلاک 1519 فرعی"},
+                               "owners": [{"name": "کامران نیک‌سرشت", "father_name": "جهانگیر", "national_id": "5260181591", "share": "شش دانگ"}]},
+                              ensure_ascii=False)
         if "intent" in system:        # parent question label
             return json.dumps({"intent": "made_up_label" if MODE == "evil" else "unclear"})
         return "{}"

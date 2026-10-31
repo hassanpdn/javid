@@ -14,6 +14,7 @@ const loadSetup = () => import("./pages/SetupPage.vue"), loadLogin = () => impor
 const GatePage = page(() => import("./pages/GatePage.vue"))
 const HubPage = page(() => import("./pages/HubPage.vue"))
 const FabricApp = page(() => import("./fabric/FabricApp.vue"))
+const DeedApp = page(() => import("./deed/DeedApp.vue"))
 const SetupPage = page(loadSetup)
 const LoginPage = page(loadLogin)
 const ManagerPanel = page(PANELS.manager)
@@ -71,6 +72,7 @@ watch(user, () => lockScroll(false))
   <GatePage v-else-if="!gate.ok" @entered="entered" />
   <HubPage v-else-if="gate.hub && !gate.app" @open="open" />
   <FabricApp v-else-if="gate.app === 'fabric'" />
+  <DeedApp v-else-if="gate.app === 'deed'" />
   <template v-else-if="!schoolInfo.loaded"></template>
   <SetupPage v-else-if="!user && (!schoolInfo.set_up || setupUi.open)" />
   <LoginPage v-else-if="!user" />

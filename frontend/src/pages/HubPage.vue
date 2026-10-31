@@ -25,6 +25,12 @@ const ASSISTANTS = [
     roles: ["صاحب کار", "فروشنده", "حسابدار"],
     perks: [{ icon: "message", text: "سفارش تلفنی" }, { icon: "file", text: "سه فایل اکسل" }, { icon: "alert", text: "چک برگشتی" }],
   },
+  {
+    key: "deed", title: "دستیار استخراج داده‌ی سند", icon: "notebook", hue: "amber",
+    desc: "سند دفترچه‌ای اسکن‌شده را می‌خواند و داده‌هایش را برای بررسی و تأیید کارشناس، پیش از تبدیل به سند تک‌برگ، آماده می‌کند.",
+    roles: ["کارشناس بررسی"],
+    perks: [{ icon: "file", text: "تصویر یا PDF" }, { icon: "check", text: "تأیید کارشناس" }, { icon: "shield", text: "پردازش روی سرور" }],
+  },
 ]
 onMounted(() => { document.title = "Pudineh Agent Center" })
 
@@ -181,6 +187,7 @@ h1 span { background: linear-gradient(90deg, #a99fff, #5fe3f3 60%, #ff9fc6); -we
   transform: rotateX(var(--rx)) rotateY(var(--ry)); transition: transform .25s ease, box-shadow .3s, border-color .3s;
   animation: h-up 1s cubic-bezier(.2,.9,.25,1) calc(.3s + var(--i) * .12s) backwards; }
 .hue-teal { --c1: #0f8b7d; --c2: #f3b33d; }
+.hue-amber { --c1: #8a5a1c; --c2: #5fb3f0; }
 .h-card:hover { border-color: rgba(255,255,255,.28); box-shadow: 0 40px 90px -24px rgba(115,103,240,.55), inset 0 1px 0 rgba(255,255,255,.25); }
 .h-card:focus-visible { outline: 3px solid #8fefff; outline-offset: 4px; }
 .h-glow { position: absolute; inset: 0; pointer-events: none; opacity: 0; transition: opacity .3s;

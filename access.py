@@ -24,7 +24,7 @@ from fastapi import APIRouter, HTTPException, Request, Response
 from pydantic import BaseModel, Field
 import jalali
 
-APPS = ("school", "fabric")
+APPS = ("school", "fabric", "deed")
 USER = os.getenv("ADMIN_USER", "")
 PASSWORD = os.getenv("ADMIN_PASSWORD", "")
 ON = bool(PASSWORD)
@@ -98,8 +98,8 @@ def allows(request: Request, app):
 def app_for(path):
     """Which assistant an API path belongs to."""
     first = path.strip("/").split("/")[0]
-    if first == "fabric":
-        return "fabric"
+    if first in ("fabric", "deed"):
+        return first
     if path == "/setup/reset":   # every page load of the live demo; it clears both assistants
         return "any"
     return "school"

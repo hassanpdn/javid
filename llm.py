@@ -22,10 +22,11 @@ class ModelOff(Exception):
 def ai_on():
     return access.ai_on(assistant.get())
 
-def ask_llm(system, user, max_tokens=500, temperature=0.2):
+def ask_llm(system, user, max_tokens=500, temperature=0.2, timeout=None):
+    """timeout: seconds to wait for the answer (None: the client's default)."""
     if not ai_on():
         raise ModelOff()
-    r = client.chat.completions.create(
+    r = (client.with_options(timeout=timeout) if timeout else client).chat.completions.create(
         model=MODEL, temperature=temperature, max_tokens=max_tokens,
         messages=[{"role": "system", "content": system + NO_THINK},
                   {"role": "user", "content": user}],
@@ -34,10 +35,10 @@ def ask_llm(system, user, max_tokens=500, temperature=0.2):
     text = r.choices[0].message.content or ""
     return re.sub(r"<think>.*?</think>", "", text, flags=re.S).strip()
 
-def ask_json(system, user, max_tokens=300):
+def ask_json(system, user, max_tokens=300, timeout=None):
     """Ask for a JSON object. Returns a dict, or None if the model didn't give valid JSON."""
     text = ask_llm(system + "\nفقط یک شیء JSON معتبر برگردان، بدون هیچ توضیح اضافه.", user,
-                   max_tokens=max_tokens, temperature=0)
+                   max_tokens=max_tokens, temperature=0, timeout=timeout)
     match = re.search(r"\{.*\}", text, flags=re.S)
     try:
         return json.loads(match.group(0)) if match else None

@@ -68,7 +68,8 @@ def live():
            "LLM_MODEL": "fake", "EMBED_MODEL": "fake", "DEMO_TODAY": serve.TODAY, "KEEP_DB": "1",
            "SCHOOL_PATH": os.path.join(tmp, "school.json"), "ACCESS_DB_PATH": os.path.join(tmp, "access.db"),
            "FABRIC_PATH": os.path.join(tmp, "fabric.json"), "FABRIC_DB_PATH": os.path.join(tmp, "fabric.db"),
-           "FABRIC_DIR": os.path.join(tmp, "fabric_files")}
+           "FABRIC_DIR": os.path.join(tmp, "fabric_files"),
+           "DEED_DB_PATH": os.path.join(tmp, "deed.db"), "DEED_DIR": os.path.join(tmp, "deed_files")}
     for script in ("seed.py", "ingest.py"):
         subprocess.run([sys.executable, script], cwd=ROOT, env=env, check=True, capture_output=True)
     env.update({"ADMIN_USER": ADMIN["username"], "ADMIN_PASSWORD": ADMIN["password"], "EMBED_BASE_URL": "http://127.0.0.1:9/v1"})
@@ -94,7 +95,7 @@ def as_role(admin, username):
 
 def test_only_the_permanent_account_sees_and_flips_the_switch(live):
     base, admin = live
-    assert admin.get("/access/status").json()["ai"] == {"school": False, "fabric": False}   # off until switched on
+    assert admin.get("/access/status").json()["ai"] == {"school": False, "fabric": False, "deed": False}   # off until switched on
     p = admin.post("/access/people", json={"name": "مهمان", "username": "guest1", "password": "guest-pass",
                                            "apps": ["school"], "expires_on": None}).json()
     guest = httpx.Client(base_url=base)

@@ -10,7 +10,7 @@ ADMIN = {"username": "admin-for-test", "password": "admin-secret"}
 
 def test_off_without_settings():
     s = httpx.get(conftest.BASE + "/access/status").json()
-    assert s["on"] is False and s["apps"] == ["school", "fabric"]
+    assert s["on"] is False and s["apps"] == ["school", "fabric", "deed"]
     assert httpx.get(conftest.BASE + "/access/people").status_code == 403
 
 def _app(monkeypatch, tmp_path, door_user="door", door_password="door-secret"):
@@ -47,7 +47,7 @@ def test_permanent_account_at_the_door_opens_every_card(monkeypatch, tmp_path):
     c = TestClient(app)
     assert c.post("/gate/login", json=ADMIN).status_code == 200
     s = c.get("/access/status").json()
-    assert s["admin"] is True and s["apps"] == ["school", "fabric"]
+    assert s["admin"] is True and s["apps"] == ["school", "fabric", "deed"]
     assert c.get("/school").json()["ok"] and c.get("/fabric/ping").json()["ok"]
     _cleanup(monkeypatch)
 

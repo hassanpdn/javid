@@ -6,6 +6,8 @@ The demo runs on 89.45.89.72 at https://agent.pudineh.com.
 - nginx: `/etc/nginx/sites-available/agent.pudineh.com`, HTTPS by certbot. DNS: `agent` A record in `/etc/bind/zones/pudineh.com.db` on the same server.
 - Models: AvalAI (`qwen3.8-flash`, `gemini-embedding-001`), since OpenRouter refuses this server. Settings in `/opt/javid/.env`, including `SITE_USER`/`SITE_PASSWORD` (the door) and `ADMIN_USER`/`ADMIN_PASSWORD` (the account that opens every assistant and gives other people access; their accounts are kept in `/opt/javid/access.db`). After changing `.env`: `sudo systemctl restart javid`.
 - pip: PyPI is blocked from Iran; `.venv/pip.conf` points at the Runflare mirror with Liara as a fallback.
+- The deed assistant (`deed/README.md`) needs, once, as root: `apt install tesseract-ocr tesseract-ocr-fas poppler-utils`, and
+  `client_max_body_size 15m;` in the nginx site (scans up to 10 MB are sent as base64), then `systemctl reload nginx`.
 
 ## Automatic updates
 
