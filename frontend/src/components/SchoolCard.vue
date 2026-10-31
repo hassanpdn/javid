@@ -54,6 +54,11 @@ defineExpose({ celebrate })
 
 onMounted(() => {
   if (!motion) return
+  // phones and touch screens: a flat entrance, no 3D (iPhone Safari draws a turned, clipped card wrong)
+  if (matchMedia("(hover: none), (max-width: 767px)").matches) {
+    gsap.from(card.value, { y: 40, opacity: 0, duration: .9, ease: "power3.out", delay: .2, clearProps: "opacity,transform" })
+    return
+  }
   gsap.set(card.value, { transformPerspective: 900 })
   rx = gsap.quickTo(card.value, "rotationX", { duration: .6, ease: "power3.out" })
   ry = gsap.quickTo(card.value, "rotationY", { duration: .6, ease: "power3.out" })

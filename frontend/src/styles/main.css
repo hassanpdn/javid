@@ -1330,3 +1330,14 @@ select:not([multiple]) {
 .driver-active :is(.fab-ring, .fab-core, .orb *, .ap-dot i, .ef-live i, .fg-link i, .progress span) { animation-play-state: paused; }
 /* and the frosted bars lose their blur: under the dark overlay it cannot be seen, but it is redrawn on every scroll */
 .driver-active :is(.navbar-inner, .tabbar) { backdrop-filter: none; -webkit-backdrop-filter: none; }
+
+/* Phones and touch screens: no frosted glass and no 3D card. iPhone Safari draws blurred, rounded, clipped boxes with
+   moving or 3D content shifted and cut off (the assistants page showed it), and the blur under a bar is redrawn on
+   every scroll. Nearly opaque backgrounds instead, so the look stays. */
+@media (hover: none), (max-width: 767px) {
+  .navbar-inner, .tabbar, .sc-build { backdrop-filter: none; -webkit-backdrop-filter: none; }
+  .navbar-inner { background: color-mix(in srgb, var(--panel) 97%, transparent); }
+  .tabbar { background: color-mix(in srgb, var(--panel) 98%, transparent); }
+  .school-card-wrap { perspective: none; }
+  .school-card { transform-style: flat; isolation: isolate; }
+}

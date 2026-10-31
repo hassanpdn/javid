@@ -138,4 +138,6 @@ const remove = async (p) => {
 }
 @keyframes am-up { from { opacity: 0; transform: translateY(30px); } }
 @media (prefers-reduced-motion: reduce) { .am { animation: none; } }
+/* phones and touch screens: no frosted glass (iPhone Safari draws such panels wrong; see HubPage) */
+@media (hover: none), (max-width: 767px) { .am { backdrop-filter: none; -webkit-backdrop-filter: none; isolation: isolate; background: linear-gradient(165deg, rgba(40,38,82,.92), rgba(18,17,42,.94)); } }
 </style>

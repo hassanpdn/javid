@@ -240,6 +240,16 @@ h1 span { background: linear-gradient(90deg, #a99fff, #5fe3f3 60%, #ff9fc6); -we
   .h-body { padding: 18px 18px 20px; }
 }
 @media (hover: none) { .h-card { transform: none; } }
+/* Phones and touch screens: no 3D perspective (the lean follows a mouse, so it does nothing there) and no frosted
+   glass. iPhone Safari draws the card's moving picture shifted and cut off when perspective, backdrop blur, rounded
+   clipping and animated layers come together; the backgrounds are a little more opaque instead, so the look stays. */
+@media (hover: none), (max-width: 767px) {
+  .h-grid { perspective: none; }
+  .h-card, .h-none { backdrop-filter: none; -webkit-backdrop-filter: none; isolation: isolate;
+    background: linear-gradient(165deg, rgba(48,45,96,.9), rgba(20,19,46,.92)); }
+  .h-perk { backdrop-filter: none; -webkit-backdrop-filter: none; background: rgba(13,12,36,.72); }
+  .h-ai { background: rgba(32,30,70,.9); }
+}
 
 @keyframes h-up { from { opacity: 0; transform: translateY(30px); } }
 @keyframes h-fade { from { opacity: 0; } }

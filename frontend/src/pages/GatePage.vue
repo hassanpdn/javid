@@ -137,6 +137,10 @@ h1 { margin: 0; font-size: 26px; font-weight: 700; line-height: 1.5;
 .g-btn:disabled { cursor: wait; opacity: .85; }
 .g-spin { width: 18px; height: 18px; border-radius: 50%; border: 2.5px solid rgba(255,255,255,.35); border-top-color: #fff; animation: g-rot .8s linear infinite; }
 
+/* phones and touch screens: no frosted glass (see HubPage: iPhone Safari draws such cards wrong) */
+@media (hover: none), (max-width: 767px) {
+  .g-card { backdrop-filter: none; -webkit-backdrop-filter: none; isolation: isolate; background: linear-gradient(165deg, rgba(48,45,96,.92), rgba(20,19,46,.94)); }
+}
 /* chips floating around the card (wide screens only) */
 .g-chips { display: none; }
 @media (min-width: 1000px) {

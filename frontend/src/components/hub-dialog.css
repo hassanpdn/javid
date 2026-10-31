@@ -44,3 +44,6 @@
 }
 @keyframes hd-fade { from { opacity: 0; } }
 @keyframes hd-rot { to { transform: rotate(360deg); } }
+
+/* phones and touch screens: a darker overlay instead of a blurred one (iPhone Safari, see HubPage) */
+@media (hover: none), (max-width: 767px) { .hd-overlay { backdrop-filter: none; -webkit-backdrop-filter: none; background: rgba(4,3,16,.84); } }

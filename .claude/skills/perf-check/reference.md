@@ -21,6 +21,15 @@ Learned on this codebase; each line says what to do and why.
   Text that starts invisible counts as not shown until the fade ends: the door's 0.9 s fade put PageSpeed's LCP at
   2.6 s. Slide or scale it in instead (door: 2.5 s -> 1.8 s on the phone profile).
 
+## Phones (iPhone Safari)
+
+- No frosted glass (`backdrop-filter`) and no 3D (`perspective`, `preserve-3d`, GSAP `rotationX/Y`) on phones and touch
+  screens: `@media (hover: none), (max-width: 767px)`. iPhone Safari drew the assistants page's card with its moving
+  picture shifted and cut off when perspective, backdrop blur, rounded clipping and animated layers came together.
+  Every such box has the same media block with a nearly opaque background instead (HubPage, GatePage, AccessManager,
+  hub-dialog, the bars and school card in main.css, SchoolCard's entrance). A new glass or 3D box gets one too.
+- Playwright's WebKit on Linux does not show this bug; only a real iPhone does.
+
 ## Class names
 
 - Tailwind builds a utility for any class name that matches one, even in a scoped style: a part called `ring` got
