@@ -80,7 +80,9 @@ def cache_ocr(h, r):
                   (h, json.dumps(r["lines"], ensure_ascii=False), r["conf"], r["rotation"], int(r["readable"]), r["note"]))
 
 def reset():
-    """Forget every uploaded deed, its files and the OCR cache (which holds the pages' text)."""
+    """Forget every uploaded deed, its files and the OCR cache (which holds the pages' text). Called on each new visit
+    of the live site and on every logout."""
+    init()
     with conn() as c:
         c.executescript("DELETE FROM documents; DELETE FROM pages; DELETE FROM ocr;")
     shutil.rmtree(DIR, ignore_errors=True)

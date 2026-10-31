@@ -23,6 +23,7 @@ from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, HTTPException, Request, Response
 from pydantic import BaseModel, Field
 import jalali
+from deed import store as deed_store
 
 APPS = ("school", "fabric", "deed")
 USER = os.getenv("ADMIN_USER", "")
@@ -185,6 +186,7 @@ def login(req: AccessLogin, request: Request, response: Response):
 @router.post("/logout")
 def logout(response: Response):
     response.delete_cookie(COOKIE)
+    deed_store.reset()   # a demo: every logout forgets every deed sent to the deed assistant (Hassan's choice)
     return {"ok": True}
 
 # People's accounts: only the permanent account sees and changes them.

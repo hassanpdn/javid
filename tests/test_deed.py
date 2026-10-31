@@ -159,3 +159,9 @@ def test_blank_page_is_reported_not_extracted(tmp_path):
     data = base64.b64encode((tmp_path / "blank.png").read_bytes()).decode()
     d = wait(httpx.post(conftest.BASE + "/deed/documents", json={"name": "blank", "data": data}).json()["id"])
     assert d["status"] == "error" and "خوانا" in d["message"] and d["pages"][0]["note"]
+
+def test_logout_forgets_every_deed():
+    wait(httpx.post(conftest.BASE + "/deed/documents/text", json={"text": CLEAN}).json()["id"])
+    assert httpx.get(conftest.BASE + "/deed/documents").json()
+    assert httpx.post(conftest.BASE + "/gate/logout").status_code == 200
+    assert httpx.get(conftest.BASE + "/deed/documents").json() == []

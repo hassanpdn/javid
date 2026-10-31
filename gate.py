@@ -11,6 +11,7 @@ import os, time, hmac, hashlib
 from fastapi import APIRouter, HTTPException, Request, Response
 from pydantic import BaseModel
 import access
+from deed import store as deed_store
 
 USER = os.getenv("SITE_USER", "")
 PASSWORD = os.getenv("SITE_PASSWORD", "")
@@ -76,4 +77,5 @@ def login(req: GateLogin, request: Request, response: Response):
 def logout(response: Response):
     response.delete_cookie(COOKIE)
     response.delete_cookie(access.COOKIE)
+    deed_store.reset()   # a demo: every logout forgets every deed sent to the deed assistant (Hassan's choice)
     return {"ok": True}

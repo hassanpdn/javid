@@ -74,4 +74,5 @@ is sent as base64, about 13.4 MB; nginx refuses more than 1 MB by default).
   may need typing in.
 - **Speed.** About 1-2 seconds a page for OCR on a small server, pages in turn, one deed after another in order.
 - **No history of edits.** The last saved form is kept; who changed what is not recorded (out of scope: no new auth).
-- **The live site forgets every deed on each new visit**, like the other assistants (`RESET_ON_LOAD`).
+- **Every deed is forgotten, for everyone, on each new visit of the live site** (`RESET_ON_LOAD`, like the other
+  assistants) **and on every logout**. Deeds are shared by everyone who opens the card: it is a demo.

@@ -65,7 +65,7 @@ A Tehran fabric wholesaler (عمده‌فروشی پارچه) with customers all
 ## The deed data extraction assistant (`deed/`, `frontend/src/deed/`)
 
 A demo for the Registration Organization (سازمان ثبت اسناد و املاک): a reviewer sends a scanned booklet deed (image, PDF or pasted text), reviews the extracted data next to the scan, confirms, and downloads JSON for the single-page deed. Details, running and known limitations in `deed/README.md`.
-- No login of its own (the card's login in `access.py` covers it), one kind of user. Its own `deed.db` (`DEED_DB_PATH`) and files (`DEED_DIR`); the live site forgets every deed on each visit (`deed_api.reset` in `/setup/reset`).
+- No login of its own (the card's login in `access.py` covers it), one kind of user. Its own `deed.db` (`DEED_DB_PATH`) and files (`DEED_DIR`); the live site forgets every deed on each visit (`deed_api.reset` in `/setup/reset`) and on every logout (`/gate/logout`, `/access/logout`), for everyone: it is a demo.
 - OCR on the server only: Tesseract (`fas`, `osd`) and poppler as command-line tools (`deed/ocr.py`), one page at a time, cached by page hash.
 - Extraction by rules (`deed/extract.py`), or by the model through `llm.py` when the card's AI switch is on (validated against `fields.PageData`, one retry, then an error; no answer falls back to rules). Every value is then looked for in the page's text: not there means null, never a guess; there gives its source line and a confidence from the OCR. Dates Jalali and real, national ID check digit, shares add up to 6 dang, pages that disagree keep both values.
 - The three samples in `deed/samples/` are drawn by `python -m deed.make_samples` (Pillow with libraqm) and committed. `tests/test_deed.py` covers it (OCR tests skip without Tesseract).
