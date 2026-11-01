@@ -3,23 +3,24 @@
 // In English and left to right: it is the front page of Pudineh Agent Center, not of one assistant.
 // Dark on purpose in both themes, so it looks the same for everyone. Not about schools: after the door comes
 // the list of assistants (HubPage), and the school assistant is one of them.
+// It wears pudineh.com's look (the dark theme of that site): warm near-black paper, cream text, one copper accent,
+// a serif for headings, thin rules and the Pudineh mark large and faint in the background. Flat, no glass or glow.
 import { ref, onMounted } from "vue"
 import { enterGate } from "../lib/gate.js"
-import AiOrb from "../components/AiOrb.vue"
-import AuroraBg from "../components/AuroraBg.vue"
+import BrandMark from "../components/core/BrandMark.vue"
 import Icon from "../components/Icon.vue"
 
 const emit = defineEmits(["entered"])
 const username = ref(""), password = ref(""), show = ref(false)
 const error = ref(""), sending = ref(false), shake = ref(false)
 const userEl = ref(null)
-// what the assistants do, floating around the card on wide screens
-const CHIPS = [
-  { text: "Works with your own data", icon: "book", tone: "a" },
-  { text: "Every number checked, never guessed", icon: "chart", tone: "b" },
-  { text: "You make the final call", icon: "check", tone: "c" },
-  { text: "Drafts the routine work for you", icon: "edit", tone: "d" },
-  { text: "One assistant for every role", icon: "users", tone: "e" },
+// what the assistants do, listed beside the card on wide screens
+const POINTS = [
+  "Works with your own data",
+  "Every number checked, never guessed",
+  "You make the final call",
+  "Drafts the routine work for you",
+  "One assistant for every role",
 ]
 onMounted(() => {
   document.title = "Pudineh Agent Center"
@@ -44,139 +45,162 @@ const fail = (msg) => {
 
 <template>
   <main class="gate" dir="ltr" lang="en">
-    <AuroraBg />
+    <!-- the big faint mark, like on pudineh.com -->
+    <BrandMark class="g-bigmark" :size="640" />
 
-    <ul class="g-chips" aria-hidden="true">
-      <li v-for="(c, i) in CHIPS" :key="c.text" :class="['g-chip', 'c' + i, 't-' + c.tone]"><Icon :name="c.icon" :size="16" />{{ c.text }}</li>
-    </ul>
+    <header class="g-top">
+      <a class="g-brand" href="https://pudineh.com" target="_blank" rel="noopener"><BrandMark :size="22" /><span>Pudineh</span></a>
+      <span class="g-tag">Agent Center</span>
+    </header>
 
-    <section :class="['g-card', { shake }]" @animationend="shake = false">
-      <div class="g-orb"><AiOrb :size="104" :busy="sending" /></div>
-      <h1>Pudineh Agent Center</h1>
-      <p class="g-sub">Demo access. Sign in to see the assistants.</p>
+    <div class="g-body">
+      <section class="g-intro">
+        <span class="g-rule" aria-hidden="true"></span>
+        <h1>Pudineh<br />Agent Center</h1>
+        <p class="g-lead">AI assistants built around the way your organization already works.</p>
+        <ol class="g-points" aria-hidden="true">
+          <li v-for="(p, i) in POINTS" :key="p" :style="{ '--i': i }"><span class="g-num">0{{ i + 1 }}</span>{{ p }}</li>
+        </ol>
+      </section>
 
-      <form class="g-form" @submit.prevent="submit" novalidate>
-        <label class="g-field">
-          <span class="g-label">Username</span>
-          <span class="g-input">
-            <Icon name="user" :size="19" />
-            <input ref="userEl" v-model="username" name="username" autocomplete="username" autocapitalize="none" spellcheck="false" dir="ltr" required />
-          </span>
-        </label>
-        <label class="g-field">
-          <span class="g-label">Password</span>
-          <span class="g-input">
-            <Icon name="lock" :size="19" />
-            <input v-model="password" name="password" :type="show ? 'text' : 'password'" autocomplete="current-password" dir="ltr" required />
-            <button type="button" class="g-eye" :aria-label="show ? 'Hide password' : 'Show password'" :aria-pressed="show" @click="show = !show">
-              <Icon :name="show ? 'eyeOff' : 'eye'" :size="19" />
-            </button>
-          </span>
-        </label>
-        <p class="g-error" role="alert">{{ error }}</p>
-        <button class="g-btn" :disabled="sending">
-          <span v-if="sending" class="g-spin" aria-hidden="true"></span>
-          <span>{{ sending ? "Signing in" : "Sign in" }}</span>
-          <Icon v-if="!sending" name="arrowRight" :size="18" />
-        </button>
-      </form>
-    </section>
+      <section :class="['g-card', { shake }]" @animationend="shake = false">
+        <h2>Sign in</h2>
+        <p class="g-sub">Demo access. Sign in to see the assistants.</p>
+
+        <form class="g-form" @submit.prevent="submit" novalidate>
+          <label class="g-field">
+            <span class="g-label">Username</span>
+            <span class="g-input">
+              <Icon name="user" :size="18" />
+              <input ref="userEl" v-model="username" name="username" autocomplete="username" autocapitalize="none" spellcheck="false" dir="ltr" required />
+            </span>
+          </label>
+          <label class="g-field">
+            <span class="g-label">Password</span>
+            <span class="g-input">
+              <Icon name="lock" :size="18" />
+              <input v-model="password" name="password" :type="show ? 'text' : 'password'" autocomplete="current-password" dir="ltr" required />
+              <button type="button" class="g-eye" :aria-label="show ? 'Hide password' : 'Show password'" :aria-pressed="show" @click="show = !show">
+                <Icon :name="show ? 'eyeOff' : 'eye'" :size="18" />
+              </button>
+            </span>
+          </label>
+          <p class="g-error" role="alert">{{ error }}</p>
+          <button class="g-btn" :disabled="sending">
+            <span v-if="sending" class="g-spin" aria-hidden="true"></span>
+            <span>{{ sending ? "Signing in" : "Sign in" }}</span>
+            <Icon v-if="!sending" name="arrowRight" :size="18" />
+          </button>
+        </form>
+      </section>
+    </div>
+
+    <footer class="g-foot">
+      <a href="mailto:info@pudineh.com">info@pudineh.com</a>
+    </footer>
   </main>
 </template>
 
 <style scoped>
 .gate {
-  /* the door is all English: the phone's own font instead of Vazirmatn (whose Latin letters are Roboto anyway), so
-     the door downloads no font at all; Vazirmatn comes with the first Persian page */
+  /* pudineh.com's dark theme */
+  --paper: #191512; --surface: #211d1a; --ink: #e8e2de; --muted: #aba19c; --rule: #36322f; --accent: #e0a785; --mark: #2a231e;
+  /* the door downloads no font: the phone's own sans for text, and a serif already on the computer for headings
+     (Cormorant Garamond like pudineh.com when installed, else Georgia) */
+  --serif: "Cormorant Garamond", "Cormorant", Georgia, "Times New Roman", serif;
   font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  --g1: #7367f0; --g2: #00bad1; --g3: #ff6fa8; --g4: #ffb057;
   position: relative; min-height: 100vh; min-height: 100dvh; overflow: hidden; isolation: isolate;
-  display: grid; grid-template-columns: minmax(0, 1fr); place-items: center; padding: max(24px, env(safe-area-inset-top)) 16px max(24px, env(safe-area-inset-bottom));
-  color: #eceaff; background: #07061a;
+  display: flex; flex-direction: column;
+  padding: max(20px, env(safe-area-inset-top)) clamp(16px, 6vw, 88px) max(20px, env(safe-area-inset-bottom));
+  color: var(--ink); background: var(--paper);
 }
+/* thin vertical rules at the edges, like the site's side lines */
+.gate::before, .gate::after { content: ""; position: absolute; top: 28%; bottom: 0; width: 1px; background: var(--rule); z-index: -1; }
+.gate::before { left: clamp(8px, 2.5vw, 32px); }
+.gate::after { right: clamp(8px, 2.5vw, 32px); }
 
-/* the glass card */
-.g-card { position: relative; width: min(100%, 410px); padding: 36px 30px 30px; border-radius: 28px; text-align: center;
-  background: linear-gradient(160deg, rgba(255,255,255,.13), rgba(255,255,255,.04));
-  border: 1px solid rgba(255,255,255,.16); backdrop-filter: blur(22px) saturate(140%); -webkit-backdrop-filter: blur(22px) saturate(140%);
-  box-shadow: 0 30px 80px -20px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.2);
-  animation: g-in .9s cubic-bezier(.2,.9,.25,1.1) both; }
-.g-card::before { content: ""; position: absolute; inset: -1px; border-radius: inherit; padding: 1px; pointer-events: none;
-  background: conic-gradient(from var(--a, 0deg), transparent 0 60%, var(--g2), var(--g1), var(--g3), transparent 95%);
-  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude;
-  animation: g-ring 6s linear infinite; z-index: 0; }
-/* the card's content sits above the animated ring: under a moving layer, Safari may not draw the fields' blinking
-   caret, and an empty field then looks as if it took no typing */
-.g-card > * { position: relative; z-index: 1; }
+.g-bigmark { position: absolute; z-index: -1; right: -6vw; bottom: -14vh; width: min(78vh, 640px); height: auto; color: var(--mark); pointer-events: none; }
+
+.g-top { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.g-brand { display: inline-flex; align-items: center; gap: 10px; color: var(--ink); text-decoration: none; font-family: var(--serif); font-size: 20px; }
+.g-brand .brand-mark { color: var(--accent); }
+.g-brand:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
+.g-tag { font-size: 12px; letter-spacing: .16em; text-transform: uppercase; color: var(--muted); }
+
+.g-body { flex: 1; display: grid; grid-template-columns: minmax(0, 1fr); align-items: center; justify-items: center; gap: 28px; padding: 28px 0; }
+
+.g-intro { width: min(100%, 410px); }
+.g-rule { display: block; width: 36px; height: 2px; background: var(--accent); margin-bottom: 18px; }
+h1 { margin: 0; font-family: var(--serif); font-weight: 500; font-size: 34px; line-height: 1.12; letter-spacing: -.01em; color: var(--ink); }
+.g-lead { margin: 12px 0 0; color: var(--muted); font-size: 15px; line-height: 1.6; max-width: 34ch; }
+.g-points { display: none; }
+
+/* the sign-in card: flat, one hairline border */
+.g-card { position: relative; width: min(100%, 410px); padding: 30px 28px 28px; border-radius: 6px;
+  background: var(--surface); border: 1px solid var(--rule); box-shadow: 0 30px 60px -30px rgba(0,0,0,.7);
+  animation: g-in .8s cubic-bezier(.2,.9,.25,1) both; }
 .g-card.shake { animation: g-shake .45s cubic-bezier(.36,.07,.19,.97); }
-.g-orb { display: grid; place-items: center; margin: -4px auto 8px; filter: drop-shadow(0 10px 30px rgba(115,103,240,.55)); }
-.g-orb :deep(.orb) { --primary: #8f85ff; --info: #2fd6ea; }
-h1 { margin: 0; font-size: 26px; font-weight: 700; line-height: 1.5;
-  background: linear-gradient(90deg, #fff, #c9c3ff 45%, #8fefff); -webkit-background-clip: text; background-clip: text; color: transparent; }
-.g-sub { margin: 4px 0 24px; color: #b7b3d9; font-size: 14px; }
+h2 { margin: 0; font-family: var(--serif); font-weight: 500; font-size: 28px; line-height: 1.2; color: var(--ink); }
+.g-sub { margin: 6px 0 24px; color: var(--muted); font-size: 14px; }
 
-.g-form { display: flex; flex-direction: column; gap: 14px; text-align: left; }
-.g-field { display: flex; flex-direction: column; gap: 6px; }
-.g-label { font-size: 13px; font-weight: 700; color: #d6d3f5; letter-spacing: .02em; }
-.g-input { display: flex; align-items: center; gap: 10px; padding: 0 14px; height: 52px; border-radius: 14px;
-  background: rgba(10,9,32,.55); border: 1px solid rgba(255,255,255,.14); color: #9a96c4; transition: border-color .2s, box-shadow .2s, background .2s; }
-.g-input:focus-within { border-color: #8f85ff; background: rgba(10,9,32,.75); box-shadow: 0 0 0 4px rgba(143,133,255,.22); color: #c9c3ff; }
-.g-input input { flex: 1; min-width: 0; height: 100%; border: 0; outline: 0; background: transparent; color: #fff;
+.g-form { display: flex; flex-direction: column; gap: 16px; text-align: left; }
+.g-field { display: flex; flex-direction: column; gap: 7px; }
+.g-label { font-size: 11.5px; font-weight: 600; color: var(--muted); letter-spacing: .14em; text-transform: uppercase; }
+.g-input { display: flex; align-items: center; gap: 10px; padding: 0 14px; height: 50px; border-radius: 4px;
+  background: var(--paper); border: 1px solid var(--rule); color: #7d736d; transition: border-color .2s, color .2s; }
+.g-input:focus-within { border-color: var(--accent); color: var(--accent); }
+.g-input input { flex: 1; min-width: 0; height: 100%; border: 0; outline: 0; background: transparent; color: var(--ink);
   font: inherit; font-size: 16px; text-align: left; letter-spacing: .02em; }
-.g-input input:-webkit-autofill { -webkit-text-fill-color: #fff; transition: background-color 9999s; caret-color: #fff; }
-.g-eye { display: grid; place-items: center; width: 40px; height: 40px; margin-inline-end: -8px; border: 0; border-radius: 10px; background: transparent; color: inherit; cursor: pointer; }
-.g-eye:hover, .g-eye:focus-visible { color: #fff; background: rgba(255,255,255,.08); outline: none; }
-.g-error { min-height: 22px; margin: -2px 0 0; font-size: 13px; color: #ffa3b0; }
+.g-input input:-webkit-autofill { -webkit-text-fill-color: var(--ink); transition: background-color 9999s; caret-color: var(--ink); }
+.g-eye { display: grid; place-items: center; width: 40px; height: 40px; margin-inline-end: -8px; border: 0; border-radius: 4px; background: transparent; color: inherit; cursor: pointer; }
+.g-eye:hover, .g-eye:focus-visible { color: var(--ink); background: rgba(232,226,222,.06); outline: none; }
+.g-error { min-height: 22px; margin: -4px 0 0; font-size: 13px; color: #f0a593; }
 
-.g-btn { position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; gap: 10px; height: 54px;
-  border: 0; border-radius: 15px; cursor: pointer; color: #fff; font: inherit; font-size: 16px; font-weight: 700;
-  background: linear-gradient(110deg, #6a5cf5, #8f6bff 45%, #1fb8d6); background-size: 180% 100%; background-position: 0 0;
-  box-shadow: 0 14px 30px -10px rgba(115,103,240,.8); transition: background-position .5s, transform .15s, box-shadow .2s; }
-.g-btn::after { content: ""; position: absolute; inset: 0; transform: translateX(120%) skewX(-20deg);
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,.35), transparent); animation: g-shine 3.6s ease-in-out 1.2s infinite; }
-.g-btn:hover { background-position: 100% 0; box-shadow: 0 18px 36px -10px rgba(31,184,214,.7); }
-.g-btn:active { transform: scale(.98); }
-.g-btn:focus-visible { outline: 3px solid #8fefff; outline-offset: 3px; }
+.g-btn { display: flex; align-items: center; justify-content: center; gap: 10px; height: 52px; margin-top: 2px;
+  border: 0; border-radius: 4px; cursor: pointer; color: var(--paper); font: inherit; font-size: 15.5px; font-weight: 600; letter-spacing: .02em;
+  background: var(--accent); transition: background .2s, transform .15s; }
+.g-btn .ico { transition: transform .2s; }
+.g-btn:hover { background: #ebbb9e; }
+.g-btn:hover .ico { transform: translateX(3px); }
+.g-btn:active { transform: scale(.985); }
+.g-btn:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
 .g-btn:disabled { cursor: wait; opacity: .85; }
-.g-spin { width: 18px; height: 18px; border-radius: 50%; border: 2.5px solid rgba(255,255,255,.35); border-top-color: #fff; animation: g-rot .8s linear infinite; }
+.g-spin { width: 17px; height: 17px; border-radius: 50%; border: 2.5px solid rgba(25,21,18,.3); border-top-color: var(--paper); animation: g-rot .8s linear infinite; }
 
-/* phones and touch screens: no frosted glass (see HubPage: iPhone Safari draws such cards wrong) */
-@media (hover: none), (max-width: 767px) {
-  .g-card { backdrop-filter: none; -webkit-backdrop-filter: none; isolation: isolate; background: linear-gradient(165deg, rgba(48,45,96,.92), rgba(20,19,46,.94)); }
+.g-foot { display: flex; justify-content: center; font-size: 12.5px; letter-spacing: .06em; }
+.g-foot a { color: var(--muted); text-decoration: none; }
+.g-foot a:hover, .g-foot a:focus-visible { color: var(--accent); outline: none; }
+
+/* wide screens: the site's hero on the left, the card on the right */
+@media (min-width: 960px) {
+  .g-body { grid-template-columns: minmax(0, 1fr) 410px; justify-items: stretch; gap: clamp(40px, 7vw, 120px); max-width: 1120px; width: 100%; margin: 0 auto; }
+  .g-intro { width: auto; }
+  h1 { font-size: clamp(48px, 5.2vw, 68px); line-height: 1.04; }
+  .g-lead { font-size: 16px; margin-top: 18px; }
+  .g-points { display: block; list-style: none; margin: 36px 0 0; padding: 0; max-width: 380px; border-top: 1px solid var(--rule); }
+  .g-points li { display: flex; align-items: baseline; gap: 14px; padding: 11px 0; border-bottom: 1px solid var(--rule); font-size: 14.5px; color: var(--ink);
+    opacity: 0; animation: g-up .6s ease forwards; animation-delay: calc(.35s + var(--i) * .08s); }
+  .g-num { font-size: 12px; color: var(--accent); font-variant-numeric: tabular-nums; }
+  .g-foot { justify-content: flex-end; }
 }
-/* chips floating around the card (wide screens only) */
-.g-chips { display: none; }
-@media (min-width: 1000px) {
-  .g-chips { display: block; position: absolute; inset: 0; margin: 0; padding: 0; list-style: none; pointer-events: none; }
-  .g-chip { position: absolute; display: inline-flex; align-items: center; gap: 8px; padding: 9px 16px; border-radius: 999px; font-size: 13.5px; color: #e9e7ff;
-    background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.14); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
-    box-shadow: 0 10px 30px -12px rgba(0,0,0,.6); opacity: 0; animation: g-chip-in .8s ease forwards, g-bob 7s ease-in-out infinite alternate; }
-  .g-chip .ico { color: var(--c); }
-  .t-a { --c: #a99fff; } .t-b { --c: #5fe3f3; } .t-c { --c: #ff8fbc; } .t-d { --c: #ffc27a; } .t-e { --c: #7ef0b0; }
-  .c0 { top: 16%; right: 9%; animation-delay: .5s, 0s; }
-  .c1 { top: 44%; right: 4%; animation-delay: .7s, 1.2s; }
-  .c2 { bottom: 15%; right: 12%; animation-delay: .9s, .6s; }
-  .c3 { top: 22%; left: 8%; animation-delay: .8s, 1.8s; }
-  .c4 { bottom: 22%; left: 6%; animation-delay: 1s, .3s; }
+@media (max-width: 767px) {
+  .gate::before, .gate::after { display: none; }
+  .g-bigmark { width: 130vw; right: -45vw; bottom: -20vh; }
 }
 @media (max-width: 420px) {
-  .g-card { padding: 30px 20px 22px; border-radius: 24px; }
-  h1 { font-size: 23px; }
+  .g-card { padding: 26px 20px 22px; }
+  h1 { font-size: 30px; }
 }
 
 /* the card slides up but does not fade in: text that starts invisible counts as not shown until the fade ends,
    which held back the page's first paint (PageSpeed's LCP) by about 0.7 s */
-@keyframes g-in { from { transform: translateY(26px) scale(.96); } to { transform: none; } }
+@keyframes g-in { from { transform: translateY(20px); } to { transform: none; } }
+@keyframes g-up { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 @keyframes g-shake { 10%, 90% { transform: translateX(-2px); } 20%, 80% { transform: translateX(4px); } 30%, 50%, 70% { transform: translateX(-8px); } 40%, 60% { transform: translateX(8px); } }
-@keyframes g-shine { 0% { transform: translateX(120%) skewX(-20deg); } 35%, 100% { transform: translateX(-160%) skewX(-20deg); } }
 @keyframes g-rot { to { transform: rotate(360deg); } }
-@keyframes g-chip-in { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; } }
-@keyframes g-bob { from { translate: 0 0; } to { translate: 0 -12px; } }
-@property --a { syntax: "<angle>"; initial-value: 0deg; inherits: false; }
-@keyframes g-ring { to { --a: 360deg; } }
 
 @media (prefers-reduced-motion: reduce) {
   .gate *, .gate *::before, .gate *::after, .gate { animation-duration: .01ms !important; animation-iteration-count: 1 !important; }
-  .g-chip { opacity: 1; }
+  .g-points li { opacity: 1; }
 }
 </style>
