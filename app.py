@@ -8,6 +8,7 @@ from pydantic import BaseModel
 from common import normalize, embed, collection
 import llm, offline
 from llm import ask_llm
+from openai import APIError
 from auth import get_token, current_user
 import db
 import gate
@@ -187,7 +188,7 @@ def rewrite(question):
     return out
 
 def search(queries, role):
-    vectors = embed(queries)
+    vectors = embed(queries, timeout=llm.TIMEOUT)
     r = collection().query(query_embeddings=vectors, n_results=5, where={f"access_{role}": True})
     best = {}
     for ids, docs, metas, dists in zip(r["ids"], r["documents"], r["metadatas"], r["distances"]):
@@ -222,6 +223,12 @@ def answer_question(q, role):
         return {"answer": UNCLEAR, "sources": []}
     if not llm.ai_on():
         return answer_offline(q, role)
+    try:
+        return answer_online(q, role)
+    except (llm.ModelDown, APIError):   # the model or the embedding did not answer in time: the same answer as with the AI off
+        return answer_offline(q, role)
+
+def answer_online(q, role):
     formal = rewrite(q)
     if formal is None:
         return {"answer": UNCLEAR, "sources": []}

@@ -1,5 +1,5 @@
 """Rule: numbers are computed by code; the model only writes text. Model output with numbers is checked."""
-import fake_llm, pytest
+import time, fake_llm, pytest
 from conftest import Client, db, add_letter, run_agent
 
 def test_parent_answer_with_wrong_numbers_uses_code_answer():
@@ -62,27 +62,39 @@ def test_unknown_label_from_model_means_unclear():
 def test_think_tags_are_removed():
     assert "<think>" not in Client("vali").post("/parent/ask", {"question": "وضعیت ریاضیش چطوره؟"}).json()["answer"]
 
-def test_briefing_model_down_gives_503():
+def test_briefing_model_down_falls_back_to_code():
     add_letter("بخشنامه آزمون برای پاک شدن خلاصه", "این بخشنامه فقط برای اطلاع است.")
     run_agent()                      # handling a letter clears the cached morning summary
     fake_llm.MODE = "down"
-    assert Client("modir").get("/manager/briefing").status_code == 503
+    r = Client("modir").get("/manager/briefing")
+    assert r.status_code == 200 and "دانش‌آموز حاضرند" in r.json()["text"]
 
-def test_insight_model_down_gives_503():
+def test_insight_model_down_falls_back_to_code():
     Client("moshaver").post("/counselor/students/2/notes", {"note": "یادداشت آزمون قطعی"})   # new note: not cached
     fake_llm.MODE = "down"
-    assert Client("moshaver").get("/counselor/students/2/insight").status_code == 503
+    r = Client("moshaver").get("/counselor/students/2/insight")
+    assert r.status_code == 200 and r.json()["text"]
+
+def test_slow_model_is_not_waited_for():
+    """The model answers after 5 s; the app waits 2 s (LLM_TIMEOUT), then answers with text built by code."""
+    Client("moshaver").post("/counselor/students/3/notes", {"note": "یادداشت آزمون کندی"})   # new note: not cached
+    fake_llm.MODE = "slow"
+    start = time.monotonic()
+    r = Client("moshaver").get("/counselor/students/3/insight")
+    assert r.status_code == 200 and r.json()["text"] and time.monotonic() - start < 4.5
+    start = time.monotonic()
+    r = Client("moshaver").post("/chat", {"question": "ساعت کار کارکنان اداری چقدر است؟"})
+    assert r.status_code == 200 and r.json()["answer"] and time.monotonic() - start < 4.5
 
 def test_parent_report_falls_back_when_model_down():
     fake_llm.MODE = "down"
     r = Client("vali").get("/parent/report")
     assert r.status_code == 200 and r.json()["text"]
 
-def test_agent_puts_letter_back_when_model_down():
+def test_agent_reads_letters_by_keywords_when_model_down():
     fake_llm.MODE = "down"
     add_letter("نامه آزمون قطعی", "متن نامه برای آزمون قطعی مدل است.")
-    assert Client("edari").post("/staff/agent/next").status_code == 503
+    assert Client("edari").post("/staff/agent/next").status_code == 200
     with db() as c:
         assert c.execute("SELECT COUNT(*) FROM letters WHERE status = 'processing'").fetchone()[0] == 0
-    fake_llm.MODE = "good"
     run_agent()

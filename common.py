@@ -16,8 +16,10 @@ def normalize(t: str) -> str:
 embed_client = OpenAI(base_url=os.getenv("EMBED_BASE_URL"), api_key=os.getenv("EMBED_API_KEY"))
 EMBED_MODEL = os.getenv("EMBED_MODEL")
 
-def embed(texts):
-    r = embed_client.embeddings.create(model=EMBED_MODEL, input=texts)
+def embed(texts, timeout=None):
+    """timeout: seconds to wait (None: the client's default, for ingest.py's big batches)."""
+    r = (embed_client.with_options(timeout=timeout, max_retries=0) if timeout else embed_client).embeddings.create(
+        model=EMBED_MODEL, input=texts)
     return [d.embedding for d in r.data]
 
 def collection():

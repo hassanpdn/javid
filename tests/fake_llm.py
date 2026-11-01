@@ -6,11 +6,13 @@ badnum  every number replaced with 97 (the app must notice and use its own answe
 nojson  prose where JSON was asked for
 evil    classifier always says "ack", picks invalid recipients, and writes a diagnosis plus a comparison
 down    HTTP 500 for every chat request
+slow    answers only after SLOW seconds, longer than the app waits (LLM_TIMEOUT in serve.py)
 """
-import hashlib, json, re, threading
+import hashlib, json, re, threading, time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 MODE = "good"
+SLOW = 5
 CALLS = []   # every chat request the app sent: {"system": ..., "user": ...}
 
 def embedding(text, dim=64):
@@ -66,6 +68,8 @@ class Handler(BaseHTTPRequestHandler):
         else:
             if MODE == "down":
                 self.send_response(500); self.end_headers(); return
+            if MODE == "slow":
+                time.sleep(SLOW)
             system = next((m["content"] for m in body["messages"] if m["role"] == "system"), "")
             user = next((m["content"] for m in body["messages"] if m["role"] == "user"), "")
             CALLS.append({"system": system, "user": user})

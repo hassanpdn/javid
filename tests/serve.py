@@ -16,7 +16,7 @@ def start():
     llm = f"http://127.0.0.1:{LLM_PORT}/v1"
     env = {**os.environ, "DB_PATH": os.path.join(tmp, "school.db"), "CHROMA_PATH": os.path.join(tmp, "db"),
            "LLM_BASE_URL": llm, "EMBED_BASE_URL": llm, "LLM_API_KEY": "x", "EMBED_API_KEY": "x",
-           "LLM_MODEL": "fake", "EMBED_MODEL": "fake", "DEMO_TODAY": TODAY, "KEEP_DB": "1",
+           "LLM_MODEL": "fake", "EMBED_MODEL": "fake", "LLM_TIMEOUT": "2", "DEMO_TODAY": TODAY, "KEEP_DB": "1",
            "SIMILARITY_THRESHOLD": "0.1", "SCHOOL_PATH": os.path.join(tmp, "school.json"),
            "FABRIC_PATH": os.path.join(tmp, "fabric.json"), "FABRIC_DB_PATH": os.path.join(tmp, "fabric.db"),
            "FABRIC_DIR": os.path.join(tmp, "fabric_files"),

@@ -12,7 +12,7 @@ surely the OCR read that line. Pages that disagree keep both values for the revi
 """
 import math, re
 from pydantic import ValidationError
-from llm import ask_json, ModelOff
+from llm import ask_json, ModelOff, ModelDown
 from . import fields as F
 from .fields import clean, SCALARS, BOUNDARIES
 
@@ -20,9 +20,6 @@ MODEL_TIMEOUT = 90   # seconds for one model answer
 
 class ExtractError(Exception):
     """The model gave no usable answer twice; the message is for the reviewer."""
-
-class ModelDown(Exception):
-    """The model did not answer in time or could not be reached: the page is read by rules instead."""
 
 # ---------- rules ----------
 
@@ -88,7 +85,7 @@ def by_model(text):
     for _ in range(2):
         try:
             got = ask_json(PROMPT + note, text, max_tokens=1200, timeout=MODEL_TIMEOUT)
-        except ModelOff:
+        except ModelOff:   # switched off, or ModelDown: the caller reads the page by rules
             raise
         except Exception:
             raise ModelDown()
@@ -254,10 +251,10 @@ def extract(pages, use_model=True):
         if method == "model":
             try:
                 data = by_model(text)
+            except ModelDown:   # before ModelOff: ModelDown is a kind of it
+                method, down = "rules", True
             except ModelOff:
                 method = "rules"
-            except ModelDown:
-                method, down = "rules", True
         if data is None:
             data = rules(text)
         out.append(page_fields(data, p["lines"], p["n"]))
