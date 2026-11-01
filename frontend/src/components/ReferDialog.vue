@@ -31,7 +31,8 @@ const toggle = (k) => { picked.value = picked.value.includes(k) ? picked.value.f
 const applySuggestion = () => { picked.value = [...new Set([...picked.value, ...suggestion.keys])] }
 const draftParent = async () => {
   parent.loading = true
-  try { parent.text = (await api(`/staff/letters/${props.letter.id}/parent-draft`, {})).text } catch {}
+  try { parent.text = (await api(`/staff/letters/${props.letter.id}/parent-draft`, {})).text }
+  catch { error.value = "پیش‌نویس پیام اولیا آماده نشد؛ می‌توانید متن را خودتان بنویسید." }
   finally { parent.loading = false }
 }
 // the first time a parent group is picked, the agent writes the parent message automatically

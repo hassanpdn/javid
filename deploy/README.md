@@ -15,7 +15,13 @@ The demo runs on 89.45.89.72 at https://agent.pudineh.com.
 runs `/usr/local/bin/javid-deploy` on the server over SSH. No tests run there. That script (a copy of
 `deploy/javid-deploy.sh`) only fetches `main` and then runs `deploy/after-update.sh` from the new code: libraries when
 `requirements.txt` changed, the document search when `docs/` changed, the demo data when `seed.py` or `db.py` changed
-(this wipes what was done in the demo so far), then a restart.
+(this wipes what was done in the demo so far), then a restart, then a check that the app answers on
+`127.0.0.1:8000` within a minute.
+
+If any of those steps fails, or the app does not answer, the script puts the server back on the commit it was on
+(code, libraries, document search and demo data), restarts that, and exits with an error, so the GitHub Actions run
+shows red. `main` still has the broken commit: fix it and push again. To go back to an older version by hand,
+`git revert` the commit and push; the revert deploys like any change.
 
 One-time server setup, as root:
 

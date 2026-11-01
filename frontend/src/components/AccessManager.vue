@@ -7,10 +7,12 @@ import Icon from "./Icon.vue"
 import AccessForm from "./AccessForm.vue"
 
 const props = defineProps({ assistants: Array })
-const list = ref([]), loading = ref(true), editing = ref(null), adding = ref(false), removing = ref(null)
+const list = ref([]), loading = ref(true), editing = ref(null), adding = ref(false), removing = ref(null), error = ref("")
 
+// a failed call says so: an empty list must mean "nobody yet", never "the list did not load"
 const load = async () => {
-  try { list.value = await accessCall("/access/people") } catch {}
+  try { list.value = await accessCall("/access/people"); error.value = "" }
+  catch (e) { error.value = "فهرست دسترسی‌ها بارگیری نشد: " + e.message }
   loading.value = false
 }
 onMounted(load)
@@ -18,9 +20,8 @@ onMounted(load)
 const app = (key) => props.assistants.find((a) => a.key === key) || { title: key, icon: "sparkles", hue: "violet" }
 const lastLogin = (sec) => sec ? "آخرین ورود: " + new Date(sec * 1000).toLocaleDateString("fa-IR", { day: "numeric", month: "long" }) : "هنوز وارد نشده"
 const remove = async (p) => {
-  try { await accessCall(`/access/people/${p.id}/delete`, {}) } catch {}
-  removing.value = null
-  await load()
+  try { await accessCall(`/access/people/${p.id}/delete`, {}); removing.value = null; await load() }
+  catch (e) { removing.value = null; error.value = `دسترسی «${p.name}» برداشته نشد: ${e.message}` }
 }
 </script>
 
@@ -34,10 +35,11 @@ const remove = async (p) => {
       <button class="am-add" @click="adding = true"><Icon name="plus" :size="18" />دسترسی جدید</button>
     </header>
 
+    <p v-if="error" class="am-error" role="alert"><Icon name="alert" :size="16" />{{ error }}</p>
     <div v-if="loading" class="am-grid">
       <div v-for="n in 2" :key="n" class="am-person am-skel"><i></i><span><b></b><em></em></span></div>
     </div>
-    <div v-else-if="!list.length" class="am-empty">
+    <div v-else-if="!list.length && !error" class="am-empty">
       <span class="am-empty-icon"><Icon name="userCheck" :size="28" /></span>
       <b>هنوز به کسی دسترسی نداده‌اید</b>
       <p>با «دسترسی جدید» برای هر نفر نام کاربری و رمز بسازید و دستیارهایی را که می‌بیند انتخاب کنید.</p>
@@ -121,6 +123,8 @@ const remove = async (p) => {
 .am-btn:hover, .am-btn:focus-visible { color: #fff; background: rgba(255,255,255,.14); outline: none; }
 .am-btn.danger { color: #fff; background: #c93a55; border-color: #c93a55; }
 
+.am-error { display: flex; align-items: center; gap: 8px; margin: 0 0 12px; padding: 10px 14px; border-radius: 14px; font-size: 13.5px;
+  color: #ffb4b6; background: rgba(255,92,97,.12); border: 1px solid rgba(255,92,97,.3); }
 .am-empty { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 28px 16px; text-align: center; border-radius: 20px;
   border: 1px dashed rgba(255,255,255,.18); }
 .am-empty-icon { display: grid; place-items: center; width: 60px; height: 60px; border-radius: 50%; color: #c9c3ff; background: rgba(143,133,255,.16); }
