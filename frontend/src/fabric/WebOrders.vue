@@ -2,7 +2,7 @@
 // «سفارش‌های سایت»: what the website's assistant took. Not paid yet: once the customer pays (or a cheque or
 // credit is agreed) the seller turns it into an invoice, which goes into all three files like a phone sale.
 import { ref, reactive, onMounted } from "vue"
-import { api, fa } from "../lib/api.js"
+import { api, fa, retryable } from "../lib/api.js"
 import { toast } from "../lib/notify.js"
 import { money, meters, num } from "./lib.js"
 import Icon from "../components/Icon.vue"
@@ -11,7 +11,7 @@ import Skeleton from "../components/Skeleton.vue"
 const emit = defineEmits(["shop"])
 const list = ref(null), pay = reactive({}), busy = ref(0), done = reactive({})
 const load = async () => { list.value = await api("/fabric/web-orders") }
-onMounted(load)
+onMounted(() => retryable(load))
 defineExpose({ load })
 const invoice = async (o) => {
   busy.value = o.id

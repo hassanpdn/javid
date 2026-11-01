@@ -322,3 +322,19 @@ test("first-visit guide: shown once, can be skipped or closed, comes back from t
   await expect(pop).toHaveCount(0)
   expect(errors).toEqual([])
 })
+
+test("weak connection: a panel whose data does not arrive says so, and «دوباره امتحان کنید» loads it", async ({ page }) => {
+  const errors = noPageErrors(page)
+  let cut = true
+  // the counselor's list gets no answer at all (both tries), as on a dropped mobile connection
+  await page.route("**/counselor/students", (route) => cut ? route.abort("timedout") : route.continue())
+  await loginAs(page, "مشاور")
+  const toast = page.locator(".toast", { hasText: "دوباره امتحان کنید" })
+  await expect(toast).toBeVisible({ timeout: 15_000 })
+  await expect(page.locator(".toast")).toContainText("اتصال کند است")
+  cut = false
+  await toast.locator(".toast-action").click()
+  await expect(toast).toHaveCount(0)
+  await expect(page.locator(".student-row").first()).toBeVisible()
+  expect(errors).toEqual([])
+})

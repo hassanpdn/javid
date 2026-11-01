@@ -1,7 +1,7 @@
 <script setup>
 // Manager dashboard: today's brief, attendance, alerts that need a decision, 10-day trend
 import { ref, reactive, computed, watch, onMounted, onUnmounted, defineAsyncComponent } from "vue"
-import { api, fa, session, lockScroll } from "../lib/api.js"
+import { api, fa, session, lockScroll, retryable } from "../lib/api.js"
 import { DOCS_CHAT } from "../lib/constants.js"
 import { toast, busy, idle } from "../lib/notify.js"
 import { MANAGER, MANAGER_LETTERS } from "../lib/tours.js"
@@ -66,7 +66,7 @@ watch(() => draft.open || !!drawer.value, lockScroll)
 const onNotify = () => load()
 onMounted(async () => {
   window.addEventListener("notifications-changed", onNotify)
-  await load()
+  await retryable(load)
   busy("brief", "دستیار در حال نوشتن خلاصه‌ی امروز")
   try { brief.value = (await api("/manager/briefing")).text } catch { brief.value = "خلاصه امروز در دسترس نیست." }
   finally { idle("brief") }

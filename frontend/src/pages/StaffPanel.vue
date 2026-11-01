@@ -1,7 +1,7 @@
 <script setup>
 // Staff: smart letter inbox. The agent reads queued letters one by one; people approve replies.
 import { ref, reactive, computed, watch, onMounted, onUnmounted, defineAsyncComponent } from "vue"
-import { api, fa, lockScroll } from "../lib/api.js"
+import { api, fa, lockScroll, retryable } from "../lib/api.js"
 import { CATEGORY_OPTIONS, DOCS_CHAT } from "../lib/constants.js"
 import { STAFF } from "../lib/tours.js"
 import AppLayout from "../components/AppLayout.vue"
@@ -80,7 +80,7 @@ const addLetter = async () => {
   } catch (e) { compose.error = e.message } finally { compose.saving = false }
 }
 watch(() => !!open.value || compose.open || !!referring.value, lockScroll)
-onMounted(async () => { await load(); runAgent() })
+onMounted(() => retryable(async () => { await load(); runAgent() }))
 onUnmounted(() => lockScroll(false))
 </script>
 

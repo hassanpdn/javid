@@ -1,7 +1,7 @@
 <script setup>
 // Counselor: students who need attention, with their file in a drawer
 import { ref, computed, watch, onMounted, onUnmounted, defineAsyncComponent } from "vue"
-import { api, fa, lockScroll } from "../lib/api.js"
+import { api, fa, lockScroll, retryable } from "../lib/api.js"
 import { groupSignals, DOCS_CHAT } from "../lib/constants.js"
 import { COUNSELOR } from "../lib/tours.js"
 import AppLayout from "../components/AppLayout.vue"
@@ -29,7 +29,7 @@ const stats = computed(() => [
 ])
 const load = async () => { list.value = await api("/counselor/students"); loaded.value = true }
 watch(() => !!openId.value, lockScroll)
-onMounted(load)
+onMounted(() => retryable(load))
 onUnmounted(() => lockScroll(false))
 </script>
 

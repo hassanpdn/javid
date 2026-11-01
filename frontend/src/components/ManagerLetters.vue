@@ -2,7 +2,7 @@
 // The manager's letters: decide on what the office sent up, mark letters sent for information as seen,
 // and look at what the office still has open. The office writes and sends the formal replies; the manager decides.
 import { ref, reactive, computed, watch, onMounted, onUnmounted } from "vue"
-import { api, fa, lockScroll } from "../lib/api.js"
+import { api, fa, lockScroll, retryable } from "../lib/api.js"
 import { toast, busy, idle } from "../lib/notify.js"
 import Icon from "./Icon.vue"
 import Skeleton from "../components/Skeleton.vue"
@@ -65,13 +65,13 @@ const markSeen = async (l) => {
   await done()
 }
 watch(() => !!open.value, lockScroll)
-onMounted(async () => {
+onMounted(() => retryable(async () => {
   await load()
   const d = data.value, l = props.focus && [...d.decide, ...d.info, ...d.office].find((x) => x.id === props.focus)
   if (l) show(l)
   await runAgent()
   emit("ready")
-})
+}))
 onUnmounted(() => { lockScroll(false); idle("agent") })
 </script>
 

@@ -4,7 +4,7 @@ import { api, fa } from "../lib/api.js"
 export const getInfo = () => api("/deed/info")
 export const listDocs = () => api("/deed/documents")
 export const getDoc = (id) => api(`/deed/documents/${id}`)
-export const uploadFile = (name, data) => api("/deed/documents", { name, data })
+export const uploadFile = (name, data) => api("/deed/documents", { name, data }, { timeout: 300_000 })   // up to 10 MB on a slow line
 export const pasteText = (name, text) => api("/deed/documents/text", { name, text })
 export const openSample = (key) => api(`/deed/samples/${key}`, {})
 export const extractAgain = (id) => api(`/deed/documents/${id}/extract`, {})

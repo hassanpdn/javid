@@ -1,6 +1,7 @@
 import { reactive } from "vue"
 import { gate } from "./gate.js"
 import { accessDenied } from "./access.js"
+import { toast, toasts } from "./notify.js"
 
 // localStorage can throw (private window, blocked storage), so every access is wrapped
 export const store = {
@@ -22,12 +23,41 @@ export const setFabricSession = (token, user) => { fabricSession.token = token; 
 export const clearFabricSession = () => { fabricSession.token = null; fabricSession.user = null; store.del("fabric_token") }
 const isFabric = (path) => path.startsWith("/fabric/")
 
-export async function api(path, body) {
-  const res = await fetch(path, {
-    method: body ? "POST" : "GET",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${(isFabric(path) ? fabricSession.token : session.token) || ""}` },
-    body: body ? JSON.stringify(body) : undefined,
-  })
+// On a weak mobile connection a request can hang with no answer at all. So every request has a time limit (20 s for
+// reading, 60 s for sending; opts.timeout for a big upload), a read is sent once more if the first try got nothing,
+// and a request that gets no answer fails with a plain message (error.connection is true) instead of waiting forever.
+const SLOW = "پاسخ سرور خیلی دیر شد؛ اتصال اینترنت کند است. دوباره امتحان کنید."
+const DOWN = "ارتباط با سرور برقرار نشد. اتصال اینترنت را بررسی کنید و دوباره امتحان کنید."
+function connectionError(message) {
+  const e = new Error(message)
+  e.connection = true
+  return e
+}
+async function send(path, body, timeout) {
+  const stop = new AbortController()
+  const timer = setTimeout(() => stop.abort(), timeout)
+  try {
+    return await fetch(path, {
+      method: body ? "POST" : "GET",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${(isFabric(path) ? fabricSession.token : session.token) || ""}` },
+      body: body ? JSON.stringify(body) : undefined,
+      signal: stop.signal,
+    })
+  } catch (e) {
+    throw connectionError(e.name === "AbortError" ? SLOW : DOWN)
+  } finally {
+    clearTimeout(timer)
+  }
+}
+
+export async function api(path, body, opts = {}) {
+  const timeout = opts.timeout || (body ? 60_000 : 20_000)
+  let res
+  try { res = await send(path, body, timeout) }
+  catch (e) {
+    if (body) throw e                       // sending is not repeated by itself: it might have arrived
+    res = await send(path, body, timeout)   // reading is: one more try
+  }
   if (res.status === 401 && path !== "/login" && path !== "/fabric/login") {
     // "site": the site's own door (gate.py) is closed for this browser, so the door page comes back
     const d = await res.clone().json().catch(() => ({}))
@@ -44,3 +74,15 @@ export async function api(path, body) {
 
 // While a dialog or drawer is open, the page behind it should not scroll
 export const lockScroll = (on) => document.body.classList.toggle("no-scroll", !!on)
+
+// For a page's first load: if it fails, a toast says so with «دوباره امتحان کنید», which runs the same load again,
+// so the page never sits on its skeleton without a word. One such toast at a time.
+export async function retryable(load) {
+  try { await load() }
+  catch (e) {
+    if (e.message === "site" || e.message === "access" || e.message === "401") return   // handled by api() itself
+    if (toasts.some((t) => t.retry)) return
+    toast({ retry: true, tone: "warning", timeout: 0, title: e.connection ? "اتصال کند است" : "اطلاعات این صفحه نرسید",
+            body: e.message, action: { label: "دوباره امتحان کنید", run: () => retryable(load) } })
+  }
+}

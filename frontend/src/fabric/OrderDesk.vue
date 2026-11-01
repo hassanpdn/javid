@@ -3,7 +3,7 @@
 // as it is said, and the assistant turns it into a draft invoice (matched to the stock, priced, checked).
 // Nothing is saved until the seller confirms; then it goes into the sales, stock and accounts files.
 import { ref, reactive, computed, watch, onMounted } from "vue"
-import { api, fa } from "../lib/api.js"
+import { api, fa, retryable } from "../lib/api.js"
 import { toast, busy, idle } from "../lib/notify.js"
 import { money, num, meters } from "./lib.js"
 import Icon from "../components/Icon.vue"
@@ -17,10 +17,10 @@ const pay = reactive({ payment: "چک", days: 45, bank: "ملت", number: "" })
 const stock = ref({}), cardRef = ref(null)
 const BANKS = ["ملت", "ملی", "صادرات", "تجارت", "سپه", "پاسارگاد", "رسالت"]
 
-onMounted(async () => {
+onMounted(() => retryable(async () => {
   frequent.value = (await api("/fabric/customers")).slice(0, 6)
   stock.value = Object.fromEntries((await api("/fabric/stock")).map((p) => [p.code, p]))
-})
+}))
 let timer
 watch(q, (v) => {
   clearTimeout(timer)

@@ -1,7 +1,7 @@
 <script setup>
 // Parent: weekly report and progress for their own child only
 import { ref, computed, watch, onMounted, onUnmounted, defineAsyncComponent } from "vue"
-import { api, fa, lockScroll } from "../lib/api.js"
+import { api, fa, lockScroll, retryable } from "../lib/api.js"
 import { chatUi } from "../lib/chat.js"
 import { PARENT } from "../lib/tours.js"
 import AppLayout from "../components/AppLayout.vue"
@@ -26,7 +26,7 @@ watch(() => !!formKind.value, lockScroll)
 const onNotify = () => load()
 onMounted(async () => {
   window.addEventListener("notifications-changed", onNotify)
-  await load()
+  await retryable(load)
   try { report.value = (await api("/parent/report")).text } catch { report.value = "گزارش این هفته در دسترس نیست." }
 })
 onUnmounted(() => { lockScroll(false); window.removeEventListener("notifications-changed", onNotify) })

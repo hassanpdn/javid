@@ -2,7 +2,7 @@
 // Cheques and debts: next week's cheques in and out against the bank balance, bounced cheques, and the
 // customers who owe the most, each with a reminder text the assistant drafts and a person sends.
 import { ref, reactive, computed, watch, onMounted, defineAsyncComponent } from "vue"
-import { api, fa, lockScroll } from "../lib/api.js"
+import { api, fa, lockScroll, retryable } from "../lib/api.js"
 import { toast, busy, idle } from "../lib/notify.js"
 import { money } from "./lib.js"
 import Icon from "../components/Icon.vue"
@@ -13,7 +13,7 @@ const CustomerDrawer = defineAsyncComponent(() => import("./CustomerDrawer.vue")
 const d = ref(null), openId = ref(null)
 const draft = reactive({ open: false, who: null, text: "", loading: false, checked: undefined, saving: false })
 const load = async () => { d.value = await api("/fabric/money") }
-onMounted(load)
+onMounted(() => retryable(load))
 watch(() => draft.open, lockScroll)
 const short = computed(() => d.value && d.value.week.left < 0)
 

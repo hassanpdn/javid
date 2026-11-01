@@ -3,7 +3,7 @@
 // and the sheet each number comes from, so it can be checked in the Excel files by hand. A finding is a place
 // to look, not a verdict: the wording says what does not add up, never who did it.
 import { ref, onMounted } from "vue"
-import { api, fa } from "../lib/api.js"
+import { api, fa, retryable } from "../lib/api.js"
 import Icon from "../components/Icon.vue"
 import Skeleton from "../components/Skeleton.vue"
 import FilesGlance from "./FilesGlance.vue"
@@ -12,7 +12,7 @@ import EventFeed from "./EventFeed.vue"
 defineProps({ events: { type: Boolean, default: false } })
 const d = ref(null), pulse = ref([])
 const LOOK = { stock: ["inbox", "انبار و فروش"], invoice: ["file", "شماره فاکتورها"], cash: ["calendar", "صندوق و فروش نقدی"], cheque: ["file", "چک‌ها"] }
-onMounted(async () => { d.value = await api("/fabric/reconcile") })
+onMounted(() => retryable(async () => { d.value = await api("/fabric/reconcile") }))
 const changed = async (files) => { pulse.value = files; d.value = await api("/fabric/reconcile"); setTimeout(() => { pulse.value = [] }, 2500) }
 </script>
 

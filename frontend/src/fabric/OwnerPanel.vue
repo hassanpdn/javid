@@ -3,7 +3,7 @@
 // today's and this month's sales, money owed and next week's cheques (each with «از کجا؟»), what needs doing
 // today, what is happening right now (the event log), and two weeks of sales.
 import { ref, computed, onMounted, onUnmounted, defineAsyncComponent } from "vue"
-import { api, fa, fabricSession } from "../lib/api.js"
+import { api, fa, fabricSession, retryable } from "../lib/api.js"
 import { busy, idle } from "../lib/notify.js"
 import { brand, money } from "./lib.js"
 import { FABRIC_OWNER } from "../lib/tours.js"
@@ -65,7 +65,7 @@ const web = useWebOrders(() => { view.value = "orders" })   // a toast and a bad
 // something changed in the files (the event log saw it): light the files up and refresh the numbers
 const changed = async (files) => { pulse.value = files; await load(); setTimeout(() => { pulse.value = [] }, 2500) }
 onMounted(async () => {
-  await load()
+  await retryable(load)
   busy("brief", "دستیار در حال نوشتن خلاصه‌ی امروز")
   try { brief.value = (await api("/fabric/brief")).text } catch { brief.value = "خلاصه‌ی امروز آماده نشد." }
   finally { idle("brief") }

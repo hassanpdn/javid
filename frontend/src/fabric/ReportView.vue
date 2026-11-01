@@ -2,7 +2,7 @@
 // «گزارش»: a period's sales, stock and money in a few lines, each with where it comes from,
 // and the same report as an Excel file to hand on.
 import { ref, watch, onMounted } from "vue"
-import { api, fa, fabricSession } from "../lib/api.js"
+import { api, fa, fabricSession, retryable } from "../lib/api.js"
 import { toast } from "../lib/notify.js"
 import { num } from "./lib.js"
 import Icon from "../components/Icon.vue"
@@ -13,7 +13,7 @@ const PERIODS = [["today", "امروز"], ["week", "این هفته"], ["month",
 const period = ref("last_30"), d = ref(null), saving = ref(false)
 const load = async () => { d.value = null; d.value = await api("/fabric/report?period=" + period.value) }
 watch(period, load)
-onMounted(load)
+onMounted(() => retryable(load))
 const download = async () => {
   saving.value = true
   try {

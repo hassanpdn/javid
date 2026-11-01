@@ -56,6 +56,13 @@ Learned on this codebase; each line says what to do and why.
 - `app.py` serves `static/assets/*` (hashed names) with a one-year immutable cache and everything else with
   `no-cache`, so a returning visitor downloads nothing that did not change.
 
+## Weak connections
+
+- Every request has a time limit in `lib/api.js` (20 s reading, 60 s sending, `opts.timeout` for a big upload); a read
+  is sent once more if the first try got nothing. A page's first load goes through `retryable(load)`: if it fails, a
+  toast says so with «دوباره امتحان کنید», which runs the same load again. A new panel or view does the same.
+- e2e test «weak connection» cuts a panel's request on purpose (`page.route(..., route.abort("timedout"))`).
+
 ## Selectors
 
 - No `html:has(...)` or `body:has(...)` rules for state; set a class from JavaScript (`html.touring` in `lib/tour.js`).

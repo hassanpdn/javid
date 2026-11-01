@@ -2,7 +2,7 @@
 // The three Excel files the assistant works from. Each can be looked at, downloaded as it is now
 // (new invoices from the phone desk are already in it), or replaced with your own version.
 import { ref, computed, watch, onMounted } from "vue"
-import { api, fa, fabricSession, lockScroll } from "../lib/api.js"
+import { api, fa, fabricSession, lockScroll, retryable } from "../lib/api.js"
 import { toast } from "../lib/notify.js"
 import { num } from "./lib.js"
 import Icon from "../components/Icon.vue"
@@ -16,7 +16,7 @@ const LOOK = {
 const d = ref(null), view = ref(null), sheet = ref(0), uploading = ref("")
 const canUpload = computed(() => ["owner", "accountant"].includes(fabricSession.user?.role))
 const load = async () => { d.value = await api("/fabric/files") }
-onMounted(load)
+onMounted(() => retryable(load))
 watch(() => !!view.value, lockScroll)
 
 const open = async (f) => { view.value = { file: f, sheets: null }; sheet.value = 0; view.value.sheets = await api(`/fabric/files/${f.key}/preview`) }

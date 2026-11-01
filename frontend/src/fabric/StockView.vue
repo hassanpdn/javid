@@ -2,7 +2,7 @@
 // The stock file as a searchable list: rolls and meters, days of stock left at the current pace,
 // and two flags: running out, and nothing sold for three months.
 import { ref, computed, watch, onMounted } from "vue"
-import { api, fa } from "../lib/api.js"
+import { api, fa, retryable } from "../lib/api.js"
 import { money, meters, swatch } from "./lib.js"
 import Skeleton from "../components/Skeleton.vue"
 import Icon from "../components/Icon.vue"
@@ -12,7 +12,7 @@ const rows = ref(null), q = ref(props.focus), filter = ref("all")
 let timer
 const load = async () => { rows.value = await api("/fabric/stock?q=" + encodeURIComponent(q.value)) }
 watch(q, () => { clearTimeout(timer); timer = setTimeout(load, 250) })
-onMounted(load)
+onMounted(() => retryable(load))
 const shown = computed(() => (rows.value || []).filter((p) => filter.value === "all" || (filter.value === "low" ? p.low : p.dead)))
 const count = (k) => (rows.value || []).filter((p) => p[k]).length
 </script>
