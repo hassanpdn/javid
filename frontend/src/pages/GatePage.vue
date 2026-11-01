@@ -104,7 +104,10 @@ const fail = (msg) => {
 .g-card::before { content: ""; position: absolute; inset: -1px; border-radius: inherit; padding: 1px; pointer-events: none;
   background: conic-gradient(from var(--a, 0deg), transparent 0 60%, var(--g2), var(--g1), var(--g3), transparent 95%);
   -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude;
-  animation: g-ring 6s linear infinite; }
+  animation: g-ring 6s linear infinite; z-index: 0; }
+/* the card's content sits above the animated ring: under a moving layer, Safari may not draw the fields' blinking
+   caret, and an empty field then looks as if it took no typing */
+.g-card > * { position: relative; z-index: 1; }
 .g-card.shake { animation: g-shake .45s cubic-bezier(.36,.07,.19,.97); }
 .g-orb { display: grid; place-items: center; margin: -4px auto 8px; filter: drop-shadow(0 10px 30px rgba(115,103,240,.55)); }
 .g-orb :deep(.orb) { --primary: #8f85ff; --info: #2fd6ea; }
