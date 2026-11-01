@@ -1,5 +1,5 @@
 <script setup>
-// The dark moving background of the list of assistants (HubPage) on the live site:
+// The dark moving background of the live site's first pages (the door and the list of assistants):
 // slow colour clouds, a faint grid that fades out at the edges, and a few twinkling dots.
 // The clouds are soft radial gradients, not blurred circles: a blur filter on such big moving shapes (with a blend
 // mode) needs huge graphics buffers on phones' dense screens, and iPhone Safari killed the page for it.
