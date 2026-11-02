@@ -7,6 +7,7 @@ import { schoolInfo, setupUi, loadSchool } from "./lib/school.js"
 import { gate, checkGate } from "./lib/gate.js"
 import { access, checkAccess, canOpen } from "./lib/access.js"
 import { PANELS } from "./lib/panels.js"
+import { startRum } from "./lib/rum.js"
 // Each page is its own file in the build, downloaded only when it is shown: a visitor gets the code of the page they
 // are on, not of every panel at once
 const page = (load) => defineAsyncComponent(load)
@@ -48,6 +49,7 @@ const boot = async () => {
   else clearSession()
 }
 onMounted(async () => {
+  startRum()   // real visitors' speed, behind the door only (lib/rum.js)
   // both questions at once (one wait instead of two on a slow phone connection). With the door closed the access
   // answer is a refusal and means nothing; entered() asks again once the door opens.
   await Promise.all([checkGate(), checkAccess()])

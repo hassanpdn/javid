@@ -2,6 +2,7 @@ import { reactive } from "vue"
 import { gate } from "./gate.js"
 import { accessDenied } from "./access.js"
 import { toast, toasts } from "./notify.js"
+import { countFailure, ready } from "./rum.js"
 
 // localStorage can throw (private window, blocked storage), so every access is wrapped
 export const store = {
@@ -50,6 +51,7 @@ async function send(path, body, timeout) {
       signal: stop.signal,
     })
   } catch (e) {
+    countFailure()   // for the speed report (lib/rum.js)
     throw connectionError(e.name === "AbortError" ? SLOW : DOWN)
   } finally {
     clearTimeout(timer)
@@ -84,7 +86,7 @@ export const lockScroll = (on) => document.body.classList.toggle("no-scroll", !!
 // For a page's first load: if it fails, a toast says so with «دوباره امتحان کنید», which runs the same load again,
 // so the page never sits on its skeleton without a word. One such toast at a time.
 export async function retryable(load) {
-  try { await load() }
+  try { await load(); ready() }   // ready: the screen is usable (speed report, lib/rum.js)
   catch (e) {
     if (e.message === "site" || e.message === "access" || e.message === "401") return   // handled by api() itself
     if (toasts.some((t) => t.retry)) return

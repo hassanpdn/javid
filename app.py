@@ -26,6 +26,7 @@ from fabric import shop as fabric_shop
 from deed import api as deed_api
 from estate import api as estate_api
 from estate import site as estate_site
+import speed
 THRESHOLD = float(os.getenv("SIMILARITY_THRESHOLD", "0.60"))
 NOT_FOUND = "پاسخ این سؤال در اسناد مدرسه پیدا نشد. می‌توانید سؤال را دقیق‌تر بپرسید یا با دفتر مدرسه تماس بگیرید."
 UNCLEAR = "سؤال شما روشن نیست. لطفاً سؤال را کامل و واضح بنویسید، مثلاً «ساعت کار کارکنان اداری چقدر است؟»"
@@ -274,6 +275,7 @@ app.include_router(fabric_shop.router)
 app.include_router(deed_api.router)
 app.include_router(estate_api.router)
 app.include_router(estate_site.router)
+app.include_router(speed.router)
 
 # Serve the built frontend (frontend/ -> npm run build -> static/) at http://localhost:8000. Must come after the API routes.
 # Files in assets/ have a hash of their content in the name (a new build gives new names), so the browser keeps them

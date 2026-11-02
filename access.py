@@ -105,7 +105,7 @@ def app_for(path):
     first = path.strip("/").split("/")[0]
     if first in ("fabric", "deed", "estate"):
         return first
-    if path == "/setup/reset":   # every page load of the live demo; it clears both assistants
+    if path in ("/setup/reset", "/speed"):   # every page load of the live demo; it clears every assistant. /speed: speed.py
         return "any"
     return "school"
 

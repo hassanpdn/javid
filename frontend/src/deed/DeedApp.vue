@@ -5,6 +5,7 @@
 import { ref, onMounted, onUnmounted, defineAsyncComponent } from "vue"
 import { fa } from "../lib/api.js"
 import { gate } from "../lib/gate.js"
+import { ready } from "../lib/rum.js"
 import Icon from "../components/Icon.vue"
 import { getInfo, listDocs, uploadFile, pasteText, openSample, STATUS } from "./lib.js"
 // the review screen is downloaded only when a deed is opened
@@ -21,7 +22,7 @@ async function refresh() {
 }
 onMounted(async () => {
   document.title = "دستیار استخراج داده‌ی سند"
-  try { info.value = await getInfo() } catch (e) { error.value = e.message }
+  try { info.value = await getInfo(); ready() } catch (e) { error.value = e.message }
   refresh()
 })
 onUnmounted(() => clearTimeout(timer))

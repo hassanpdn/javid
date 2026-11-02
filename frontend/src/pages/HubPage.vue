@@ -5,6 +5,7 @@ import { ref, computed, watch, onMounted, defineAsyncComponent } from "vue"
 import { leaveGate } from "../lib/gate.js"
 import { access, canOpen, forgetAccess, jalaliText, setAi } from "../lib/access.js"
 import { phone } from "../lib/viewport.js"
+import { ready } from "../lib/rum.js"
 import AuroraBg from "../components/AuroraBg.vue"
 import Icon from "../components/Icon.vue"
 import BrandMark from "../components/core/BrandMark.vue"
@@ -12,6 +13,7 @@ import BrandMark from "../components/core/BrandMark.vue"
 const AccessManager = defineAsyncComponent(() => import("../components/AccessManager.vue"))
 const AccessDialog = defineAsyncComponent(() => import("../components/AccessDialog.vue"))
 const LoginLog = defineAsyncComponent(() => import("../components/LoginLog.vue"))
+const SpeedPanel = defineAsyncComponent(() => import("../components/SpeedPanel.vue"))
 
 const emit = defineEmits(["open"])
 const ASSISTANTS = [
@@ -40,7 +42,7 @@ const ASSISTANTS = [
     perks: [{ icon: "file", text: "تصویر یا PDF" }, { icon: "check", text: "تأیید کارشناس" }, { icon: "shield", text: "پردازش روی سرور" }],
   },
 ]
-onMounted(() => { document.title = "Pudineh Agent Center" })
+onMounted(() => { document.title = "Pudineh Agent Center"; ready() })
 
 // On the live demo (access.js) the permanent account sees every card and «دسترسی‌ها» below them; anyone else sees only
 // the cards they were given. Someone who passed the door without an account of their own sees a login box instead.
@@ -159,6 +161,7 @@ const unlean = (e) => { e.currentTarget.style.setProperty("--rx", "0deg"); e.cur
 
     <AccessManager v-if="access.admin" :assistants="ASSISTANTS" :collapsible="phone" />
     <LoginLog v-if="access.admin" :collapsible="phone" />
+    <SpeedPanel v-if="access.admin" :collapsible="phone" />
     <AccessDialog v-if="asking" @close="asking = null" @opened="opened" />
     <p class="h-foot"><Icon name="shield" :size="15" />همه‌ی اطلاعات این نسخه ساختگی است.</p>
   </main>
