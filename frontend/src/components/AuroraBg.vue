@@ -3,6 +3,7 @@
 // slow colour clouds, a faint grid that fades out at the edges, and a few twinkling dots.
 // The clouds are soft radial gradients, not blurred circles: a blur filter on such big moving shapes (with a blend
 // mode) needs huge graphics buffers on phones' dense screens, and iPhone Safari killed the page for it.
+// On phones and touch screens nothing moves (see the last media block), for the same reason.
 </script>
 
 <template>
@@ -32,4 +33,11 @@
 @keyframes a-float3 { to { transform: translate(-18vmax, 6vmax) scale(.9); } }
 @keyframes a-twinkle { 0%, 100% { opacity: 0; transform: scale(.6); } 50% { opacity: .9; transform: scale(1); } }
 @media (prefers-reduced-motion: reduce) { .a-blob, .a-star { animation: none; } .a-star { opacity: .5; } }
+/* phones and touch screens: everything stands still. Four page-sized clouds, each on its own moving layer at the
+   phone's 3x density, plus 18 glowing dots, asked for too much graphics memory, and iPhone Safari killed the door
+   page again and again («A problem repeatedly occurred»). Still, they are painted once into the background. */
+@media (hover: none), (max-width: 767px) {
+  .a-blob, .a-star { animation: none; will-change: auto; }
+  .a-star { opacity: .5; }
+}
 </style>

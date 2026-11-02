@@ -29,6 +29,11 @@ Learned on this codebase; each line says what to do and why.
   Every such box has the same media block with a nearly opaque background instead (HubPage, GatePage, AccessManager,
   hub-dialog, the bars and school card in main.css, SchoolCard's entrance). A new glass or 3D box gets one too.
 - Playwright's WebKit on Linux does not show this bug; only a real iPhone does.
+- Nothing big moves on phones and touch screens: `AuroraBg`'s clouds and dots stand still, the door's ring does not
+  spin and its orb has no `filter`. With them moving, iPhone Safari killed the door page again and again («A problem
+  repeatedly occurred»): page-sized layers at 3x density, a ring animated through a `@property` custom property
+  (repainted every frame) and a filter over a moving element (redrawn every frame). Count layers with the DevTools
+  protocol at 430x932, scale 3 (`LayerTree`): the door went from 35 layers (~97 MB) to 11 (~54 MB).
 
 ## Class names
 

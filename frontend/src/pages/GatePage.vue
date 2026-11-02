@@ -143,6 +143,11 @@ h1 { margin: 0; font-size: 26px; font-weight: 700; line-height: 1.5;
 /* phones and touch screens: no frosted glass (see HubPage: iPhone Safari draws such cards wrong) */
 @media (hover: none), (max-width: 767px) {
   .g-card { backdrop-filter: none; -webkit-backdrop-filter: none; isolation: isolate; background: linear-gradient(165deg, rgba(48,45,96,.92), rgba(20,19,46,.94)); }
+  /* the ring stands still and the orb loses its glow filter: the ring was repainted on every frame (an animated
+     custom property can't run on the graphics card), and a filter over the moving orb is redrawn on every frame too.
+     Together with the moving background, iPhone Safari ran out of graphics memory and killed the page. */
+  .g-card::before { animation: none; }
+  .g-orb { filter: none; }
 }
 /* chips floating around the card (wide screens only) */
 .g-chips { display: none; }
