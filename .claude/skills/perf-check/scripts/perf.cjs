@@ -7,8 +7,12 @@
 //   which  the same panel, every running animation on its own: which one makes the recalcs (60/s = not on the graphics card)
 //   tour   the first-visit guide stepped through 6 times: frame times and long frames (desktop and phone)
 //   wf     the request waterfall up to the login page on the phone profile: what waits on what
+//   net    every page of the site on a simulated network, phone and CPU 4x slower, 3 runs each, no cache (needs the
+//          server started with HUB=1). Second argument: iran (default; Iranian mobile at a busy hour: 400 kbit/s down,
+//          150 up, 400 ms round trip, 3% of packets lost) or 4g (the slow 4G of `load`, no loss). See simulate() below.
 // role: the Persian name on the role card, default مدیر.
 const { chromium, devices } = require("playwright")
+const zlib = require("zlib")
 const URL = process.env.PERF_URL || "http://127.0.0.1:8765/"
 const [mode = "load", role = "مدیر"] = process.argv.slice(2)
 const PHONE = devices["Pixel 7"], DESK = { viewport: { width: 1440, height: 900 } }
@@ -26,6 +30,67 @@ async function open(b, opts, { slowNet = false, cpu = 4, tour = false } = {}) {
 const card = (page) => page.locator(".role-card", { has: page.locator(`b:text-is("${role}")`) })
 const metrics = async (cdp) => Object.fromEntries((await cdp.send("Performance.getMetrics")).metrics.map((m) => [m.name, m.value]))
 const frames = (f) => { f.sort((a, b) => a - b); const p = (q) => +f[Math.floor(f.length * q)].toFixed(1); return { frames: f.length, p50: p(.5), p95: p(.95), max: +f.at(-1).toFixed(1), over50: f.filter((x) => x > 50).length } }
+
+// ---------- a simulated network (mode net) ----------
+// Chromium's own throttling (used by load and wf) has no packet loss: it accepts a packetLoss setting and ignores it
+// (tried on Chromium 153: the same times at 0%, 10% and 30%). So `net` plays the network itself, in Playwright's
+// request interception: each request waits one round trip plus its upload, then its body (gzip size, as the server
+// sends it) goes through one pipe the page's requests share at the profile's speed, and every lost packet of it
+// (1400 bytes each) adds a retransmission wait (rto). The random numbers come from a fixed seed, so runs repeat.
+const NETS = {
+  iran: { rtt: 400, down: 400e3 / 8, up: 150e3 / 8, loss: .03, rto: 1000 },
+  "4g": { rtt: 150, down: 1.6e6 / 8, up: 750e3 / 8, loss: 0, rto: 0 },
+}
+const TEXT = /javascript|css|json|html|svg|text/
+async function simulate(ctx, net, seed) {
+  let x = seed, pipe = 0
+  const rand = () => (x = (x * 1664525 + 1013904223) % 4294967296) / 4294967296
+  const stats = { bytes: 0, requests: 0, slowest: [0, ""] }
+  await ctx.route("**/*", async (route) => {
+    const start = Date.now(), req = route.request()
+    let resp
+    try { resp = await route.fetch() } catch { return route.abort() }
+    const body = await resp.body(), type = resp.headers()["content-type"] || ""
+    const sent = (TEXT.test(type) && body.length > 500 ? zlib.gzipSync(body).length : body.length) + 300
+    const asked = (req.postDataBuffer()?.length || 0) + 500
+    let lost = 0
+    for (let i = 0; i < Math.ceil(sent / 1400) + Math.ceil(asked / 1400); i++) if (rand() < net.loss) lost += net.rto
+    const begin = Math.max(start + net.rtt + asked / net.up * 1000, pipe)
+    pipe = begin + sent / net.down * 1000
+    const wait = pipe + lost - Date.now()
+    if (wait > 0) await new Promise((r) => setTimeout(r, wait))
+    stats.bytes += sent; stats.requests++
+    const took = Date.now() - start
+    if (took > stats.slowest[0]) stats.slowest = [took, req.url().replace(/^https?:\/\/[^/]+/, "")]
+    await route.fulfill({ response: resp, body }).catch(() => {})
+  })
+  return stats
+}
+// every page a visitor reaches, the way they reach it: from the assistants page through cards and role cards
+const PAGES = [
+  { name: "assistants page", path: [], ready: ".h-card" },
+  { name: "school login", path: ["دستیار مدرسه"], ready: ".role-card" },
+  ...["مدیر", "پرسنل اداری", "مشاور", "ولی"].map((r) => ({ name: "school " + r, path: ["دستیار مدرسه", r], ready: "panel" })),
+  { name: "fabric owner", path: ["دستیار پارچه‌فروشی", "صاحب کار"], ready: "panel" },
+  { name: "estate owner", path: ["دستیار بنگاه املاک", "مدیر بنگاه"], ready: "panel" },
+  { name: "deed", path: ["دستیار استخراج داده‌ی سند"], ready: ".dz-main" },
+]
+async function reach(page, p) {
+  await page.goto(URL)
+  await page.locator(".h-card").first().waitFor({ timeout: 90000 })
+  let last = Date.now()
+  for (const [i, step] of p.path.entries()) {
+    last = Date.now()
+    if (i === 0) await page.locator(".h-card", { hasText: step }).first().click()
+    else await page.locator(".role-card", { has: page.locator(`b:text-is("${step}")`) }).first().click()
+    if (i === 0 && p.path.length > 1) await page.locator(".role-card").first().waitFor({ timeout: 90000 })
+  }
+  if (p.ready === "panel") {
+    await page.locator(".tabbar").waitFor({ timeout: 90000 })
+    await page.locator(".sk").first().waitFor({ state: "detached", timeout: 90000 }).catch(() => {})
+  } else await page.locator(p.ready).first().waitFor({ timeout: 90000 })
+  return Date.now() - last
+}
 
 const modes = {
   async load(b) {
@@ -67,6 +132,28 @@ const modes = {
       for (let i = 0; i < 6; i++) { const next = pop.locator(".driver-popover-next-btn"); if (!(await next.count())) break; await next.click(); await page.waitForTimeout(900) }
       console.log(opts === DESK ? "desktop" : "phone", JSON.stringify(frames(await page.evaluate(() => window.__f))))
       await ctx.close()
+    }
+  },
+  async net(b) {
+    const net = NETS[process.argv[3] || "iran"]
+    for (const p of PAGES) {
+      const runs = []
+      for (let run = 0; run < 3; run++) {
+        const ctx = await b.newContext({ ...PHONE, locale: "fa-IR" }), page = await ctx.newPage(), cdp = await ctx.newCDPSession(page)
+        await cdp.send("Emulation.setCPUThrottlingRate", { rate: 4 })
+        const stats = await simulate(ctx, net, 7 + run)
+        const t0 = Date.now()
+        let step, error = ""
+        try { step = await reach(page, p) } catch (e) { error = e.message.split("\n")[0] }
+        runs.push({ total: Date.now() - t0, step, kb: Math.round(stats.bytes / 1024), requests: stats.requests, slowest: stats.slowest,
+                    retryToast: await page.locator("text=دوباره امتحان کنید").count(), error })
+        await ctx.close()
+      }
+      runs.sort((a, c) => a.total - c.total)
+      const m = runs[1]
+      console.log(JSON.stringify({ page: p.name, totalMs: m.total, lastStepMs: m.step, kb: m.kb, requests: m.requests,
+                                   slowest: `${m.slowest[0]} ms ${m.slowest[1]}`, worstTotalMs: runs[2].total, retryToasts: runs.reduce((n, r) => n + r.retryToast, 0),
+                                   errors: runs.filter((r) => r.error).map((r) => r.error) }))
     }
   },
   async wf(b) {

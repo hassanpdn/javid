@@ -20,6 +20,12 @@ those are judged from the rules in `reference.md`, not from these numbers.
    - `which`: names the animation behind the recalcs (60/s = it is not on the graphics card).
    - `tour`: the first-visit guide, desktop and phone. `p95` should stay 16.7 ms and `over50` near 0.
    - `wf`: the request waterfall to the login page. Look for requests that wait on each other but need not.
+   - `net iran` (server started with `HUB=1`): every page (assistants page, school login and four panels, fabric,
+     real estate, deed) the way a visitor reaches it, on a simulated bad Iranian mobile network: 400 kbit/s, 400 ms
+     round trip, 3% packet loss. `net 4g` is the same walk on the slow 4G of `load`, for comparison. Watch `totalMs`
+     (median of 3), `worstTotalMs`, `slowest` (the request that took longest) and `retryToasts` (times a page gave up
+     and offered «دوباره امتحان کنید»). Chromium's own throttling ignores packet loss, so this mode plays the network
+     itself; see `simulate()` in `perf.cjs`.
    Role is the Persian name on the card: مدیر, «پرسنل اداری», مشاور, ولی, آموزگار.
 4. To get the "before" numbers, `git stash -u`, rebuild nothing (the old `static/` comes back with the stash), measure,
    then `git stash pop`. The server reads `static/` on every request, so it needs no restart.
