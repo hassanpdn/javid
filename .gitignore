@@ -39,3 +39,6 @@ deed_files/
 # The real estate agency set up on this machine (see estate/agency.py)
 estate.db
 estate.json
+# The law office set up on this machine (see law/office.py)
+law.db
+law.json

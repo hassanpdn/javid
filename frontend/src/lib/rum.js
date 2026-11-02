@@ -1,6 +1,6 @@
 import { watch } from "vue"
 import { gate } from "./gate.js"
-import { session, fabricSession, estateSession } from "./api.js"
+import { session, fabricSession, estateSession, lawSession } from "./api.js"
 
 // Real visitors' speed (speed.py on the server). For each screen behind the site's door (the assistants page and every
 // assistant's panel; not the door, login or setup pages) the browser sends one line: how many ms until it was usable,
@@ -17,10 +17,11 @@ function screen() {
   if (!gate.ok) return null
   if (app === "") return "hub"
   if (app === "deed") return "deed"
-  const u = app === "school" ? session.user : app === "fabric" ? fabricSession.user : app === "estate" ? estateSession.user : null
+  const u = app === "school" ? session.user : app === "fabric" ? fabricSession.user : app === "estate" ? estateSession.user : app === "law" ? lawSession.user : null
   if (!u) return null
   if (app === "school") return ROLE[u.role] ? "school:" + ROLE[u.role] : null
   if (app === "estate") return u.role === "owner" ? "estate:owner" : "estate:agent"
+  if (app === "law") return "law:" + u.role
   return "fabric:" + u.role
 }
 

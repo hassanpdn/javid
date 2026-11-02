@@ -169,6 +169,7 @@ const copy = async () => {
   font: inherit; color: #dcd8ff; background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.12); transition: border-color .2s, background .2s, transform .15s; }
 .af-app.hue-teal { --c1: #0f8b7d; --c2: #f3b33d; }
 .af-app.hue-rose { --c1: #b23a62; --c2: #36c2a3; }
+.af-app.hue-indigo { --c1: #3c4a8f; --c2: #e0a785; }
 .af-app:hover { background: rgba(255,255,255,.08); }
 .af-app:active { transform: scale(.98); }
 .af-app:focus-visible { outline: 3px solid #8fefff; outline-offset: 2px; }

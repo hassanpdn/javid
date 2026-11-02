@@ -2,7 +2,7 @@
 // Root: the site's door and the list of assistants (live demo only), the school setup form (first run, or when asked for),
 // the login page, or the panel for the user's role
 import { computed, watch, onMounted, defineAsyncComponent } from "vue"
-import { api, session, clearSession, clearFabricSession, clearEstateSession, lockScroll } from "./lib/api.js"
+import { api, session, clearSession, clearFabricSession, clearEstateSession, clearLawSession, lockScroll } from "./lib/api.js"
 import { schoolInfo, setupUi, loadSchool } from "./lib/school.js"
 import { gate, checkGate } from "./lib/gate.js"
 import { access, checkAccess, canOpen } from "./lib/access.js"
@@ -17,6 +17,7 @@ const HubPage = page(() => import("./pages/HubPage.vue"))
 const FabricApp = page(() => import("./fabric/FabricApp.vue"))
 const DeedApp = page(() => import("./deed/DeedApp.vue"))
 const EstateApp = page(() => import("./estate/EstateApp.vue"))
+const LawApp = page(() => import("./law/LawApp.vue"))
 const SetupPage = page(loadSetup)
 const LoginPage = page(loadLogin)
 const ManagerPanel = page(PANELS.manager)
@@ -34,7 +35,7 @@ const boot = async () => {
   if (gate.reset) {
     gate.reset = false
     try { await api("/setup/reset", {}) } catch {}
-    clearSession(); clearFabricSession(); clearEstateSession()
+    clearSession(); clearFabricSession(); clearEstateSession(); clearLawSession()
   }
   if (!canOpen("school") || schoolInfo.loaded) return
   // signed out, the next page is the setup form or the login page: download both while the school's details arrive,
@@ -77,6 +78,7 @@ watch(user, () => lockScroll(false))
   <FabricApp v-else-if="gate.app === 'fabric'" />
   <DeedApp v-else-if="gate.app === 'deed'" />
   <EstateApp v-else-if="gate.app === 'estate'" />
+  <LawApp v-else-if="gate.app === 'law'" />
   <template v-else-if="!schoolInfo.loaded"></template>
   <SetupPage v-else-if="!user && (!schoolInfo.set_up || setupUi.open)" />
   <LoginPage v-else-if="!user" />

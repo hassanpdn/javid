@@ -14,7 +14,8 @@ const items = ref(null), fresh = ref(new Set()), open = ref(null)
 const LOOK = { invoice: ["file", "success"], upload: ["refresh", "warning"], reminder: ["message", "info"], login: ["user", "secondary"], import: ["sparkles", "primary"],
                web_order: ["message", "success"], customer: ["user", "info"],
                listing: ["file", "primary"], request: ["users", "info"], site: ["message", "success"], call: ["send", "info"], visit: ["calendar", "warning"],
-               deal: ["check", "success"], status: ["refresh", "warning"], contact: ["refresh", "secondary"], report: ["message", "info"], settings: ["edit", "secondary"] }
+               deal: ["check", "success"], status: ["refresh", "warning"], contact: ["refresh", "secondary"], report: ["message", "info"], settings: ["edit", "secondary"],
+               case: ["file", "primary"], notice: ["mail", "info"], done: ["check", "success"], note: ["edit", "secondary"] }
 // the short feed leaves out logins; the full log keeps everything
 const shown = computed(() => props.full ? items.value : items.value.filter((e) => e.kind !== "login").slice(0, props.limit))
 let timer

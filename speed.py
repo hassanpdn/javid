@@ -23,6 +23,7 @@ SCREENS = {   # screen key -> words on the page
     "school:teacher": "مدرسه، آموزگار", "school:student": "مدرسه، دانش‌آموز",
     "fabric:owner": "پارچه‌فروشی، صاحب کار", "fabric:seller": "پارچه‌فروشی، فروشنده", "fabric:accountant": "پارچه‌فروشی، حسابدار",
     "estate:owner": "بنگاه، مدیر", "estate:agent": "بنگاه، مشاور", "deed": "استخراج سند",
+    "law:owner": "وکالت، وکیل", "law:associate": "وکالت، همکار وکیل", "law:secretary": "وکالت، منشی",
 }
 KINDS = {"load": "باز شدن سایت", "open": "باز شدن از داخل سایت"}
 
