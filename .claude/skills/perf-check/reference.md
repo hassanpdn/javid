@@ -67,6 +67,12 @@ Learned on this codebase; each line says what to do and why.
   is sent once more if the first try got nothing. A page's first load goes through `retryable(load)`: if it fails, a
   toast says so with «دوباره امتحان کنید», which runs the same load again. A new panel or view does the same.
 - e2e test «weak connection» cuts a panel's request on purpose (`page.route(..., route.abort("timedout"))`).
+- `net iran` (2026-11-02): every page loads with no retry toast and no hang, so the 20 s and 60 s limits in
+  `lib/api.js` hold even on a bad Iranian mobile network. From the first byte to a full panel: school panels 9.7 to
+  12.9 s (2.1x to 2.4x the slow 4G walk), fabric and real estate owner about 14.5 s, the assistants page 4.9 s. The
+  slowest single request is almost always one of the two Vazirmatn fonts (3.5 to 5.5 s with loss): the next thing to
+  try is a Persian-only subset of the font, which would shrink both files.
+- Don't run `pnpm build` while `net` runs: the hashed file names change under the open pages and a run times out.
 
 ## Selectors
 

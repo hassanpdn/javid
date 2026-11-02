@@ -10,6 +10,7 @@
 //   net    every page of the site on a simulated network, phone and CPU 4x slower, 3 runs each, no cache (needs the
 //          server started with HUB=1). Second argument: iran (default; Iranian mobile at a busy hour: 400 kbit/s down,
 //          150 up, 400 ms round trip, 3% of packets lost) or 4g (the slow 4G of `load`, no loss). See simulate() below.
+//          Third argument (optional): only the pages whose name has it, e.g. `net iran estate`.
 // role: the Persian name on the role card, default مدیر.
 const { chromium, devices } = require("playwright")
 const zlib = require("zlib")
@@ -137,7 +138,8 @@ const modes = {
   },
   async net(b) {
     const net = NETS[process.argv[3] || "iran"]
-    for (const p of PAGES) {
+    const only = process.argv[4]   // optional: only the pages whose name has this in it, e.g. «estate»
+    for (const p of PAGES.filter((p) => !only || p.name.includes(only))) {
       const runs = []
       for (let run = 0; run < 3; run++) {
         const ctx = await b.newContext({ ...PHONE, locale: "fa-IR" }), page = await ctx.newPage(), cdp = await ctx.newCDPSession(page)

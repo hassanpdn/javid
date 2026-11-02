@@ -36,6 +36,22 @@ those are judged from the rules in `reference.md`, not from these numbers.
 Then the usual done-list from CLAUDE.md: `pnpm build` with `static/` in the commit, the e2e tests when the change
 touches every panel, a look at desktop and 360px.
 
+## Bad network (2026-11-02, `net iran` against `net 4g`, median of 3, ms from the first byte to a usable page)
+
+| page | 4g | iran |
+|---|---|---|
+| assistants page | 2008 | 4855 |
+| school login | 2716 | 6528 |
+| school مدیر | 6222 | 12942 |
+| school پرسنل اداری | 5175 | 10637 |
+| school مشاور | 4444 | 9693 |
+| school ولی | 4741 | 10806 |
+| fabric owner | 5963 | 14681 |
+| real estate owner | 6019 | 14270 |
+| deed | 3037 | 7806 |
+
+No page gave up («دوباره امتحان کنید» never appeared). Slowest request on iran: a Vazirmatn font, 3.5 to 5.5 s.
+
 ## Last results (2026-10-29, after the speed pass)
 
 - Phone, first screen: login page ~2.1 s (was ~2.9 s), 101 KB before it (was 168 to 268 KB).
