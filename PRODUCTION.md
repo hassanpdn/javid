@@ -24,6 +24,25 @@ The AI, without internet:
   graphics card. Most small offices do not have one.
 - AvalAI or any hosted model needs internet: not possible in this setup.
 
+## Several people, each on their own computer: the office network, not the internet
+
+Each person (the manager, the office, the counselor, each teacher) uses their own laptop or phone; none of them holds
+data. One computer (the server) runs the program and keeps the database; the others open it in a browser at that
+computer's address on the office network, e.g. `http://192.168.1.10:8000`. Data goes between them through the
+school's router and Wi-Fi, which work without an internet subscription.
+- Needed: one router (or switch plus Wi-Fi access points) covering every room where someone works; the server plugged
+  in by cable; a fixed address for the server (set in the router) so its address never changes. A short name such as
+  `madreseh.local` can be set in the router so nobody types numbers.
+- The server must listen on the office network (0.0.0.0, not 127.0.0.1 as on the live site) with the port opened in
+  the Windows firewall for the private network only.
+- The Wi-Fi must have a strong password (WPA2 or WPA3): the program runs on plain http inside the building, so an open
+  Wi-Fi would let anyone nearby read logins. Teachers' phones join the same Wi-Fi.
+- Not a copy on each laptop kept in step with the others: two copies of the same records drift apart and their
+  conflicts lose data. One database, on one computer, is the only safe way.
+- Only inside the building: a teacher at home cannot reach it. Reaching it from outside needs the internet (a VPN or a
+  public server), which this setup does not use.
+- The server must be on whenever anyone works. If it is off, nobody can work; nothing is lost.
+
 ## Limitations that apply to every local install
 
 - One computer holds everything. If its disk fails without a backup, the office loses its records. Backups are not
