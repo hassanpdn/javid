@@ -42,6 +42,12 @@ const ASSISTANTS = [
     perks: [{ icon: "clock", text: "روز آخر مهلت" }, { icon: "calendar", text: "جلسه‌ی فردا" }, { icon: "message", text: "گزارش به موکل" }],
   },
   {
+    key: "dental", title: "دستیار مطب دندان‌پزشکی", icon: "tooth", hue: "sky",
+    desc: "برای مطبی که نوبت‌ها و طرح‌های درمانش در دفتر منشی است: تأیید نوبت فردا، پر کردن وقت خالی از فهرست انتظار و پیگیری طرح درمانی که شروع نشده است.",
+    roles: ["دندان‌پزشک", "منشی"],
+    perks: [{ icon: "calendar", text: "نوبت فردا" }, { icon: "heart", text: "طرح شروع‌نشده" }, { icon: "users", text: "فهرست انتظار" }],
+  },
+  {
     key: "deed", title: "دستیار استخراج داده‌ی سند", icon: "notebook", hue: "amber",
     desc: "سند دفترچه‌ای اسکن‌شده را می‌خواند و داده‌هایش را برای بررسی و تأیید کارشناس، پیش از تبدیل به سند تک‌برگ، آماده می‌کند.",
     roles: ["کارشناس بررسی"],
@@ -239,6 +245,7 @@ h1 span { background: linear-gradient(90deg, #a99fff, #5fe3f3 60%, #ff9fc6); -we
 .hue-amber { --c1: #8a5a1c; --c2: #5fb3f0; }
 .hue-rose { --c1: #b23a62; --c2: #36c2a3; }
 .hue-indigo { --c1: #3c4a8f; --c2: #e0a785; }
+.hue-sky { --c1: #1d6fa3; --c2: #f28b82; }
 .h-card:hover { border-color: rgba(255,255,255,.28); box-shadow: 0 40px 90px -24px rgba(115,103,240,.55), inset 0 1px 0 rgba(255,255,255,.25); }
 .h-card:focus-visible { outline: 3px solid #8fefff; outline-offset: 4px; }
 .h-glow { position: absolute; inset: 0; pointer-events: none; opacity: 0; transition: opacity .3s;

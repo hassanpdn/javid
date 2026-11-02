@@ -15,6 +15,7 @@ every assistant is a demo; the "Before the first customer" list below is not don
 | Deed extraction (`deed/`) | Everything | Tesseract and poppler must be installed with the program; a fast processor helps. |
 | Fabric wholesaler (`fabric/`) | All but the website | «سایت فروشگاه» needs a public server: leave it out. The three Excel files, the phone desk, checks and reports work. |
 | Real estate (`estate/`) | All but two parts | «سایت بنگاه» needs a public server: leave it out. Agents out on a visit cannot reach the office computer from their phone. |
+| Dental clinic (`dental/`) | Everything | Reminders and follow-ups are drafts the secretary sends from the clinic's own phone; sending SMS from the program would need an SMS service on the internet: leave it out. |
 | School (`school`, the main app) | Staff only | Parents and students work from home, so they cannot reach a computer inside the school. Offer it with «چه کسانی وارد شوند» set to staff only. The documents' search needs its index built before installing (see below). |
 
 The AI, without internet:
@@ -59,6 +60,15 @@ school's router and Wi-Fi, which work without an internet subscription.
   embedding model. Build it before installing and ship it with the program, or the answers have nothing to read.
 - The computer's clock is the source of "today" (deadlines, attendance). A wrong clock gives wrong deadlines: check it
   when installing.
+
+## Check with someone from the trade before showing it to a real customer
+
+These are guesses made while building the demo. Remind Hassan of them before any step for a customer of that kind.
+- Law office: the number of days for each kind of notice, the shape of a real notice from ثنا (the reader was written without a real sample), this year's lunar holidays.
+- Dental clinic: the price list (made up), the working hours and length of each service, the thresholds (14 days before a plan needs a call, two no-shows in 90 days), official holidays (not counted yet), and whether a clinic wants the follow-up message at all or calls instead.
+- Pharmacy (not built yet): every insurance rule that leads to deductions (کسورات) must come from a pharmacist (مسئول فنی).
+- Accounting office (not built yet): every filing deadline (اظهارنامه, سامانه‌ی مؤدیان, insurance lists) must come from an accountant.
+- Distribution, contractor, freight (not built yet): their documents and numbers (pre-invoice, صورت‌وضعیت and فهرست‌بها, waybill) must be checked against real ones.
 
 ## Before the first customer (once per assistant; none of this exists yet)
 
