@@ -18,7 +18,8 @@ const load = async () => {
 onMounted(load)
 
 const app = (key) => props.assistants.find((a) => a.key === key) || { title: key, icon: "sparkles", hue: "violet" }
-const lastLogin = (sec) => sec ? "آخرین ورود: " + new Date(sec * 1000).toLocaleDateString("fa-IR", { day: "numeric", month: "long" }) : "هنوز وارد نشده"
+// last_login_at: «1405/08/10 18:30» in Tehran, from the server
+const lastLogin = (at) => at ? "آخرین ورود: " + jalaliText(at) : "هنوز وارد نشده"
 const remove = async (p) => {
   try { await accessCall(`/access/people/${p.id}/delete`, {}); removing.value = null; await load() }
   catch (e) { removing.value = null; error.value = `دسترسی «${p.name}» برداشته نشد: ${e.message}` }
@@ -58,7 +59,7 @@ const remove = async (p) => {
           </div>
           <div class="am-meta">
             <span><Icon name="calendar" :size="14" />{{ p.expires_on ? "تا " + jalaliText(p.expires_on) : "بدون تاریخ انقضا" }}</span>
-            <span><Icon name="clock" :size="14" />{{ lastLogin(p.last_login) }}</span>
+            <span><Icon name="clock" :size="14" />{{ lastLogin(p.last_login_at) }}</span>
           </div>
           <div v-if="removing === p.id" class="am-confirm">
             <span>دسترسی {{ p.name }} پاک شود؟</span>

@@ -45,6 +45,10 @@ def _conn():
         pw_ver INTEGER NOT NULL DEFAULT 1, apps TEXT NOT NULL, expires_on TEXT, expires_at INTEGER,
         created_at INTEGER NOT NULL, last_login INTEGER)""")
     c.execute("CREATE TABLE IF NOT EXISTS ai (app TEXT PRIMARY KEY, enabled INTEGER NOT NULL)")
+    # every login try, at the door or a card's login box (see record_login)
+    c.execute("""CREATE TABLE IF NOT EXISTS logins (
+        id INTEGER PRIMARY KEY, at INTEGER NOT NULL, username TEXT NOT NULL, name TEXT NOT NULL, result TEXT NOT NULL,
+        via TEXT NOT NULL, device TEXT NOT NULL, ip TEXT NOT NULL)""")
     return c
 
 # Passwords are stored salted and stretched (PBKDF2), never as they were typed.
@@ -105,24 +109,62 @@ def app_for(path):
         return "any"
     return "school"
 
+ADMIN_NAME = "حساب دائمی"   # how the permanent account appears in the login log
+
 def check(username, password):
-    """The cookie value and its lifetime in seconds for a right username and password, else None."""
+    """(cookie value, lifetime in seconds) for a right username and password, else None; and who it was and how it went,
+    for the login log: (got, name, result). result: "ok", "wrong" (password), "expired" or "unknown" (username)."""
     if not ON:
-        return None
+        return None, "", "unknown"
     name, now = username.strip().lower(), int(time.time())
     if hmac.compare_digest(name.encode(), USER.lower().encode()) & hmac.compare_digest(password.encode(), PASSWORD.encode()):
         expires = now + DAYS * 86400
-        return _cookie("admin", expires), expires - now
+        return (_cookie("admin", expires), expires - now), ADMIN_NAME, "ok"
+    if name == USER.lower():
+        return None, ADMIN_NAME, "wrong"
     with _conn() as c:
         p = c.execute("SELECT * FROM people WHERE username = ?", (name,)).fetchone()
         if not p:
             _hash(password)   # the same work as a real check, so the time taken doesn't tell whether the username exists
-            return None
-        if _expired(p, now) or not _password_ok(password, p["password_hash"]):
-            return None
+            return None, "", "unknown"
+        if not _password_ok(password, p["password_hash"]):
+            return None, p["name"], "wrong"
+        if _expired(p, now):
+            return None, p["name"], "expired"
         c.execute("UPDATE people SET last_login = ? WHERE id = ?", (now, p["id"]))
     expires = now + DAYS * 86400 if p["expires_at"] is None else min(now + DAYS * 86400, p["expires_at"])
-    return _cookie(f"p{p['id']}-{p['pw_ver']}", expires), expires - now
+    return (_cookie(f"p{p['id']}-{p['pw_ver']}", expires), expires - now), p["name"], "ok"
+
+# ---------- the login log: who logged in, when, from what; only the permanent account sees it ----------
+
+KEEP_DAYS = 90   # older entries are deleted, so the table can't grow forever
+
+def device(agent):
+    """A short label for a browser's user agent: «iPhone Safari», «Windows Chrome». No library: a few known names."""
+    a = agent or ""
+    system = next((label for key, label in (("iPhone", "iPhone"), ("iPad", "iPad"), ("Android", "Android"),
+                                             ("Windows", "Windows"), ("Macintosh", "Mac"), ("CrOS", "ChromeOS"),
+                                             ("Linux", "Linux")) if key in a), "")
+    browser = next((label for key, label in (("Edg/", "Edge"), ("OPR/", "Opera"), ("SamsungBrowser", "Samsung"),
+                                              ("Firefox/", "Firefox"), ("FxiOS", "Firefox"), ("CriOS", "Chrome"),
+                                              ("Chrome/", "Chrome"), ("Safari/", "Safari")) if key in a), "")
+    return " ".join(x for x in (system, browser) if x) or "نامشخص"
+
+def record_login(request: Request, username, name, result, via):
+    """One login try into the log. via: "door" (the site's door) or "card" (an assistant's login box)."""
+    now = int(time.time())
+    with _conn() as c:
+        c.execute("INSERT INTO logins (at, username, name, result, via, device, ip) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                  (now, username.strip().lower()[:40], name, result, via, device(request.headers.get("user-agent")),
+                   request.client.host if request.client else ""))
+        c.execute("DELETE FROM logins WHERE at < ?", (now - KEEP_DAYS * 86400,))
+
+def when(sec):
+    """A timestamp as «1405/08/10 18:30», in Tehran."""
+    if not sec:
+        return None
+    t = datetime.fromtimestamp(sec, TEHRAN)
+    return f"{jalali.jstr(t.date())} {t:%H:%M}"
 
 def set_cookie(request: Request, response: Response, value, max_age):
     https = request.url.scheme == "https" or request.headers.get("x-forwarded-proto") == "https"
@@ -176,7 +218,8 @@ def login(req: AccessLogin, request: Request, response: Response):
         return _status("")
     if _too_many(request):
         raise HTTPException(status_code=429, detail="تلاش‌های ناموفق زیاد بود. چند دقیقه دیگر دوباره امتحان کنید.")
-    got = check(req.username, req.password)
+    got, name, result = check(req.username, req.password)
+    record_login(request, req.username, name, result, "card")
     if not got:
         _failed.setdefault(request.client.host if request.client else "", []).append(time.time())
         raise HTTPException(status_code=401, detail="نام کاربری یا رمز عبور درست نیست، یا تاریخ دسترسی تمام شده.")
@@ -197,7 +240,7 @@ def _admin(request: Request):
 
 def _person(p):
     return {"id": p["id"], "name": p["name"], "username": p["username"], "apps": [a for a in p["apps"].split(",") if a in APPS],
-            "expires_on": p["expires_on"], "expired": _expired(p), "created_at": p["created_at"], "last_login": p["last_login"]}
+            "expires_on": p["expires_on"], "expired": _expired(p), "created_at": p["created_at"], "last_login": p["last_login"], "last_login_at": when(p["last_login"])}
 
 def _last_moment(expires_on):
     """«1405/08/30 18:30» → that minute in Tehran, as a timestamp. Without a time, the end of that day.
@@ -284,6 +327,26 @@ def delete_person(gid: int, request: Request):
         if c.execute("DELETE FROM people WHERE id = ?", (gid,)).rowcount != 1:
             raise HTTPException(status_code=404)
     return {"ok": True}
+
+PAGE = 50
+
+@router.get("/logins")
+def logins(request: Request, before: int | None = None, username: str = ""):
+    """The login log, newest first, PAGE at a time (before: the last id already shown). username: one person only.
+    people: everyone the log can be filtered by. The IP address is kept but not sent."""
+    _admin(request)
+    where, args = ["1"], []
+    if before:
+        where.append("id < ?"); args.append(before)
+    if username:
+        where.append("username = ?"); args.append(username.strip().lower())
+    with _conn() as c:
+        rows = c.execute(f"SELECT * FROM logins WHERE {' AND '.join(where)} ORDER BY id DESC LIMIT ?", (*args, PAGE + 1)).fetchall()
+        people = [{"username": USER.lower(), "name": ADMIN_NAME}] + [
+            {"username": p["username"], "name": p["name"]} for p in c.execute("SELECT username, name FROM people ORDER BY name")]
+    items = [{"id": r["id"], "at": when(r["at"]), "username": r["username"], "name": r["name"], "result": r["result"],
+              "via": r["via"], "device": r["device"]} for r in rows[:PAGE]]
+    return {"items": items, "more": len(rows) > PAGE, "people": people}
 
 # The AI switch on each card (see the top of this file). Only the permanent account flips it.
 class AiSwitch(BaseModel):

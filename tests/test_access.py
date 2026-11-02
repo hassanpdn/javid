@@ -127,3 +127,33 @@ def test_forged_cookie(monkeypatch, tmp_path):
     c.cookies.set("access", f"admin.{int(time.time()) + 999}.forged")
     assert c.get("/access/status").json()["apps"] == []
     _cleanup(monkeypatch)
+
+def test_login_log(monkeypatch, tmp_path):
+    app, access = _app(monkeypatch, tmp_path)
+    admin = _admin(app)
+    admin.post("/access/people", json={"name": "خانم احمدی", "username": "ahmadi", "password": "rose-2026", "apps": ["school"]})
+    iphone = {"user-agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 Version/17.0 Mobile/15E148 Safari/604.1"}
+    c = TestClient(app, headers=iphone)
+    assert c.post("/access/login", json={"username": "ahmadi", "password": "wrong-one"}).status_code == 401
+    assert c.post("/gate/login", json={"username": "Ahmadi", "password": "rose-2026"}).status_code == 200
+    assert c.post("/gate/login", json={"username": "nobody", "password": "x"}).status_code == 401
+    assert c.post("/gate/login", json={"username": "door", "password": "door-secret"}).status_code == 200
+    log = admin.get("/access/logins").json()
+    got = [(r["name"], r["username"], r["result"], r["via"]) for r in log["items"]]
+    assert got == [("رمز سایت", "door", "ok", "door"), ("", "nobody", "unknown", "door"),
+                   ("خانم احمدی", "ahmadi", "ok", "door"), ("خانم احمدی", "ahmadi", "wrong", "card"),
+                   ("حساب دائمی", ADMIN["username"], "ok", "card")]
+    assert log["items"][0]["device"] == "iPhone Safari" and "ip" not in log["items"][0]
+    assert [p["name"] for p in log["people"]] == ["حساب دائمی", "خانم احمدی"]
+    # one person, and the next page after a given entry
+    assert [r["result"] for r in admin.get("/access/logins?username=ahmadi").json()["items"]] == ["ok", "wrong"]
+    assert len(admin.get(f"/access/logins?before={log['items'][1]['id']}").json()["items"]) == 3
+    assert admin.get("/access/people").json()[0]["last_login_at"]
+    assert c.get("/access/logins").status_code == 403   # only the permanent account sees it
+    _cleanup(monkeypatch)
+
+def test_device_labels():
+    import access
+    assert access.device("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0 Safari/537.36 Edg/120.0") == "Windows Edge"
+    assert access.device("Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Chrome/120.0 Mobile Safari/537.36") == "Android Chrome"
+    assert access.device("") == "نامشخص"

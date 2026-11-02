@@ -46,6 +46,8 @@ def status(request: Request):
     return {"on": ON, "ok": allowed(request), "reset_on_load": os.getenv("RESET_ON_LOAD") == "1",
             "hub": ON or os.getenv("HUB") == "1"}
 
+DOOR_NAME = "رمز سایت"   # the door's own username and password, shared, in the login log
+
 @router.post("/login")
 def login(req: GateLogin, request: Request, response: Response):
     if not ON:
@@ -56,13 +58,20 @@ def login(req: GateLogin, request: Request, response: Response):
         raise HTTPException(status_code=429, detail="تلاش‌های ناموفق زیاد بود. چند دقیقه دیگر دوباره امتحان کنید.")
     # the permanent account or a person's account (access.py) first: its cookie opens the door and the assistants it is
     # for, so pudineh signs in once even when the door's own username and password are the same
-    got = access.check(req.username, req.password)
+    got, name, result = access.check(req.username, req.password)
     if got:
+        access.record_login(request, req.username, name, result, "door")
         _failed.pop(who, None)
         access.set_cookie(request, response, *got)
         return {"ok": True}
     # compare_digest takes the same time whatever the input, so timing gives nothing away
     good = hmac.compare_digest(req.username.strip().encode(), USER.encode()) & hmac.compare_digest(req.password.encode(), PASSWORD.encode())
+    if access.ON:   # the log lives in access.db, which exists only with the assistants' logins on
+        if good:
+            name, result = DOOR_NAME, "ok"
+        elif req.username.strip() == USER:
+            name, result = DOOR_NAME, "wrong"
+        access.record_login(request, req.username, name, result, "door")
     if not good:
         _failed[who] = recent + [now]
         raise HTTPException(status_code=401, detail="نام کاربری یا رمز عبور درست نیست")

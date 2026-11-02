@@ -10,6 +10,7 @@ import BrandMark from "../components/core/BrandMark.vue"
 // shown only when opened, so their code is downloaded only then
 const AccessManager = defineAsyncComponent(() => import("../components/AccessManager.vue"))
 const AccessDialog = defineAsyncComponent(() => import("../components/AccessDialog.vue"))
+const LoginLog = defineAsyncComponent(() => import("../components/LoginLog.vue"))
 
 const emit = defineEmits(["open"])
 const ASSISTANTS = [
@@ -120,6 +121,7 @@ const unlean = (e) => { e.currentTarget.style.setProperty("--rx", "0deg"); e.cur
     </section>
 
     <AccessManager v-if="access.admin" :assistants="ASSISTANTS" />
+    <LoginLog v-if="access.admin" />
     <AccessDialog v-if="asking" @close="asking = null" @opened="opened" />
     <p class="h-foot"><Icon name="shield" :size="15" />همه‌ی اطلاعات این نسخه ساختگی است.</p>
   </main>
