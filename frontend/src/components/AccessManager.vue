@@ -6,7 +6,9 @@ import { accessCall, jalaliText } from "../lib/access.js"
 import Icon from "./Icon.vue"
 import AccessForm from "./AccessForm.vue"
 
-const props = defineProps({ assistants: Array })
+// collapsible (phones): only the header shows until it is opened, so the assistants page stays short
+const props = defineProps({ assistants: Array, collapsible: { type: Boolean, default: false } })
+const open = ref(false)
 const list = ref([]), loading = ref(true), editing = ref(null), adding = ref(false), removing = ref(null), error = ref("")
 
 // a failed call says so: an empty list must mean "nobody yet", never "the list did not load"
@@ -28,13 +30,19 @@ const remove = async (p) => {
 
 <template>
   <section class="am">
-    <header class="am-head">
-      <div class="am-title">
+    <button v-if="collapsible" type="button" class="am-fold" :aria-expanded="open" aria-controls="am-body" @click="open = !open">
+      <span class="am-badge"><Icon name="users" :size="20" /></span>
+      <span class="am-fold-text"><b>دسترسی‌ها</b><small>{{ loading ? '…' : list.length ? list.length.toLocaleString('fa-IR') + ' نفر' : 'هنوز کسی نیست' }}</small></span>
+      <Icon name="chevron" :size="18" :class="['am-chev', { open }]" />
+    </button>
+    <header v-if="!collapsible || open" class="am-head">
+      <div v-if="!collapsible" class="am-title">
         <span class="am-badge"><Icon name="users" :size="22" /></span>
         <div><h2>دسترسی‌ها</h2><p>چه کسی، با چه رمزی، کدام دستیار را ببیند.</p></div>
       </div>
       <button class="am-add" @click="adding = true"><Icon name="plus" :size="18" />دسترسی جدید</button>
     </header>
+    <div v-show="!collapsible || open" id="am-body">
 
     <p v-if="error" class="am-error" role="alert"><Icon name="alert" :size="16" />{{ error }}</p>
     <div v-if="loading" class="am-grid">
@@ -74,6 +82,7 @@ const remove = async (p) => {
       </li>
     </ul>
 
+    </div>
     <!-- to body: this section's frosted glass would otherwise hold the dialog inside it -->
     <Teleport to="body">
       <AccessForm v-if="adding || editing" :assistants="assistants" :person="editing" @saved="load" @close="adding = false; editing = null" />
@@ -138,6 +147,15 @@ const remove = async (p) => {
 .am-skel b, .am-skel em { display: block; height: 14px; border-radius: 7px; background: rgba(255,255,255,.08); }
 .am-skel b { width: 50%; } .am-skel em { width: 80%; }
 
+.am-fold { display: flex; align-items: center; gap: 12px; width: 100%; padding: 0; border: 0; background: none; font: inherit; color: inherit; text-align: right; cursor: pointer; }
+.am-fold:focus-visible { outline: 3px solid #8fefff; outline-offset: 4px; border-radius: 14px; }
+.am-fold .am-badge { width: 42px; height: 42px; border-radius: 14px; }
+.am-fold-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.am-fold-text b { font-size: 16px; color: #fff; }
+.am-fold-text small { font-size: 12.5px; color: #b7b3d9; }
+.am-chev { flex: none; color: #b7b3d9; transform: rotate(-90deg); transition: transform .25s; }
+.am-chev.open { transform: rotate(90deg); }
+.am-fold + .am-head { margin-top: 14px; }
 @media (max-width: 480px) {
   .am { padding: 18px 14px; border-radius: 24px; }
   .am-add { width: 100%; justify-content: center; }

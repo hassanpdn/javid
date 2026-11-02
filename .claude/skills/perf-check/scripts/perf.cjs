@@ -68,7 +68,7 @@ async function simulate(ctx, net, seed) {
 }
 // every page a visitor reaches, the way they reach it: from the assistants page through cards and role cards
 const PAGES = [
-  { name: "assistants page", path: [], ready: ".h-card" },
+  { name: "assistants page", path: [], ready: ".h-card, .h-row" },
   { name: "school login", path: ["دستیار مدرسه"], ready: ".role-card" },
   ...["مدیر", "پرسنل اداری", "مشاور", "ولی"].map((r) => ({ name: "school " + r, path: ["دستیار مدرسه", r], ready: "panel" })),
   { name: "fabric owner", path: ["دستیار پارچه‌فروشی", "صاحب کار"], ready: "panel" },
@@ -77,11 +77,12 @@ const PAGES = [
 ]
 async function reach(page, p) {
   await page.goto(URL)
-  await page.locator(".h-card").first().waitFor({ timeout: 90000 })
+  await page.locator(".h-card, .h-row").first().waitFor({ timeout: 90000 })
   let last = Date.now()
   for (const [i, step] of p.path.entries()) {
     last = Date.now()
-    if (i === 0) await page.locator(".h-card", { hasText: step }).first().click()
+    // on a phone each assistant is a row with its own «ورود» button (HubPage); on a wider screen, a card
+    if (i === 0) await page.locator(".h-card, .h-row", { hasText: step }).first().locator(".h-row-go").or(page.locator(".h-card", { hasText: step })).first().click()
     else await page.locator(".role-card", { has: page.locator(`b:text-is("${step}")`) }).first().click()
     if (i === 0 && p.path.length > 1) await page.locator(".role-card").first().waitFor({ timeout: 90000 })
   }

@@ -4,6 +4,7 @@
 import { ref, computed, watch, onMounted, defineAsyncComponent } from "vue"
 import { leaveGate } from "../lib/gate.js"
 import { access, canOpen, forgetAccess, jalaliText, setAi } from "../lib/access.js"
+import { phone } from "../lib/viewport.js"
 import AuroraBg from "../components/AuroraBg.vue"
 import Icon from "../components/Icon.vue"
 import BrandMark from "../components/core/BrandMark.vue"
@@ -64,6 +65,10 @@ async function flipAi(a) {
   finally { switching.value = "" }
 }
 
+// phones: each assistant is one short row; its description, roles and AI switch open under it, one at a time
+const expanded = ref("")
+const toggle = (key) => { expanded.value = expanded.value === key ? "" : key }
+
 // the light on the card follows the pointer, and the card leans a little toward it
 const move = (e) => {
   const el = e.currentTarget, r = el.getBoundingClientRect()
@@ -99,6 +104,32 @@ const unlean = (e) => { e.currentTarget.style.setProperty("--rx", "0deg"); e.cur
       <button class="h-none-btn" @click="asking = {}">ورود<Icon name="arrowLeft" :size="18" /></button>
     </section>
 
+    <section v-else-if="phone" class="h-rows">
+      <div v-for="(a, i) in visible" :key="a.key" :class="['h-row', 'hue-' + a.hue, { open: expanded === a.key }]" :style="{ '--i': i }">
+        <div class="h-row-head">
+          <button type="button" class="h-row-toggle" :aria-expanded="expanded === a.key" :aria-controls="'h-more-' + a.key" @click="toggle(a.key)">
+            <span class="h-row-icon"><Icon :name="a.icon" :size="22" /></span>
+            <span class="h-row-text"><b>{{ a.title }}</b>
+              <small v-if="access.admin">هوش مصنوعی {{ access.ai[a.key] ? 'روشن' : 'خاموش' }}</small>
+              <small v-else>{{ a.roles.join('، ') }}</small></span>
+            <Icon name="chevron" :size="18" class="h-row-chev" />
+          </button>
+          <button type="button" class="h-row-go" @click="emit('open', a.key)">ورود<Icon name="arrowLeft" :size="16" /></button>
+        </div>
+        <div v-if="expanded === a.key" :id="'h-more-' + a.key" class="h-row-more">
+          <p class="h-desc">{{ a.desc }}</p>
+          <span class="h-roles"><span v-for="r in a.roles" :key="r">{{ r }}</span></span>
+          <button v-if="access.admin" type="button" role="switch" :aria-checked="!!access.ai[a.key]"
+                  :class="['h-ai', { on: access.ai[a.key] }]" :disabled="switching === a.key" @click="flipAi(a)">
+            <Icon name="sparkles" :size="17" />
+            <span class="h-ai-text"><b>هوش مصنوعی {{ access.ai[a.key] ? 'روشن' : 'خاموش' }}</b>
+              <small>{{ access.ai[a.key] ? 'متن‌ها را مدل می‌نویسد' : 'بدون درخواست به مدل؛ متن‌ها را کد می‌نویسد' }}</small></span>
+            <span class="h-ai-switch" aria-hidden="true"><i></i></span>
+          </button>
+        </div>
+      </div>
+    </section>
+
     <section v-else class="h-grid">
       <div v-for="(a, i) in visible" :key="a.key" class="h-slot" :style="{ '--i': i }">
       <button :class="['h-card', 'hue-' + a.hue]"
@@ -126,8 +157,8 @@ const unlean = (e) => { e.currentTarget.style.setProperty("--rx", "0deg"); e.cur
       </div>
     </section>
 
-    <AccessManager v-if="access.admin" :assistants="ASSISTANTS" />
-    <LoginLog v-if="access.admin" />
+    <AccessManager v-if="access.admin" :assistants="ASSISTANTS" :collapsible="phone" />
+    <LoginLog v-if="access.admin" :collapsible="phone" />
     <AccessDialog v-if="asking" @close="asking = null" @opened="opened" />
     <p class="h-foot"><Icon name="shield" :size="15" />همه‌ی اطلاعات این نسخه ساختگی است.</p>
   </main>
@@ -237,6 +268,29 @@ h1 span { background: linear-gradient(90deg, #a99fff, #5fe3f3 60%, #ff9fc6); -we
 .h-go .ico { transition: transform .3s; }
 .h-card:hover .h-go { background-position: 100% 0; }
 .h-card:hover .h-go .ico { transform: translateX(-5px); }
+
+/* phones: one row per assistant (see the template); the chevron turns when its details are open */
+.h-rows { width: 100%; display: flex; flex-direction: column; gap: 10px; margin-top: 4px; }
+.h-row { --c1: #7367f0; --c2: #00bad1; border-radius: 20px; overflow: hidden; isolation: isolate;
+  background: linear-gradient(165deg, rgba(48,45,96,.9), rgba(20,19,46,.92)); border: 1px solid rgba(255,255,255,.14);
+  animation: h-up .7s cubic-bezier(.2,.9,.25,1) calc(.15s + var(--i) * .08s) backwards; }
+.h-row.open { border-color: rgba(255,255,255,.26); }
+.h-row-head { display: flex; align-items: center; gap: 8px; padding: 10px 12px 10px 10px; }
+.h-row-toggle { flex: 1; min-width: 0; display: flex; align-items: center; gap: 12px; padding: 0; border: 0; background: none; font: inherit; color: inherit;
+  text-align: right; cursor: pointer; border-radius: 14px; }
+.h-row-toggle:focus-visible, .h-row-go:focus-visible { outline: 3px solid #8fefff; outline-offset: 3px; }
+.h-row-icon { flex: none; display: grid; place-items: center; width: 44px; height: 44px; border-radius: 14px; color: #fff;
+  background: linear-gradient(140deg, color-mix(in srgb, var(--c1) 90%, #fff 10%), color-mix(in srgb, var(--c2) 70%, #0d0c24)); }
+.h-row-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.h-row-text b { font-size: 15.5px; color: #fff; line-height: 1.6; }
+.h-row-text small { font-size: 12px; color: #b7b3d9; line-height: 1.7; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.h-row-chev { flex: none; color: #b7b3d9; transform: rotate(-90deg); transition: transform .25s; }
+.h-row.open .h-row-chev { transform: rotate(90deg); }
+.h-row-go { flex: none; display: inline-flex; align-items: center; gap: 6px; height: 40px; padding: 0 14px; border: 0; border-radius: 12px; cursor: pointer;
+  font: inherit; font-size: 14px; font-weight: 700; color: #fff; background: linear-gradient(110deg, #6a5cf5, #8f6bff 45%, #1fb8d6); }
+.h-row-more { display: flex; flex-direction: column; gap: 12px; padding: 4px 14px 14px; animation: h-fade .3s ease both; }
+.h-row-more .h-desc { margin: 0; font-size: 13.5px; }
+.h-row-more .h-ai { animation: none; }
 
 .h-foot { display: flex; align-items: center; gap: 6px; margin: auto 0 0; padding-top: 12px; font-size: 12.5px; color: #8f8bb6; animation: h-fade 1s ease .8s both; }
 

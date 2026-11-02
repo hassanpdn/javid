@@ -2,11 +2,14 @@
 // «ورودها» on the assistants page, for the permanent account only (GET /access/logins): every login try at the site's
 // door or an assistant's login box, newest first, 50 at a time, with a filter for one person. Failed tries are
 // marked in red. The server keeps 90 days and gives Tehran's date and time.
-import { ref, onMounted } from "vue"
+import { ref, watch, onMounted } from "vue"
 import { access, accessCall, jalaliText } from "../lib/access.js"
 import { faDigits } from "../lib/jalali.js"
 import Icon from "./Icon.vue"
 
+// collapsible (phones): only the header shows, and the log is asked for only once it is opened
+const props = defineProps({ collapsible: { type: Boolean, default: false } })
+const open = ref(false)
 const items = ref([]), people = ref([]), more = ref(false), who = ref("")
 const loading = ref(true), loadingMore = ref(false), error = ref("")
 
@@ -26,7 +29,8 @@ async function load(next = false) {
   } catch (e) { error.value = "فهرست ورودها بارگیری نشد: " + e.message }
   loading.value = loadingMore.value = false
 }
-onMounted(() => load())
+onMounted(() => { if (!props.collapsible) load() })
+watch(open, (o) => { if (o && loading.value) load() })
 
 // «1405/08/10 18:30» → «امروز، ساعت ۱۸:۳۰» or «۱۰ آبان ۱۴۰۵، ساعت ۱۸:۳۰» (today from the server's clock)
 const at = (s) => s.split(" ")[0] === access.today ? faDigits("امروز، ساعت " + s.split(" ")[1]) : jalaliText(s)
@@ -34,8 +38,14 @@ const at = (s) => s.split(" ")[0] === access.today ? faDigits("امروز، سا
 
 <template>
   <section class="ll">
-    <header class="ll-head">
-      <div class="ll-title">
+    <button v-if="collapsible" type="button" class="ll-fold" :aria-expanded="open" aria-controls="ll-body" @click="open = !open">
+      <span class="ll-badge"><Icon name="lock" :size="18" /></span>
+      <span class="ll-fold-text"><b>ورودها</b><small>هر ورود با زمان و دستگاه</small></span>
+      <Icon name="chevron" :size="18" :class="['ll-chev', { open }]" />
+    </button>
+    <div v-if="!collapsible || open" id="ll-body">
+    <header :class="['ll-head', { 'll-head-in': collapsible }]">
+      <div v-if="!collapsible" class="ll-title">
         <span class="ll-badge"><Icon name="lock" :size="20" /></span>
         <div><h2>ورودها</h2><p>چه کسی، چه زمانی و با چه دستگاهی وارد شد. ورودهای ناموفق قرمزند.</p></div>
       </div>
@@ -70,6 +80,7 @@ const at = (s) => s.split(" ")[0] === access.today ? faDigits("امروز، سا
     <button v-if="more && !loading" class="ll-more" :disabled="loadingMore" @click="load(true)">
       {{ loadingMore ? "در حال بارگیری…" : "ورودهای قبلی" }}
     </button>
+    </div>
   </section>
 </template>
 
@@ -115,6 +126,15 @@ const at = (s) => s.split(" ")[0] === access.today ? faDigits("امروز، سا
 .ll-skel b, .ll-skel em { display: block; height: 12px; border-radius: 6px; background: rgba(255,255,255,.08); }
 .ll-skel b { width: 40%; } .ll-skel em { width: 70%; }
 
+.ll-fold { display: flex; align-items: center; gap: 12px; width: 100%; padding: 0; border: 0; background: none; font: inherit; color: inherit; text-align: right; cursor: pointer; }
+.ll-fold:focus-visible { outline: 3px solid #8fefff; outline-offset: 4px; border-radius: 14px; }
+.ll-fold .ll-badge { width: 42px; height: 42px; border-radius: 14px; }
+.ll-fold-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.ll-fold-text b { font-size: 16px; color: #fff; }
+.ll-fold-text small { font-size: 12.5px; color: #b7b3d9; line-height: 1.7; }
+.ll-chev { flex: none; color: #b7b3d9; transform: rotate(-90deg); transition: transform .25s; }
+.ll-chev.open { transform: rotate(90deg); }
+.ll-head-in { margin-top: 14px; }
 @media (max-width: 480px) {
   .ll { padding: 18px 14px; border-radius: 24px; }
   .ll-filter { width: 100%; }
