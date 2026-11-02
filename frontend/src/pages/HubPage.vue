@@ -109,7 +109,7 @@ const unlean = (e) => { e.currentTarget.style.setProperty("--rx", "0deg"); e.cur
         <div class="h-row-head">
           <button type="button" class="h-row-toggle" :aria-expanded="expanded === a.key" :aria-controls="'h-more-' + a.key" @click="toggle(a.key)">
             <span class="h-row-icon"><Icon :name="a.icon" :size="22" /></span>
-            <span class="h-row-text"><b>{{ a.title }}</b>
+            <span class="h-row-text"><b :title="a.title">{{ a.title }}</b>
               <small v-if="access.admin">هوش مصنوعی {{ access.ai[a.key] ? 'روشن' : 'خاموش' }}</small>
               <small v-else>{{ a.roles.join('، ') }}</small></span>
             <Icon name="chevron" :size="18" class="h-row-chev" />
@@ -141,7 +141,7 @@ const unlean = (e) => { e.currentTarget.style.setProperty("--rx", "0deg"); e.cur
           <span v-for="(p, n) in a.perks" :key="p.text" :class="['h-perk', 'p' + n]"><Icon :name="p.icon" :size="14" />{{ p.text }}</span>
         </span>
         <span class="h-body">
-          <span class="h-head"><b>{{ a.title }}</b><span class="h-live"><i></i>آماده</span></span>
+          <span class="h-head"><b :title="a.title">{{ a.title }}</b><span class="h-live"><i></i>آماده</span></span>
           <span class="h-desc">{{ a.desc }}</span>
           <span class="h-roles"><span v-for="r in a.roles" :key="r">{{ r }}</span></span>
           <span class="h-go">ورود به دستیار<Icon name="arrowLeft" :size="18" /></span>
@@ -199,10 +199,11 @@ h1 span { background: linear-gradient(90deg, #a99fff, #5fe3f3 60%, #ff9fc6); -we
 .h-hero p { margin: 0; color: #b7b3d9; font-size: 15px; line-height: 2; }
 
 .h-grid { width: min(100%, 1120px); display: grid; gap: 24px; justify-content: center;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 400px)); margin-top: 8px; perspective: 1200px; }
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 400px)); grid-auto-rows: 1fr; margin-top: 8px; perspective: 1200px; }
 
 /* one assistant, and under it the permanent account's AI switch */
 .h-slot { display: flex; flex-direction: column; gap: 12px; }
+.h-slot > .h-card { flex: 1; }
 .h-ai { display: flex; align-items: center; gap: 12px; width: 100%; padding: 12px 16px; border-radius: 18px; cursor: pointer; text-align: right;
   font: inherit; color: #d9d5ff; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.14); transition: background .2s, border-color .2s;
   animation: h-up 1s cubic-bezier(.2,.9,.25,1) calc(.45s + var(--i) * .12s) backwards; }
@@ -253,16 +254,16 @@ h1 span { background: linear-gradient(90deg, #a99fff, #5fe3f3 60%, #ff9fc6); -we
 .p1 { top: 92px; left: 18px; animation-delay: 1.4s; }
 .p2 { bottom: 24px; right: 40px; animation-delay: .7s; }
 
-.h-body { position: relative; display: flex; flex-direction: column; gap: 12px; padding: 22px 24px 24px; }
+.h-body { flex: 1; position: relative; display: flex; flex-direction: column; gap: 12px; padding: 22px 24px 24px; }
 .h-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-.h-head b { font-size: 21px; color: #fff; }
-.h-live { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 999px; font-size: 12px; color: #7ef0b0;
+.h-head b { min-width: 0; font-size: 21px; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.h-live { flex: none; display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 999px; font-size: 12px; color: #7ef0b0;
   background: rgba(62,224,143,.12); border: 1px solid rgba(62,224,143,.3); }
 .h-live i { width: 6px; height: 6px; border-radius: 50%; background: #3ee08f; animation: h-pulse 2s infinite; }
 .h-desc { color: #c3bfe6; font-size: 14px; line-height: 2; }
 .h-roles { display: flex; flex-wrap: wrap; gap: 6px; }
 .h-roles span { padding: 3px 11px; border-radius: 999px; font-size: 12px; color: #dcd8ff; background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.1); }
-.h-go { display: flex; align-items: center; justify-content: center; gap: 10px; height: 50px; margin-top: 6px; border-radius: 15px;
+.h-go { display: flex; align-items: center; justify-content: center; gap: 10px; height: 50px; margin-top: auto; border-radius: 15px;
   font-weight: 700; font-size: 15px; color: #fff; background: linear-gradient(110deg, #6a5cf5, #8f6bff 45%, #1fb8d6); background-size: 180% 100%;
   box-shadow: 0 14px 30px -12px rgba(115,103,240,.9); transition: background-position .5s; }
 .h-go .ico { transition: transform .3s; }
@@ -275,14 +276,14 @@ h1 span { background: linear-gradient(90deg, #a99fff, #5fe3f3 60%, #ff9fc6); -we
   background: linear-gradient(165deg, rgba(48,45,96,.9), rgba(20,19,46,.92)); border: 1px solid rgba(255,255,255,.14);
   animation: h-up .7s cubic-bezier(.2,.9,.25,1) calc(.15s + var(--i) * .08s) backwards; }
 .h-row.open { border-color: rgba(255,255,255,.26); }
-.h-row-head { display: flex; align-items: center; gap: 8px; padding: 10px 12px 10px 10px; }
+.h-row-head { display: flex; align-items: center; gap: 8px; height: 68px; padding: 0 12px 0 10px; }
 .h-row-toggle { flex: 1; min-width: 0; display: flex; align-items: center; gap: 12px; padding: 0; border: 0; background: none; font: inherit; color: inherit;
   text-align: right; cursor: pointer; border-radius: 14px; }
 .h-row-toggle:focus-visible, .h-row-go:focus-visible { outline: 3px solid #8fefff; outline-offset: 3px; }
 .h-row-icon { flex: none; display: grid; place-items: center; width: 44px; height: 44px; border-radius: 14px; color: #fff;
   background: linear-gradient(140deg, color-mix(in srgb, var(--c1) 90%, #fff 10%), color-mix(in srgb, var(--c2) 70%, #0d0c24)); }
 .h-row-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
-.h-row-text b { font-size: 15.5px; color: #fff; line-height: 1.6; }
+.h-row-text b { font-size: 15.5px; color: #fff; line-height: 1.6; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .h-row-text small { font-size: 12px; color: #b7b3d9; line-height: 1.7; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .h-row-chev { flex: none; color: #b7b3d9; transform: rotate(-90deg); transition: transform .25s; }
 .h-row.open .h-row-chev { transform: rotate(90deg); }
