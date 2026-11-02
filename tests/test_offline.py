@@ -95,7 +95,7 @@ def as_role(admin, username):
 
 def test_only_the_permanent_account_sees_and_flips_the_switch(live):
     base, admin = live
-    assert admin.get("/access/status").json()["ai"] == {"school": False, "fabric": False, "deed": False}   # off until switched on
+    assert admin.get("/access/status").json()["ai"] == {"school": False, "fabric": False, "deed": False, "estate": False}   # off until switched on
     p = admin.post("/access/people", json={"name": "مهمان", "username": "guest1", "password": "guest-pass",
                                            "apps": ["school"], "expires_on": None}).json()
     guest = httpx.Client(base_url=base)

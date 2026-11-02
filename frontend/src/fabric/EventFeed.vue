@@ -7,17 +7,20 @@ import { api, fa } from "../lib/api.js"
 import Icon from "../components/Icon.vue"
 import Skeleton from "../components/Skeleton.vue"
 
-const props = defineProps({ limit: { default: 6 }, full: { type: Boolean, default: false } })
+// endpoint: the real estate agency's panels use the same feed with their own log (/estate/events)
+const props = defineProps({ limit: { default: 6 }, full: { type: Boolean, default: false }, endpoint: { default: "/fabric/events" } })
 const emit = defineEmits(["changed"])
 const items = ref(null), fresh = ref(new Set()), open = ref(null)
 const LOOK = { invoice: ["file", "success"], upload: ["refresh", "warning"], reminder: ["message", "info"], login: ["user", "secondary"], import: ["sparkles", "primary"],
-               web_order: ["message", "success"], customer: ["user", "info"] }
+               web_order: ["message", "success"], customer: ["user", "info"],
+               listing: ["file", "primary"], request: ["users", "info"], site: ["message", "success"], call: ["send", "info"], visit: ["calendar", "warning"],
+               deal: ["check", "success"], status: ["refresh", "warning"], contact: ["refresh", "secondary"], report: ["message", "info"], settings: ["edit", "secondary"] }
 // the short feed leaves out logins; the full log keeps everything
 const shown = computed(() => props.full ? items.value : items.value.filter((e) => e.kind !== "login").slice(0, props.limit))
 let timer
 const load = async () => {
   const after = items.value?.length ? items.value[0].id : 0
-  const rows = await api("/fabric/events" + (after ? `?after=${after}` : ""))
+  const rows = await api(props.endpoint + (after ? `?after=${after}` : ""))
   if (!items.value) { items.value = rows; return }
   if (!rows.length) return
   fresh.value = new Set(rows.map((r) => r.id))

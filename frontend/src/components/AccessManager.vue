@@ -115,6 +115,7 @@ const remove = async (p) => {
 .am-app { --c1: #7367f0; display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 999px; font-size: 12px; color: #fff;
   background: color-mix(in srgb, var(--c1) 30%, transparent); border: 1px solid color-mix(in srgb, var(--c1) 60%, transparent); }
 .am-app.hue-teal { --c1: #12a594; }
+.am-app.hue-rose { --c1: #d14d78; }
 .am-meta { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12.5px; color: #b7b3d9; }
 .am-meta span { display: inline-flex; align-items: center; gap: 5px; }
 .am-actions, .am-confirm { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 4px; }

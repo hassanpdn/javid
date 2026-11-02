@@ -27,6 +27,12 @@ const ASSISTANTS = [
     perks: [{ icon: "message", text: "سفارش تلفنی" }, { icon: "file", text: "سه فایل اکسل" }, { icon: "alert", text: "چک برگشتی" }],
   },
   {
+    key: "estate", title: "دستیار بنگاه املاک", icon: "mapPin", hue: "rose",
+    desc: "برای بنگاهی که فایل‌هایش در دفتر و گروه‌های پیام‌رسان پخش است: ثبت فایل از هر متنی، پیدا کردن متقاضی مناسب، بازدید و گزارش به مالک.",
+    roles: ["مدیر بنگاه", "مشاور املاک", "سایت بنگاه"],
+    perks: [{ icon: "users", text: "متقاضی مناسب" }, { icon: "chart", text: "قیمت منطقه" }, { icon: "shield", text: "بررسی‌ها" }],
+  },
+  {
     key: "deed", title: "دستیار استخراج داده‌ی سند", icon: "notebook", hue: "amber",
     desc: "سند دفترچه‌ای اسکن‌شده را می‌خواند و داده‌هایش را برای بررسی و تأیید کارشناس، پیش از تبدیل به سند تک‌برگ، آماده می‌کند.",
     roles: ["کارشناس بررسی"],
@@ -190,6 +196,7 @@ h1 span { background: linear-gradient(90deg, #a99fff, #5fe3f3 60%, #ff9fc6); -we
   animation: h-up 1s cubic-bezier(.2,.9,.25,1) calc(.3s + var(--i) * .12s) backwards; }
 .hue-teal { --c1: #0f8b7d; --c2: #f3b33d; }
 .hue-amber { --c1: #8a5a1c; --c2: #5fb3f0; }
+.hue-rose { --c1: #b23a62; --c2: #36c2a3; }
 .h-card:hover { border-color: rgba(255,255,255,.28); box-shadow: 0 40px 90px -24px rgba(115,103,240,.55), inset 0 1px 0 rgba(255,255,255,.25); }
 .h-card:focus-visible { outline: 3px solid #8fefff; outline-offset: 4px; }
 .h-glow { position: absolute; inset: 0; pointer-events: none; opacity: 0; transition: opacity .3s;

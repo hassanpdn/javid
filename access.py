@@ -25,7 +25,7 @@ from pydantic import BaseModel, Field
 import jalali
 from deed import store as deed_store
 
-APPS = ("school", "fabric", "deed")
+APPS = ("school", "fabric", "deed", "estate")
 USER = os.getenv("ADMIN_USER", "")
 PASSWORD = os.getenv("ADMIN_PASSWORD", "")
 ON = bool(PASSWORD)
@@ -103,7 +103,7 @@ def allows(request: Request, app):
 def app_for(path):
     """Which assistant an API path belongs to."""
     first = path.strip("/").split("/")[0]
-    if first in ("fabric", "deed"):
+    if first in ("fabric", "deed", "estate"):
         return first
     if path == "/setup/reset":   # every page load of the live demo; it clears both assistants
         return "any"

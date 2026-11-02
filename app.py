@@ -24,6 +24,8 @@ import parent_chat
 from fabric import api as fabric_api
 from fabric import shop as fabric_shop
 from deed import api as deed_api
+from estate import api as estate_api
+from estate import site as estate_site
 THRESHOLD = float(os.getenv("SIMILARITY_THRESHOLD", "0.60"))
 NOT_FOUND = "پاسخ این سؤال در اسناد مدرسه پیدا نشد. می‌توانید سؤال را دقیق‌تر بپرسید یا با دفتر مدرسه تماس بگیرید."
 UNCLEAR = "سؤال شما روشن نیست. لطفاً سؤال را کامل و واضح بنویسید، مثلاً «ساعت کار کارکنان اداری چقدر است؟»"
@@ -160,6 +162,7 @@ def setup_reset():
         manager._briefing_cache.clear(); parent._reports.clear(); counselor._insights.clear()
     fabric_api.reset()   # the fabric assistant starts fresh too
     deed_api.reset()     # and the deed assistant forgets every uploaded deed
+    estate_api.reset()   # and the real estate agency starts fresh
     return {"ok": True}
 
 @app.get("/me")
@@ -269,6 +272,8 @@ app.include_router(access.router)
 app.include_router(fabric_api.router)
 app.include_router(fabric_shop.router)
 app.include_router(deed_api.router)
+app.include_router(estate_api.router)
+app.include_router(estate_site.router)
 
 # Serve the built frontend (frontend/ -> npm run build -> static/) at http://localhost:8000. Must come after the API routes.
 # Files in assets/ have a hash of their content in the name (a new build gives new names), so the browser keeps them

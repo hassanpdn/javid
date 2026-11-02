@@ -20,7 +20,8 @@ def start():
            "SIMILARITY_THRESHOLD": "0.1", "SCHOOL_PATH": os.path.join(tmp, "school.json"),
            "FABRIC_PATH": os.path.join(tmp, "fabric.json"), "FABRIC_DB_PATH": os.path.join(tmp, "fabric.db"),
            "FABRIC_DIR": os.path.join(tmp, "fabric_files"),
-           "DEED_DB_PATH": os.path.join(tmp, "deed.db"), "DEED_DIR": os.path.join(tmp, "deed_files")}
+           "DEED_DB_PATH": os.path.join(tmp, "deed.db"), "DEED_DIR": os.path.join(tmp, "deed_files"),
+           "ESTATE_PATH": os.path.join(tmp, "estate.json"), "ESTATE_DB_PATH": os.path.join(tmp, "estate.db")}
     for script in ("seed.py", "ingest.py"):
         subprocess.run([sys.executable, script], cwd=ROOT, env=env, check=True, capture_output=True)
     proc = subprocess.Popen([sys.executable, "-m", "uvicorn", "app:app", "--port", str(APP_PORT)],
