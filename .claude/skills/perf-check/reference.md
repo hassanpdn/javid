@@ -56,6 +56,13 @@ Learned on this codebase; each line says what to do and why.
   from anything `main.js` loads.
 - The door (`GatePage.vue`) is all English and uses the system font, so it downloads no font; Vazirmatn (two 50 KB
   files) loads with the first Persian page.
+- The two Vazirmatn files hold only what Persian pages show (2026-11-02): Persian letters and digits, basic Latin, the
+  half-space and a few marks, every OpenType feature kept so letters still join. 50 KB each became 23 KB each; the
+  sample text renders pixel for pixel the same, and the manager's panel on `net iran` went from 240 KB and 12.9 s to
+  185 KB and 11.2 s. A letter outside the set falls back to Tahoma. To cut a new version of the font the same way
+  (fonttools in a throwaway venv, not a project dependency):
+  `pyftsubset Vazirmatn-Regular.woff2 --layout-features='*' --flavor=woff2 --output-file=out.woff2 --unicodes="U+0020-007E,U+00A0,U+00AB,U+00AD,U+00B7,U+00BB,U+00D7,U+00F7,U+060C,U+061B,U+061F,U+0621-063A,U+0640-0655,U+0660-066D,U+0670,U+067E,U+0686,U+0698,U+06A9,U+06AF,U+06C0,U+06CC,U+06D5,U+06F0-06F9,U+200C-200F,U+2013-2014,U+2018-201D,U+2022,U+2026,U+2039-203A,U+2190-2193,U+2212,U+2713"`.
+  Before replacing, check no shown text uses a character outside it (grep the frontend and the Python texts).
 - No `<link rel="preload">` for the fonts: on a slow phone connection they took bandwidth from the JavaScript the first
   screen needs. They load with `font-display: swap`.
 - `app.py` serves `static/assets/*` (hashed names) with a one-year immutable cache and everything else with
