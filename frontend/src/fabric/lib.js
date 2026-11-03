@@ -34,6 +34,7 @@ export const ROLES = {
   sahebkar: { role: "صاحب کار", desc: "خلاصه‌ی روز، فروش، چک‌ها و کارهای امروز", icon: "chart", tone: "primary", who: "owner" },
   forooshande: { role: "فروشنده", desc: "میز تلفن: کارت مشتری و فاکتور از روی سفارش تلفنی", icon: "message", tone: "success", who: "seller" },
   hesabdar: { role: "حسابدار", desc: "چک‌ها، طلب‌ها و پیامک یادآوری", icon: "file", tone: "info", who: "accountant" },
+  anbardar: { role: "انباردار", desc: "تحویل جنس فاکتورها، ورود کالا و شمارش قفسه", icon: "inbox", tone: "warning", who: "warehouse" },
 }
 
 // a small colour sample next to each fabric in the lists

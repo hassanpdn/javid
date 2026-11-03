@@ -12,7 +12,7 @@ def tokens():
     r = httpx.post(base("/setup"), json={"business": httpx.get(base("/setup/default")).json()["business"]}, timeout=120)
     assert r.status_code == 200, r.text
     out = {}
-    for u in ("sahebkar", "forooshande", "hesabdar"):
+    for u in ("sahebkar", "forooshande", "hesabdar", "anbardar"):
         r = httpx.post(base("/login"), json={"username": u, "password": "1234"})
         assert r.status_code == 200, r.text
         out[u] = {"Authorization": "Bearer " + r.json()["token"]}
@@ -158,3 +158,55 @@ def test_website_knows_a_returning_customer_by_phone(tokens):
     say(chat, "همین")
     r = say(chat, phone)
     assert "خوش آمدید" in " ".join(r["messages"]) and "ثبت کنم؟" in r["messages"]
+
+
+# ---------- the warehouse keeper ----------
+
+def test_warehouse_keeper_sees_quantities_never_money(tokens):
+    w = tokens["anbardar"]
+    for path in ("/money", "/customers", "/overview", "/reconcile", "/files", "/events"):
+        assert httpx.get(base(path), headers=w).status_code == 403, path
+    rows = httpx.get(base("/stock"), headers=w).json()
+    assert rows and not any(k in rows[0] for k in ("buy_price", "sell_price", "value")) and "meters" in rows[0]
+    assert "sell_price" in httpx.get(base("/stock"), headers=tokens["forooshande"]).json()[0]
+    assert httpx.get(base("/warehouse/today"), headers=tokens["forooshande"]).status_code == 403
+    r = httpx.post(base("/ask"), json={"question": "جمع چک‌های این هفته چقدر است؟"}, headers=w, timeout=30).json()
+    assert "تومان" not in r["answer"]
+
+def test_todays_invoices_are_handed_over_once(tokens):
+    d = httpx.get(base("/warehouse/today"), headers=tokens["anbardar"]).json()
+    first = next(h for h in d["handover"] if not h["handed"])
+    assert first["lines"] and "price" not in first["lines"][0] and "amount" not in first["lines"][0]
+    r = httpx.post(base(f"/warehouse/handover/{first['invoice']}"), json={"note": "یک توپ کمتر برد"}, headers=tokens["anbardar"])
+    assert r.status_code == 200
+    assert httpx.post(base(f"/warehouse/handover/{first['invoice']}"), json={}, headers=tokens["anbardar"]).status_code == 409
+    again = httpx.get(base("/warehouse/today"), headers=tokens["anbardar"]).json()
+    assert again["waiting"] == d["waiting"] - 1
+    assert next(h for h in again["handover"] if h["invoice"] == first["invoice"])["handed"]["note"] == "یک توپ کمتر برد"
+
+def test_goods_received_go_into_the_stock_file_and_still_add_up(tokens):
+    before = {p["code"]: p for p in httpx.get(base("/stock"), headers=tokens["anbardar"]).json()}
+    code = sorted(before)[0]
+    stock_ok = lambda: next(ch for ch in httpx.get(base("/reconcile"), headers=tokens["sahebkar"]).json()["checks"] if ch["key"] == "stock")["text"]
+    was = stock_ok()
+    r = httpx.post(base("/warehouse/receive"), json={"code": code, "rolls": 4, "meters": 200, "supplier": ""}, headers=tokens["anbardar"]).json()
+    assert r["rolls"] == before[code]["rolls"] + 4 and abs(r["meters"] - before[code]["meters"] - 200) < .01
+    assert stock_ok() == was                                   # «اول دوره + ورود − فروش» still matches the shelf
+    wb = openpyxl.load_workbook(os.path.join(os.path.dirname(conftest.DB_PATH), "fabric_files", "stock.xlsx"))
+    last = list(wb["ورود کالا"].iter_rows(values_only=True))[-1]
+    assert str(last[1]) == code and last[3] == 4 and last[4] == 200
+    assert httpx.post(base("/warehouse/receive"), json={"code": "nope", "rolls": 1, "meters": 10}, headers=tokens["anbardar"]).status_code == 404
+
+def test_a_count_never_changes_stock_and_a_difference_reaches_the_owner(tokens):
+    p = httpx.get(base("/stock"), headers=tokens["anbardar"]).json()[-1]
+    r = httpx.post(base("/warehouse/count"), json={"code": p["code"], "meters": p["meters"] - 12}, headers=tokens["anbardar"]).json()
+    assert not r["matches"] and r["diff"] == -12
+    now = next(x for x in httpx.get(base("/stock"), headers=tokens["anbardar"]).json() if x["code"] == p["code"])
+    assert now["meters"] == p["meters"]
+    rec = httpx.get(base("/reconcile"), headers=tokens["sahebkar"]).json()
+    assert not next(ch for ch in rec["checks"] if ch["key"] == "count")["ok"]
+    assert any(i["kind"] == "count" and i["code"] == p["code"] for i in rec["issues"])
+    # counting it again right gives the latest count, which matches
+    httpx.post(base("/warehouse/count"), json={"code": p["code"], "meters": p["meters"]}, headers=tokens["anbardar"])
+    rec = httpx.get(base("/reconcile"), headers=tokens["sahebkar"]).json()
+    assert not any(i["kind"] == "count" for i in rec["issues"])

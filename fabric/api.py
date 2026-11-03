@@ -36,6 +36,7 @@ def require(*roles):
     return check
 
 ALL = require("owner", "seller", "accountant")
+WAREHOUSE = require("owner", "warehouse")     # the warehouse keeper (انباردار): hands fabric over, receives it, counts it
 OWNER = require("owner")
 DESK = require("owner", "seller")
 BOOKS = require("owner", "accountant")
@@ -65,7 +66,7 @@ def logout(authorization: str = Header(None)):
 
 # ---------- the business this demo is for ----------
 
-LOGINS = ["sahebkar", "forooshande", "hesabdar"]
+LOGINS = ["sahebkar", "forooshande", "hesabdar", "anbardar"]
 
 @router.get("/info")
 def info():
@@ -341,12 +342,96 @@ def make_invoice(user, customer_id, wanted, payment, cheque_days=45, cheque_bank
 
 # ---------- stock ----------
 
+PRICES = ("buy_price", "sell_price", "value")   # what the warehouse keeper does not see
+
 @router.get("/stock")
-def stock(q: str = "", user: dict = Depends(ALL)):
+def stock(q: str = "", user: dict = Depends(require("owner", "seller", "accountant", "warehouse"))):
     with store.conn() as c:
         rows = facts.search_products(c, q, limit=60) if q.strip() else facts.products(c)
     rows.sort(key=lambda p: (not p["low"], not p["dead"], p["days_left"] if p["days_left"] is not None else 9999))
+    if user["role"] == "warehouse":
+        rows = [{k: v for k, v in p.items() if k not in PRICES} for p in rows]
     return rows
+
+# ---------- the warehouse keeper ----------
+# Someone who hands the fabric over is not the one who writes the invoice: the keeper marks each of today's invoices
+# handed over, enters fabric that arrives (into the stock file, like any delivery) and counts shelves. A count is
+# kept beside what the file said and never changes the stock: a difference goes to the owner's «تطبیق».
+
+@router.get("/warehouse/today")
+def warehouse_today(user: dict = Depends(WAREHOUSE)):
+    with store.conn() as c:
+        hand = facts.handover_list(c)
+        low = [{k: p[k] for k in ("code", "title", "color", "rolls", "meters", "days_left", "supplier")} for p in facts.products(c) if p["low"]]
+        counted = c.execute("SELECT COUNT(*) FROM counts WHERE substr(at, 1, 10) = ?", (store.stamp()[:10],)).fetchone()[0]
+        received = c.execute("SELECT COUNT(*) FROM stock_in WHERE date = ?", (excel.today().isoformat(),)).fetchone()[0]
+    return {"handover": hand, "waiting": sum(1 for h in hand if not h["handed"]), "low": low, "counted": counted, "received": received,
+            "today": facts.jday(excel.today().isoformat())}
+
+class Handover(BaseModel):
+    note: str = Field("", max_length=200)
+
+@router.post("/warehouse/handover/{no}")
+def handover(no: int, req: Handover, user: dict = Depends(WAREHOUSE)):
+    with store.conn() as c:
+        inv = c.execute("SELECT i.id, cu.name FROM invoices i JOIN customers cu ON cu.id = i.customer_id WHERE i.id = ?", (no,)).fetchone()
+        if not inv:
+            raise HTTPException(status_code=404, detail="این فاکتور پیدا نشد")
+        if c.execute("SELECT 1 FROM handovers WHERE invoice_id = ?", (no,)).fetchone():
+            raise HTTPException(status_code=409, detail="این فاکتور قبلاً تحویل شده است")
+        note = " ".join(req.note.split())
+        c.execute("INSERT INTO handovers (invoice_id, at, who, note) VALUES (?,?,?,?)", (no, store.stamp(), user["full_name"], note))
+        store.log(c, user, "handover", f"جنس فاکتور {no} ({inv['name']}) تحویل شد" + (f" · {note}" if note else ""))
+    return {"ok": True}
+
+def _product(c, code):
+    p = c.execute("SELECT * FROM products WHERE code = ?", (code.strip(),)).fetchone()
+    if not p:
+        raise HTTPException(status_code=404, detail="این جنس در فایل انبار نیست")
+    return dict(p)
+
+class Receive(BaseModel):
+    code: str = Field(max_length=20)
+    rolls: int = Field(ge=1, le=500)
+    meters: float = Field(gt=0, le=50_000)
+    supplier: str = Field("", max_length=60)
+
+@router.post("/warehouse/receive")
+def receive(req: Receive, user: dict = Depends(WAREHOUSE)):
+    """Fabric that arrived: into the stock file and the database together, so «اول دوره + ورود − فروش» still adds up."""
+    d = excel.today()
+    with _lock:
+        with store.conn() as c:
+            p = _product(c, req.code)
+            supplier = " ".join(req.supplier.split()) or p["supplier"]
+            title = f"{p['name']} {p['color']}".strip()
+            c.execute("INSERT INTO stock_in (date, code, rolls, meters, supplier) VALUES (?,?,?,?,?)", (d.isoformat(), p["code"], req.rolls, req.meters, supplier))
+            c.execute("UPDATE products SET meters = meters + ?, rolls = rolls + ?, received = ? WHERE code = ?", (req.meters, req.rolls, d.isoformat(), p["code"]))
+        excel.add_delivery(d, p["code"], title, req.rolls, req.meters, supplier)
+        steps = [{"file": "انبار", "text": f"{req.rolls} توپ، {meters(req.meters)} {title} از {supplier} به موجودی اضافه شد"}]
+        with store.conn() as c:
+            store.log(c, user, "receive", f"ورود کالا: {req.rolls} توپ {title}، {meters(req.meters)}", {"files": ["انبار"], "steps": steps})
+            now = c.execute("SELECT rolls, meters FROM products WHERE code = ?", (p["code"],)).fetchone()
+        _cache.clear()
+    return {"ok": True, "steps": steps, "rolls": now["rolls"], "meters": now["meters"]}
+
+class Count(BaseModel):
+    code: str = Field(max_length=20)
+    meters: float = Field(ge=0, le=100_000)
+    rolls: int | None = Field(None, ge=0, le=5000)
+    note: str = Field("", max_length=200)
+
+@router.post("/warehouse/count")
+def count(req: Count, user: dict = Depends(WAREHOUSE)):
+    with store.conn() as c:
+        p = _product(c, req.code)
+        note, title = " ".join(req.note.split()), f"{p['name']} {p['color']}".strip()
+        diff = round(req.meters - p["meters"], 1)
+        c.execute("INSERT INTO counts (at, code, counted, rolls, book, who, note) VALUES (?,?,?,?,?,?,?)",
+                  (store.stamp(), p["code"], req.meters, req.rolls, p["meters"], user["full_name"], note))
+        store.log(c, user, "count", f"شمارش {title}: {meters(req.meters)}" +
+                  (" · با فایل انبار یکی است" if abs(diff) < .5 else f" · {meters(abs(diff))} {'کمتر' if diff < 0 else 'بیشتر'} از فایل انبار"))
+    return {"ok": True, "book": p["meters"], "diff": diff, "matches": abs(diff) < .5}
 
 # ---------- money: cheques, debts, reminders ----------
 
@@ -582,14 +667,15 @@ def route(question):
         return "sales", q, "", period
     return "stock", q, "", period
 
-def tool_facts(c, tool, product, customer, period):
-    """The facts for one question, as short lines that also read well on their own."""
+def tool_facts(c, tool, product, customer, period, prices=True):
+    """The facts for one question, as short lines that also read well on their own. prices=False: for the warehouse
+    keeper, who sees quantities only."""
     label = facts.PERIODS[period]
     if tool == "stock":
         hits = facts.search_products(c, product, limit=5) if product.strip() else []
         if not hits:
             return "این جنس در انبار پیدا نشد."
-        return "\n".join(f"{p['title']} (عرض {p['width']}): {p['rolls']} توپ، {meters(p['meters'])}، قیمت فروش {money(p['sell_price'])} هر متر"
+        return "\n".join(f"{p['title']} (عرض {p['width']}): {p['rolls']} توپ، {meters(p['meters'])}" + (f"، قیمت فروش {money(p['sell_price'])} هر متر" if prices else "")
                          + (f"، حدود {p['days_left']} روز کار می‌دهد" if p["days_left"] is not None else "، اخیراً فروشی نداشته") for p in hits)
     if tool == "sales":
         start, end = facts.period_range(period)
@@ -642,12 +728,14 @@ class Ask(BaseModel):
     question: str = Field(min_length=1, max_length=500)
 
 @router.post("/ask")
-def ask(req: Ask, user: dict = Depends(ALL)):
+def ask(req: Ask, user: dict = Depends(require("owner", "seller", "accountant", "warehouse"))):
     tool, product, customer, period = route(req.question)
     if user["role"] == "seller" and tool in ("cheques",):
         return {"answer": "اطلاعات چک‌ها و بانک فقط برای صاحب کار و حسابدار است.", "checked": True}
+    if user["role"] == "warehouse" and tool not in ("stock", "low_stock"):
+        return {"answer": "از این‌جا موجودی جنس‌ها را بپرسید؛ فروش، قیمت و حساب مشتری‌ها برای فروشنده، حسابدار و صاحب کار است.", "checked": True}
     with store.conn() as c:
-        data = tool_facts(c, tool, product, customer, period)
+        data = tool_facts(c, tool, product, customer, period, prices=user["role"] != "warehouse")
     text, checked = _written(
         f"تو دستیار {business.current()['name']} (عمده‌فروشی پارچه) هستی. به سؤال زیر فقط از روی «اطلاعات» جواب بده، "
         "کوتاه و ساده، حداکثر سه جمله. مبلغ‌ها و عددها را دقیقاً همان‌طور که در اطلاعات آمده بنویس. اگر جواب در اطلاعات نیست، همین را بگو.",

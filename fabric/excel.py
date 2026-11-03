@@ -529,7 +529,7 @@ def build():
     with store.conn() as c:
         for t in ("users", "sessions", "reminders", "events", "web_orders", "web_chats"):
             c.execute(f"DELETE FROM {t}")
-        for username, role in (("sahebkar", "owner"), ("forooshande", "seller"), ("hesabdar", "accountant")):
+        for username, role in (("sahebkar", "owner"), ("forooshande", "seller"), ("hesabdar", "accountant"), ("anbardar", "warehouse")):
             c.execute("INSERT INTO users (username, password, full_name, role) VALUES (?,?,?,?)",
                       (username, store.school_db.hash_password("1234"), business.person(role, s), role))
         store.set_meta(c, "built_for", today().isoformat())
@@ -588,6 +588,21 @@ def add_invoice(no, d, customer, lines, payment, seller, cheque=None):
         wb = openpyxl.load_workbook(path("accounts"))
         wb["چک‌های دریافتی"].append([cheque["number"], cheque["bank"], customer, cheque["amount"], jstr(cheque["due"]), "در جریان"])
         wb.save(path("accounts"))
+
+def add_delivery(d, code, title, rolls, meters_in, supplier):
+    """Fabric that arrived: a row in the stock file's «ورود کالا» sheet, and the rolls and meters added to the
+    fabric's row, as the warehouse keeper would write them. The database is updated by the caller in the same step."""
+    wb = openpyxl.load_workbook(path("stock"))
+    wb["ورود کالا"].append([jstr(d), code, title, rolls, meters_in, supplier])
+    ws = wb["انبار"]
+    head = [c.value for c in ws[1]]
+    ci, ri, mi, di = head.index("کد کالا"), head.index("تعداد توپ"), head.index("متراژ موجود"), head.index("تاریخ آخرین ورود")
+    for row in ws.iter_rows(min_row=2):
+        if str(row[ci].value) == code:
+            row[mi].value = (number(row[mi].value) or 0) + meters_in
+            row[ri].value = (number(row[ri].value) or 0) + rolls
+            row[di].value = jstr(d)
+    wb.save(path("stock"))
 
 LATEST_LAST = ("فروش", "دریافتی‌ها", "چک‌های دریافتی")
 

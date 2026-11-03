@@ -9,6 +9,7 @@ const FabricLogin = defineAsyncComponent(() => import("./FabricLogin.vue"))
 const OwnerPanel = defineAsyncComponent(() => import("./OwnerPanel.vue"))
 const SellerPanel = defineAsyncComponent(() => import("./SellerPanel.vue"))
 const AccountantPanel = defineAsyncComponent(() => import("./AccountantPanel.vue"))
+const WarehousePanel = defineAsyncComponent(() => import("./WarehousePanel.vue"))
 
 onMounted(async () => {
   try { await loadShop() } catch { shop.loaded = true }
@@ -25,5 +26,6 @@ watch(() => fabricSession.user, () => lockScroll(false))
   <FabricLogin v-else-if="!fabricSession.user" />
   <OwnerPanel v-else-if="fabricSession.user.role === 'owner'" />
   <SellerPanel v-else-if="fabricSession.user.role === 'seller'" />
+  <WarehousePanel v-else-if="fabricSession.user.role === 'warehouse'" />
   <AccountantPanel v-else />
 </template>

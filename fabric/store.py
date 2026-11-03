@@ -9,7 +9,7 @@ import db as school_db   # only for its password hashing
 
 DB_PATH = os.getenv("FABRIC_DB_PATH", "fabric.db")
 SESSION_DAYS = int(os.getenv("SESSION_DAYS", "7"))
-ROLE_NAMES = {"owner": "صاحب کار", "seller": "فروشنده", "accountant": "حسابدار"}
+ROLE_NAMES = {"owner": "صاحب کار", "seller": "فروشنده", "accountant": "حسابدار", "warehouse": "انباردار"}
 
 def conn():
     c = sqlite3.connect(DB_PATH)
@@ -44,9 +44,13 @@ CREATE TABLE IF NOT EXISTS cheques_in (
 CREATE TABLE IF NOT EXISTS cheques_out (id INTEGER PRIMARY KEY, number TEXT, payee TEXT, amount INTEGER, due TEXT, status TEXT);
 CREATE TABLE IF NOT EXISTS reminders (id INTEGER PRIMARY KEY, customer_id INTEGER, text TEXT, sent_at TEXT);
 CREATE TABLE IF NOT EXISTS import_notes (id INTEGER PRIMARY KEY, file TEXT, note TEXT);
+-- the warehouse keeper's work: an invoice's fabric handed over (by whom, when, a note if something differed), and a
+-- shelf count beside what the stock file said at that moment (book). A count never changes the stock by itself.
+CREATE TABLE IF NOT EXISTS handovers (invoice_id INTEGER PRIMARY KEY, at TEXT, who TEXT, note TEXT);
+CREATE TABLE IF NOT EXISTS counts (id INTEGER PRIMARY KEY, at TEXT, code TEXT, counted REAL, rolls INTEGER, book REAL, who TEXT, note TEXT);
 """
 DATA_TABLES = ("products", "customers", "invoices", "invoice_lines", "receipts", "cheques_in", "cheques_out", "import_notes",
-               "stock_in", "cash_deposits")
+               "stock_in", "cash_deposits", "handovers", "counts")
 
 def init():
     with conn() as c:

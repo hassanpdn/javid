@@ -1,6 +1,7 @@
 <script setup>
 // The stock file as a searchable list: rolls and meters, days of stock left at the current pace,
-// and two flags: running out, and nothing sold for three months.
+// and two flags: running out, and nothing sold for three months. The warehouse keeper gets no prices from the server,
+// so none are shown.
 import { ref, computed, watch, onMounted } from "vue"
 import { api, fa, retryable } from "../lib/api.js"
 import { money, meters, swatch } from "./lib.js"
@@ -35,11 +36,11 @@ const count = (k) => (rows.value || []).filter((p) => p[k]).length
         <span class="fs-swatch" :style="{ background: swatch(p.color) }" aria-hidden="true"></span>
         <div class="fs-main">
           <b>{{ p.title }}</b>
-          <small class="muted">{{ fa(p.code) }} · عرض {{ fa(p.width) }} · {{ money(p.sell_price) }} هر متر · {{ p.supplier }}</small>
+          <small class="muted">{{ fa(p.code) }} · عرض {{ fa(p.width) }}<template v-if="p.sell_price !== undefined"> · {{ money(p.sell_price) }} هر متر</template> · {{ p.supplier }}</small>
         </div>
         <div class="fs-qty"><b>{{ fa(p.rolls) }} توپ</b><small class="muted">{{ meters(p.meters) }}</small></div>
         <span v-if="p.low" class="tag st-bad">حدود {{ fa(p.days_left) }} روز</span>
-        <span v-else-if="p.dead" class="tag st-todo">بی‌فروش · {{ money(p.value) }}</span>
+        <span v-else-if="p.dead" class="tag st-todo">بی‌فروش<template v-if="p.value !== undefined"> · {{ money(p.value) }}</template></span>
         <span v-else-if="p.days_left !== null" class="tag">{{ fa(p.days_left) }} روز</span>
       </li>
     </ul>

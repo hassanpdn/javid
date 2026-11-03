@@ -1,5 +1,5 @@
 <script setup>
-// First step of a fabric demo: the shop's name and its three people. «ساخت دمو» makes three Excel files
+// First step of a fabric demo: the shop's name and its four people. «ساخت دمو» makes three Excel files
 // (stock, sales, accounts) with four months of business for these names; the card beside the form shows them being made.
 import { ref, reactive, onMounted, onUnmounted } from "vue"
 import { api, fa } from "../lib/api.js"
@@ -13,6 +13,7 @@ const PEOPLE = [
   { title: "owner_title", name: "owner_name", label: "صاحب کار", placeholder: "نام و نام خانوادگی صاحب کار" },
   { title: "seller_title", name: "seller_name", label: "فروشنده (پشت تلفن)", placeholder: "نام و نام خانوادگی فروشنده" },
   { title: "accountant_title", name: "accountant_name", label: "حسابدار", placeholder: "نام و نام خانوادگی حسابدار" },
+  { title: "warehouse_title", name: "warehouse_name", label: "انباردار", placeholder: "نام و نام خانوادگی انباردار" },
 ]
 const FIELDS = ["name", "place", ...PEOPLE.flatMap((p) => [p.title, p.name])]
 const FILES = [

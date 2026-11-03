@@ -13,10 +13,12 @@ DEFAULT = {
     "owner_title": "آقای", "owner_name": "حمید صدری",
     "seller_title": "آقای", "seller_name": "سعید نادری",
     "accountant_title": "خانم", "accountant_name": "نرگس توکلی",
+    "warehouse_title": "آقای", "warehouse_name": "رضا قاسمی",
 }
 FIELDS = {  # key: (label, longest allowed length)
     "name": ("نام فروشگاه", 40), "place": ("نشانی کوتاه", 40),
     "owner_name": ("نام صاحب کار", 40), "seller_name": ("نام فروشنده", 40), "accountant_name": ("نام حسابدار", 40),
+    "warehouse_name": ("نام انباردار", 40),
 }
 TITLES = ("آقای", "خانم")
 
@@ -54,7 +56,7 @@ def clean(data):
         if len(value) > longest:
             raise ValueError(f"«{label}» حداکثر {longest} حرف باشد")
         out[key] = value
-    for key in ("owner_title", "seller_title", "accountant_title"):
+    for key in ("owner_title", "seller_title", "accountant_title", "warehouse_title"):
         if data.get(key) not in TITLES:
             raise ValueError("عنوان (آقای یا خانم) را انتخاب کنید")
         out[key] = data[key]
@@ -67,4 +69,5 @@ def person(role, s=None):
 def public(s=None):
     """What the setup and login pages may show before anyone logs in."""
     s = s or current()
-    return {**s, "owner": person("owner", s), "seller": person("seller", s), "accountant": person("accountant", s)}
+    return {**s, "owner": person("owner", s), "seller": person("seller", s), "accountant": person("accountant", s),
+            "warehouse": person("warehouse", s)}

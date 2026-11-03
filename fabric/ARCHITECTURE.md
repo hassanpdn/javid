@@ -57,11 +57,12 @@ reads them, and writes a phone sale back into them, so the owner can still open 
 
 - **Money words** (`money()`): «۱۲۸ میلیون تومان», the way the bazaar says it. Every amount the model sees is
   worded this way, so a number it copies can be matched exactly by `checks.only_known_numbers`.
-- **Reconciliation** (`reconcile()`), four checks from numbers alone:
+- **Reconciliation** (`reconcile()`), five checks from numbers alone:
   - stock: opening + deliveries − sold = on the shelf, per fabric;
   - invoice numbers have no gaps;
   - each day's cash sales = that day's deposit in «صندوق»;
-  - every sale paid by cheque has its cheque in accounts.
+  - every sale paid by cheque has its cheque in accounts;
+  - the warehouse keeper's latest shelf count of each fabric (30 days) = what the stock file said at that moment.
 - **Customer warnings**: bounced cheque, over the credit limit, quiet for much longer than usual.
 - **Next week's cheques**: incoming and outgoing due in seven days against the bank balance.
 
@@ -76,6 +77,13 @@ totals. With the AI off, everything works with code-built texts.
 - **Findings show sums, not suspects.** A theft check that names a person is an accusation; one that shows «اول دوره
   + ورود − فروش ≠ موجودی» lets the owner see it.
 - **Every change is logged with who and when**, and the seller does not see the checks or the log.
+- **The warehouse keeper (انباردار, `anbardar`) is not the seller.** The one who hands fabric over is not the one who
+  writes the invoice. The keeper's panel (`WarehousePanel.vue`, `/fabric/warehouse/...`) has today's invoices with
+  fabric, rolls and meters to mark handed over (with a note when something differed), goods received (into the stock
+  file's «ورود کالا» sheet and the shelf row, so the stock check still adds up) and shelf counts. Counts are blind (the
+  file's number shows only after saving) and never change the stock: a difference goes to the owner's «تطبیق». The
+  server leaves prices out of `/fabric/stock` for this role; customers, money, files, checks and the log are closed to
+  it, and its assistant answers only stock questions.
 - **A website order is not an invoice** until it is paid, so it never touches stock or the reconciliation early.
 
 ## Questions you will be asked

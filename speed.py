@@ -21,7 +21,7 @@ SCREENS = {   # screen key -> words on the page
     "hub": "صفحه‌ی دستیارها",
     "school:manager": "مدرسه، مدیر", "school:staff": "مدرسه، دفتر", "school:counselor": "مدرسه، مشاور", "school:parent": "مدرسه، ولی",
     "school:teacher": "مدرسه، آموزگار", "school:student": "مدرسه، دانش‌آموز",
-    "fabric:owner": "پارچه‌فروشی، صاحب کار", "fabric:seller": "پارچه‌فروشی، فروشنده", "fabric:accountant": "پارچه‌فروشی، حسابدار",
+    "fabric:owner": "پارچه‌فروشی، صاحب کار", "fabric:seller": "پارچه‌فروشی، فروشنده", "fabric:accountant": "پارچه‌فروشی، حسابدار", "fabric:warehouse": "پارچه‌فروشی، انباردار",
     "estate:owner": "بنگاه، مدیر", "estate:agent": "بنگاه، مشاور", "deed": "استخراج سند",
     "law:owner": "وکالت، وکیل", "law:associate": "وکالت، همکار وکیل", "law:secretary": "وکالت، منشی",
     "dental:owner": "دندان‌پزشکی، دندان‌پزشک", "dental:secretary": "دندان‌پزشکی، منشی",

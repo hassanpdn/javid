@@ -1351,3 +1351,25 @@ select:not([multiple]) {
 .stat-wrap { position: relative; display: flex; }
 .stat-wrap > .stat { flex: 1; }
 .stat-src { position: absolute; top: 10px; inset-inline-end: 10px; }
+
+/* the fabric warehouse keeper's panel (WarehousePanel.vue) */
+.wh-form { max-width: 640px; display: flex; flex-direction: column; gap: 14px; }
+.wh-form .field select { width: 100%; font: inherit; font-size: 15px; height: 48px; padding: 0 14px; border: 1px solid var(--line); border-radius: var(--radius-sm); background-color: var(--panel); color: var(--ink); }
+.wh-form .field input { height: 48px; padding-block: 0; }
+.wh-two { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.wh-list { display: flex; flex-direction: column; margin: 0; padding: 0; list-style: none; }
+.wh-list > li { display: flex; flex-direction: column; gap: 8px; padding: 14px 4px; border-bottom: 1px solid var(--line); }
+.wh-list > li:last-child { border-bottom: 0; }
+.wh-list > li.done { opacity: .7; }
+.wh-top { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; }
+.wh-top b { color: var(--ink); }
+.wh-tag { margin-inline-start: auto; white-space: nowrap; }
+.wh-lines { display: flex; flex-direction: column; gap: 6px; margin: 0; padding: 0; list-style: none; max-width: 560px; }
+.wh-lines li { display: flex; align-items: center; gap: 10px; }
+.wh-lines .fs-swatch { width: 24px; height: 24px; border-radius: 7px; }
+.wh-name { flex: 1; min-width: 0; color: var(--ink); font-size: 14px; }
+.wh-qty { flex: none; white-space: nowrap; font-size: 14px; color: var(--ink); }
+.wh-note { margin: 0; }
+.wh-noteform { display: flex; flex-wrap: wrap; gap: 8px; }
+.wh-noteform input { flex: 1 1 220px; min-width: 0; font: inherit; font-size: 14px; padding: 8px 12px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--panel); color: var(--ink); }
+@media (max-width: 480px) { .wh-two { grid-template-columns: 1fr; } }

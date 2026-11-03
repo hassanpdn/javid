@@ -401,6 +401,43 @@ def cheque_check(c):
                                    "حسابداری › چک‌های دریافتی: چکی از همین مشتری با همین مبلغ پیدا نشد"]})
     return {"checked": len(sales), "ok": len(sales) - len(issues), "issues": issues}
 
+def count_check(c, days=30):
+    """The warehouse keeper's shelf counts of the last days against what the stock file said at that moment: the
+    latest count of each fabric. A count changes nothing by itself; a difference is for the owner to look at."""
+    since = (today() - timedelta(days=days)).isoformat()
+    titles = {p["code"]: f"{p['name']} {p['color']}".strip() for p in c.execute("SELECT code, name, color FROM products")}
+    latest = {}
+    for r in c.execute("SELECT * FROM counts WHERE at >= ? ORDER BY id", (since,)):
+        latest[r["code"]] = dict(r)
+    issues = []
+    for code, r in latest.items():
+        diff = round(r["counted"] - r["book"], 1)
+        if abs(diff) >= .5:
+            issues.append({"kind": "count", "code": code, "diff": diff,
+                           "title": f"شمارش {titles.get(code, code)}: {meters(abs(diff))} {'کمتر' if diff < 0 else 'بیشتر'} از فایل انبار",
+                           "detail": "آن‌چه روی قفسه شمرده شد با موجودی فایل انبار در همان لحظه جور نیست. موجودی فایل خودبه‌خود عوض نشده است.",
+                           "how": [f"شمرده‌شده روی قفسه ({r['who']}، {jday(r['at'][:10])} ساعت {r['at'][11:16]}): {meters(r['counted'])}" + (f"، {r['rolls']} توپ" if r["rolls"] is not None else ""),
+                                   f"− موجودی فایل انبار در همان لحظه: {meters(r['book'])}",
+                                   f"= {meters(abs(diff))} {'کم' if diff < 0 else 'زیاد'}"] + ([f"یادداشت انباردار: {r['note']}"] if r["note"] else [])})
+    return {"checked": len(latest), "ok": len(latest) - len(issues), "issues": issues}
+
+def handover_list(c):
+    """Today's invoices for the warehouse keeper: which fabric, how many rolls and meters, for whom and to which city;
+    no prices, no payment. Not handed over first."""
+    rows = []
+    titles = {p["code"]: (f"{p['name']} {p['color']}".strip(), p["color"]) for p in c.execute("SELECT code, name, color FROM products")}
+    for i in c.execute("""SELECT i.id, i.date, cu.name, cu.city, h.at h_at, h.who h_who, h.note h_note FROM invoices i
+                          JOIN customers cu ON cu.id = i.customer_id LEFT JOIN handovers h ON h.invoice_id = i.id
+                          WHERE i.date = ? ORDER BY i.id""", (today().isoformat(),)).fetchall():
+        lines = [{"code": l["product_code"], "title": titles.get(l["product_code"], (l["product_code"], ""))[0],
+                  "color": titles.get(l["product_code"], ("", ""))[1], "rolls": l["rolls"], "meters": l["meters"]}
+                 for l in c.execute("SELECT * FROM invoice_lines WHERE invoice_id = ? ORDER BY id", (i["id"],))]
+        rows.append({"invoice": i["id"], "customer": i["name"], "city": i["city"], "lines": lines,
+                     "rolls": sum(l["rolls"] or 0 for l in lines), "meters": round(sum(l["meters"] or 0 for l in lines), 1),
+                     "handed": {"at": i["h_at"][11:16], "who": i["h_who"], "note": i["h_note"]} if i["h_at"] else None})
+    rows.sort(key=lambda r: (r["handed"] is not None, r["invoice"]))
+    return rows
+
 FILE_NAMES = {"stock": "انبار", "sales": "فروش", "accounts": "حسابداری"}
 
 def last_change(c, name):
@@ -409,8 +446,8 @@ def last_change(c, name):
 
 def reconcile(c):
     """All four checks, and the three files with the links between them, for the one-glance picture."""
-    s, i, k, q = stock_check(c), invoice_check(c), cash_check(c), cheque_check(c)
-    issues = s["issues"] + i["issues"] + k["issues"] + q["issues"]
+    s, i, k, q, n = stock_check(c), invoice_check(c), cash_check(c), cheque_check(c), count_check(c)
+    issues = s["issues"] + i["issues"] + k["issues"] + q["issues"] + n["issues"]
     counts = {"stock": c.execute("SELECT COUNT(*) FROM products").fetchone()[0],
               "sales": c.execute("SELECT COUNT(*) FROM invoices").fetchone()[0],
               "accounts": c.execute("SELECT COUNT(*) FROM customers").fetchone()[0]}
@@ -425,6 +462,8 @@ def reconcile(c):
          "text": f"{k['ok']} از {k['checked']} روز در سی روز اخیر: فروش نقدی = واریز صندوق"},
         {"key": "cheque", "link": "sales_money", "title": "فروش چکی و چک‌ها", "ok": not q["issues"],
          "text": f"{q['ok']} از {q['checked']} فاکتور چکی: چکش در حسابداری هست"},
+        {"key": "count", "link": "sales_stock", "title": "شمارش قفسه و فایل انبار", "ok": not n["issues"],
+         "text": f"{n['ok']} از {n['checked']} جنس شمرده‌شده در سی روز اخیر: شمارش = موجودی فایل" if n["checked"] else "در سی روز اخیر شمارشی ثبت نشده"},
     ]
     return {"issues": issues, "checks": checks, "files": files,
             "links": {l: all(ch["ok"] for ch in checks if ch["link"] == l) for l in ("sales_stock", "sales_money", "sales")}}
