@@ -16,6 +16,7 @@ import TypeText from "../components/TypeText.vue"
 import AiOrb from "../components/AiOrb.vue"
 import EventFeed from "../fabric/EventFeed.vue"
 import HowTip from "../fabric/HowTip.vue"
+import SourceTip from "../components/SourceTip.vue"
 import AlertList from "./AlertList.vue"
 const CalendarView = defineAsyncComponent(() => import("./CalendarView.vue"))
 const BookingsView = defineAsyncComponent(() => import("./BookingsView.vue"))
@@ -78,14 +79,14 @@ const added = (id) => { adding.value = false; changed(); bookingId.value = id }
       </section>
       <div class="grid grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-6" data-tour="lo-stats">
         <Skeleton v-if="!d" kind="stat" :count="4" />
-        <div v-else v-for="s in d.stats" :key="s.key" v-reveal class="card stat stat-how" :style="{ '--c': 'var(--' + s.tone + ')' }">
-          <div class="stat-top"><span :class="['tint', 'lg', 't-' + s.tone]"><Icon :name="s.icon" :size="24" /></span><span class="grow"></span><HowTip :lines="s.how" /></div>
+        <div v-else v-for="(s, i) in d.stats" :key="s.key" v-reveal class="card stat stat-how" :style="{ '--c': 'var(--' + s.tone + ')' }">
+          <div class="stat-top"><span :class="['tint', 'lg', 't-' + s.tone]"><Icon :name="s.icon" :size="24" /></span><span class="grow"></span><HowTip :lines="s.how" /><SourceTip app="lodge" :k="'stat.' + i" /></div>
           <div><div class="stat-money">{{ fa(s.value) }}</div><div class="stat-label">{{ s.label }}</div><div class="stat-sub">{{ fa(s.sub) }}</div></div>
         </div>
       </div>
       <div class="grid grid-cols-12 gap-6">
         <section v-reveal class="card col-span-12 xl:col-span-7" data-tour="lo-alerts">
-          <div class="card-head">کارهای امروز <span v-if="d" class="count">{{ fa(d.alerts.length) }}</span></div>
+          <div class="card-head">کارهای امروز <span v-if="d" class="count">{{ fa(d.alerts.length) }}</span><SourceTip app="lodge" k="alerts" /></div>
           <Skeleton v-if="!d" kind="row" :count="6" />
           <AlertList v-else :alerts="d.alerts" @open="bookingId = $event" @changed="changed" />
         </section>

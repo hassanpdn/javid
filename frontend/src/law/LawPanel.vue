@@ -15,6 +15,7 @@ import TypeText from "../components/TypeText.vue"
 import AiOrb from "../components/AiOrb.vue"
 import EventFeed from "../fabric/EventFeed.vue"
 import HowTip from "../fabric/HowTip.vue"
+import SourceTip from "../components/SourceTip.vue"
 import AlertList from "./AlertList.vue"
 const DeadlinesView = defineAsyncComponent(() => import("./DeadlinesView.vue"))
 const CasesView = defineAsyncComponent(() => import("./CasesView.vue"))
@@ -74,15 +75,15 @@ const saved = (cid) => { adding.value = false; opening.value = false; changed();
 
       <div class="grid grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-6" data-tour="lw-stats">
         <Skeleton v-if="!d" kind="stat" :count="4" />
-        <div v-else v-for="s in d.stats" :key="s.label" v-reveal class="card stat stat-how" :style="{ '--c': 'var(--' + s.tone + ')' }">
-          <div class="stat-top"><span :class="['tint', 'lg', 't-' + s.tone]"><Icon :name="s.icon" :size="24" /></span><span class="grow"></span><HowTip :lines="s.how" /></div>
+        <div v-else v-for="(s, i) in d.stats" :key="s.label" v-reveal class="card stat stat-how" :style="{ '--c': 'var(--' + s.tone + ')' }">
+          <div class="stat-top"><span :class="['tint', 'lg', 't-' + s.tone]"><Icon :name="s.icon" :size="24" /></span><span class="grow"></span><HowTip :lines="s.how" /><SourceTip app="law" :k="'stat.' + i" /></div>
           <div><div class="stat-money">{{ fa(s.value) }}</div><div class="stat-label">{{ s.label }}</div><div class="stat-sub">{{ fa(s.sub) }}</div></div>
         </div>
       </div>
 
       <div class="grid grid-cols-12 gap-6">
         <section v-reveal :class="['card', 'col-span-12', owner ? 'xl:col-span-7' : '']" data-tour="lw-alerts">
-          <div class="card-head">کارهای امروز <span v-if="d" class="count">{{ fa(d.alerts.length) }}</span>
+          <div class="card-head">کارهای امروز <span v-if="d" class="count">{{ fa(d.alerts.length) }}</span><SourceTip app="law" k="alerts" />
             <span class="grow"></span><button v-if="o?.checks" class="btn ghost sm" @click="view = 'checks'"><Icon name="shield" :size="14" />{{ fa(o.checks) }} مورد در بررسی‌ها</button></div>
           <Skeleton v-if="!d" kind="row" :count="5" />
           <AlertList v-else :alerts="d.alerts" @open="caseId = $event" />

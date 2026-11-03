@@ -14,6 +14,7 @@ const AccessManager = defineAsyncComponent(() => import("../components/AccessMan
 const AccessDialog = defineAsyncComponent(() => import("../components/AccessDialog.vue"))
 const LoginLog = defineAsyncComponent(() => import("../components/LoginLog.vue"))
 const SpeedPanel = defineAsyncComponent(() => import("../components/SpeedPanel.vue"))
+const DataMap = defineAsyncComponent(() => import("../components/DataMap.vue"))
 
 const emit = defineEmits(["open"])
 const ASSISTANTS = [
@@ -83,7 +84,7 @@ watch(() => access.ask, (key) => {
 const leave = () => { forgetAccess(); leaveGate() }
 
 // the permanent account's AI switch under each card (nobody else sees it)
-const switching = ref("")
+const switching = ref(""), mapOf = ref(null)   // mapOf: the assistant whose data map is open
 async function flipAi(a) {
   switching.value = a.key; notice.value = ""
   try { await setAi(a.key, !access.ai[a.key]) }
@@ -152,6 +153,8 @@ const unlean = (e) => { e.currentTarget.style.setProperty("--rx", "0deg"); e.cur
               <small>{{ access.ai[a.key] ? 'متن‌ها را مدل می‌نویسد' : 'بدون درخواست به مدل؛ متن‌ها را کد می‌نویسد' }}</small></span>
             <span class="h-ai-switch" aria-hidden="true"><i></i></span>
           </button>
+          <button v-if="access.admin" type="button" class="h-ai h-map" @click="mapOf = a">
+            <Icon name="layers" :size="17" /><span class="h-ai-text"><b>نقشه‌ی داده</b><small>هر داده از کجای کسب‌وکار می‌آید و هر عدد از چه ساخته شده</small></span></button>
         </div>
       </div>
     </section>
@@ -180,9 +183,12 @@ const unlean = (e) => { e.currentTarget.style.setProperty("--rx", "0deg"); e.cur
           <small>{{ access.ai[a.key] ? 'متن‌ها را مدل می‌نویسد' : 'بدون درخواست به مدل؛ متن‌ها را کد می‌نویسد' }}</small></span>
         <span class="h-ai-switch" aria-hidden="true"><i></i></span>
       </button>
+      <button v-if="access.admin" type="button" class="h-ai h-map" @click="mapOf = a">
+        <Icon name="layers" :size="17" /><span class="h-ai-text"><b>نقشه‌ی داده</b><small>هر داده از کجای کسب‌وکار می‌آید و هر عدد از چه ساخته شده</small></span></button>
       </div>
     </section>
 
+    <DataMap v-if="mapOf" :app="mapOf.key" :title="mapOf.title" @close="mapOf = null" />
     <AccessManager v-if="access.admin" :assistants="ASSISTANTS" :collapsible="phone" />
     <LoginLog v-if="access.admin" :collapsible="phone" />
     <SpeedPanel v-if="access.admin" :collapsible="phone" />

@@ -16,6 +16,7 @@ import SalesChart from "./SalesChart.vue"
 import FilesGlance from "./FilesGlance.vue"
 import EventFeed from "./EventFeed.vue"
 import HowTip from "./HowTip.vue"
+import SourceTip from "../components/SourceTip.vue"
 import { useWebOrders } from "./webOrders.js"
 import { CHAT } from "./chat.js"
 // shown only when opened, so their code is downloaded only then
@@ -98,15 +99,15 @@ onUnmounted(() => idle("brief"))
 
       <div class="grid grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-6" data-tour="fo-stats">
         <Skeleton v-if="!d" kind="stat" :count="4" />
-        <div v-else v-for="s in stats" :key="s.label" v-reveal class="card stat stat-how" :style="{ '--c': 'var(--' + s.tone + ')' }">
-          <div class="stat-top"><span :class="['tint', 'lg', 't-' + s.tone]"><Icon :name="s.icon" :size="24" /></span><span class="grow"></span><HowTip :lines="s.how" /></div>
+        <div v-else v-for="(s, i) in stats" :key="s.label" v-reveal class="card stat stat-how" :style="{ '--c': 'var(--' + s.tone + ')' }">
+          <div class="stat-top"><span :class="['tint', 'lg', 't-' + s.tone]"><Icon :name="s.icon" :size="24" /></span><span class="grow"></span><HowTip :lines="s.how" /><SourceTip app="fabric" :k="'stat.' + i" /></div>
           <div><div class="stat-money">{{ s.value }}</div><div class="stat-label">{{ s.label }}</div><div class="stat-sub">{{ s.sub }}</div></div>
         </div>
       </div>
 
       <div class="grid grid-cols-12 gap-6">
         <section v-reveal class="card col-span-12 xl:col-span-7" data-tour="fo-alerts">
-          <div class="card-head">کارهای امروز <span v-if="d" class="count">{{ fa(d.alerts.length) }}</span></div>
+          <div class="card-head">کارهای امروز <span v-if="d" class="count">{{ fa(d.alerts.length) }}</span><SourceTip app="fabric" k="alerts" /></div>
           <Skeleton v-if="!d" kind="row" :count="5" />
           <ul v-else class="alerts">
             <li v-for="a in d.alerts" :key="a.type + a.title" class="alert">

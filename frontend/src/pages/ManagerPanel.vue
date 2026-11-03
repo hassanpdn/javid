@@ -9,6 +9,7 @@ import AppLayout from "../components/AppLayout.vue"
 import BarChart from "../components/BarChart.vue"
 import RadialGauge from "../components/RadialGauge.vue"
 import Icon from "../components/Icon.vue"
+import SourceTip from "../components/SourceTip.vue"
 import Skeleton from "../components/Skeleton.vue"
 import CountUp from "../components/CountUp.vue"
 import TypeText from "../components/TypeText.vue"
@@ -130,16 +131,18 @@ watch(view, (v) => { if (v !== "letters") focusLetter.value = null })
 
       <div class="grid grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-6" data-tour="m-stats">
         <Skeleton v-if="!data" kind="stat" :count="4" />
-        <component v-else :is="s.go ? 'button' : 'div'" v-for="s in stats" :key="s.label" v-reveal class="card stat" :style="{ '--c': 'var(--' + s.tone + ')' }" @click="openStat(s.go)">
+        <div v-else v-for="(s, i) in stats" :key="s.label" class="stat-wrap">
+        <component :is="s.go ? 'button' : 'div'" v-reveal class="card stat" :style="{ '--c': 'var(--' + s.tone + ')' }" @click="openStat(s.go)">
           <div class="stat-top"><span :class="['tint', 'lg', 't-' + s.tone]"><Icon :name="s.icon" :size="24" /></span>
             <div class="stat-num"><CountUp :value="s.value" /> <span v-if="s.of" class="of">از {{ fa(s.of) }}</span></div></div>
           <div><div class="stat-label">{{ s.label }}</div><div class="stat-sub">{{ s.sub }}</div></div>
         </component>
+        <SourceTip app="school" :k="'stat.' + i" class="stat-src" /></div>
       </div>
 
       <div class="grid grid-cols-12 gap-6">
         <section v-reveal class="card col-span-12 2xl:col-span-6" data-tour="m-alerts">
-          <div class="card-head">نیاز به توجه شما <span v-if="data" class="count">{{ fa(open) }}</span></div>
+          <div class="card-head">نیاز به توجه شما <span v-if="data" class="count">{{ fa(open) }}</span><SourceTip app="school" k="alerts" /></div>
           <Skeleton v-if="!data" kind="row" :count="4" />
           <p v-else-if="!data.alerts.length" class="muted">موردی نیست.</p>
           <ul v-if="data" class="alerts">

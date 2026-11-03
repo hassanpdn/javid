@@ -115,6 +115,12 @@ random seed, and plants a few problems (a missed deadline, a room sold twice, a 
 find each one by themselves from the data. Tests check that each is found exactly once, which also proves the rules
 do not raise false alarms on the ordinary data around them.
 
+**Every piece of data has a known source.** `sources.py` says, for each assistant, where each piece of data lives in
+a real business today (a notebook, an Excel file, the courts' system, a booking site), how it enters the program
+(moved once at install, typed every day, pasted, a file, settings, or the customer's own website) and who enters it,
+and what each computed number is made of. The permanent account sees it as «منبع» next to numbers and as a printable
+«نقشه‌ی داده» per assistant: the page to walk a business owner through before installing.
+
 **Configuration by environment variables.** Paths, model address, timeouts and the live site's switches come from
 `.env` (never committed). The same code runs locally, in tests and on the server.
 
