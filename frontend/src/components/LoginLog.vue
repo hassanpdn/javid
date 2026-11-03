@@ -7,7 +7,7 @@ import { access, accessCall, jalaliText } from "../lib/access.js"
 import { faDigits } from "../lib/jalali.js"
 import Icon from "./Icon.vue"
 
-// collapsible (phones): only the header shows, and the log is asked for only once it is opened
+// collapsible (the assistants page): only the header shows, and the log is asked for only once it is opened
 const props = defineProps({ collapsible: { type: Boolean, default: false } })
 const open = ref(false)
 const items = ref([]), people = ref([]), more = ref(false), who = ref("")

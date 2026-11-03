@@ -189,9 +189,10 @@ const unlean = (e) => { e.currentTarget.style.setProperty("--rx", "0deg"); e.cur
     </section>
 
     <DataMap v-if="mapOf" :app="mapOf.key" :title="mapOf.title" @close="mapOf = null" />
-    <AccessManager v-if="access.admin" :assistants="ASSISTANTS" :collapsible="phone" />
-    <LoginLog v-if="access.admin" :collapsible="phone" />
-    <SpeedPanel v-if="access.admin" :collapsible="phone" />
+    <!-- the permanent account's three panels fold to their headers, on every screen, so the cards stay first -->
+    <AccessManager v-if="access.admin" :assistants="ASSISTANTS" collapsible />
+    <LoginLog v-if="access.admin" collapsible />
+    <SpeedPanel v-if="access.admin" collapsible />
     <AccessDialog v-if="asking" @close="asking = null" @opened="opened" />
     <p class="h-foot"><Icon name="shield" :size="15" />همه‌ی اطلاعات این نسخه ساختگی است.</p>
   </main>

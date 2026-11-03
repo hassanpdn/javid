@@ -6,7 +6,7 @@ import { accessCall, jalaliText } from "../lib/access.js"
 import Icon from "./Icon.vue"
 import AccessForm from "./AccessForm.vue"
 
-// collapsible (phones): only the header shows until it is opened, so the assistants page stays short
+// collapsible (the assistants page): only the header shows until it is opened, so the assistants page stays short
 const props = defineProps({ assistants: Array, collapsible: { type: Boolean, default: false } })
 const open = ref(false)
 const list = ref([]), loading = ref(true), editing = ref(null), adding = ref(false), removing = ref(null), error = ref("")

@@ -2,7 +2,7 @@
 // «سرعت برای بازدیدکنندگان» on the assistants page, for the permanent account only (GET /speed, speed.py): how fast each
 // screen behind the door really was for the people who opened it, measured in their own browsers (lib/rum.js).
 // Per screen the median, the slowest tenth, and visits that had a failed request; then the latest visits. Every
-// number comes from the server. collapsible (phones): only the header shows, and nothing is fetched until it opens.
+// number comes from the server. collapsible (the assistants page): only the header shows, and nothing is fetched until it opens.
 import { ref, watch, onMounted } from "vue"
 import { accessCall } from "../lib/access.js"
 import { faDigits } from "../lib/jalali.js"
