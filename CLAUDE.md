@@ -46,6 +46,9 @@ Live at https://agent.pudineh.com (server in Iran: PyPI through a domestic mirro
 
 ## Layout
 
+Architecture and the reasons behind it, for explaining it to anyone: `ARCHITECTURE.md` (the whole application), `ARCHITECTURE-school.md`, and an `ARCHITECTURE.md` in each assistant's folder. A change to an assistant's design updates its document in the same commit.
+
+
 - `app.py`: FastAPI app, login, `/chat` (document Q&A), includes all routers. Static files are mounted last.
 - `school.py`: the school this demo is for (default Javid) and every name built from it (`full_name`, `signature`, `education_office`, `manager`, `counselor`). `GET /school`, `GET /setup/default` and `POST /setup` in `app.py`; setup rebuilds the demo data and clears the model caches.
 - `checks.py`: every check on model output (whole-number matching, per-grade stats lines, date+time pairs, attendance labels, parent-safety: no diagnosis, comparison, private notes or other children). Model text that fails is replaced by text built in code.
