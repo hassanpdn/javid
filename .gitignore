@@ -45,3 +45,6 @@ law.json
 # The dental clinic set up on this machine (see dental/clinic.py)
 dental.db
 dental.json
+# The hotel set up on this machine (see hotel/info.py)
+hotel.db
+hotel.json

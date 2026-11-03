@@ -2,13 +2,13 @@
 // Vuexy vertical layout: sidebar on the right, navbar on top, page content in the slot.
 // nav: [{ header }] or [{ key, label, icon, badge, more }]. v-model is the key of the open page.
 // chat: settings for the floating assistant in the bottom-right corner (endpoint, title, examples, ...).
-// app: "school" (default), "fabric", "estate", "law" or "dental"; brand: { letter, name, sub } for the sidebar (default: the school).
+// app: "school" (default), "fabric", "estate", "law", "dental" or "hotel"; brand: { letter, name, sub } for the sidebar (default: the school).
 // tour: the panel's first-visit guide (lib/tour.js) { key, intro: { title, text }, steps: () => [...], pages: { navKey: text },
 // ready }. It runs once when ready turns true; «راهنمای این صفحه» in the account menu runs it again. Around the
 // panel's own steps this layout adds the same frame everywhere: the pages in the menu, the assistant, notifications,
 // the account menu and a last step that says where the guide can be found again.
 import { ref, computed, watch, onMounted, onUnmounted } from "vue"
-import { api, fa, session, clearSession, fabricSession, clearFabricSession, estateSession, clearEstateSession, lawSession, clearLawSession, dentalSession, clearDentalSession, lockScroll } from "../lib/api.js"
+import { api, fa, session, clearSession, fabricSession, clearFabricSession, estateSession, clearEstateSession, lawSession, clearLawSession, dentalSession, clearDentalSession, hotelSession, clearHotelSession, lockScroll } from "../lib/api.js"
 import { theme } from "../lib/theme.js"
 import { schoolInfo } from "../lib/school.js"
 import gsap from "gsap"
@@ -29,7 +29,7 @@ const props = defineProps({ title: String, subtitle: String, nav: Array, chat: {
   app: { default: "school" }, brand: { type: Object, default: null }, tour: { type: Object, default: null } })
 // fabric: any assistant other than the school (its own logins, no school notifications)
 const fabric = computed(() => props.app !== "school")
-const user = computed(() => props.app === "fabric" ? fabricSession.user : props.app === "estate" ? estateSession.user : props.app === "law" ? lawSession.user : props.app === "dental" ? dentalSession.user : session.user)
+const user = computed(() => props.app === "fabric" ? fabricSession.user : props.app === "estate" ? estateSession.user : props.app === "law" ? lawSession.user : props.app === "dental" ? dentalSession.user : props.app === "hotel" ? hotelSession.user : session.user)
 const brandInfo = computed(() => props.brand ||
   { letter: (schoolInfo.school.name || "ج")[0], name: schoolInfo.school.full_name, sub: "دستیار هوشمند مدرسه" })
 const menuOpen = ref(false), userOpen = ref(false), wrap = ref(null), side = ref(null), themeIcon = ref(null)
@@ -48,6 +48,7 @@ const logout = async () => {
   if (props.app === "estate") { try { await api("/estate/logout", {}) } catch {} clearEstateSession(); return }
   if (props.app === "law") { try { await api("/law/logout", {}) } catch {} clearLawSession(); return }
   if (props.app === "dental") { try { await api("/dental/logout", {}) } catch {} clearDentalSession(); return }
+  if (props.app === "hotel") { try { await api("/hotel/logout", {}) } catch {} clearHotelSession(); return }
   try { await api("/logout", {}) } catch {} clearSession()
 }
 const toggleTheme = () => {

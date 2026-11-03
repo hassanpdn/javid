@@ -29,6 +29,7 @@ from estate import site as estate_site
 import speed
 from law import api as law_api
 from dental import api as dental_api
+from hotel import api as hotel_api, site as hotel_site
 THRESHOLD = float(os.getenv("SIMILARITY_THRESHOLD", "0.60"))
 NOT_FOUND = "پاسخ این سؤال در اسناد مدرسه پیدا نشد. می‌توانید سؤال را دقیق‌تر بپرسید یا با دفتر مدرسه تماس بگیرید."
 UNCLEAR = "سؤال شما روشن نیست. لطفاً سؤال را کامل و واضح بنویسید، مثلاً «ساعت کار کارکنان اداری چقدر است؟»"
@@ -168,6 +169,7 @@ def setup_reset():
     estate_api.reset()   # and the real estate agency starts fresh
     law_api.reset()      # and the law office
     dental_api.reset()   # and the dental clinic
+    hotel_api.reset()    # and the hotel
     return {"ok": True}
 
 @app.get("/me")
@@ -282,6 +284,8 @@ app.include_router(estate_site.router)
 app.include_router(speed.router)
 app.include_router(law_api.router)
 app.include_router(dental_api.router)
+app.include_router(hotel_api.router)
+app.include_router(hotel_site.router)
 
 # Serve the built frontend (frontend/ -> npm run build -> static/) at http://localhost:8000. Must come after the API routes.
 # Files in assets/ have a hash of their content in the name (a new build gives new names), so the browser keeps them

@@ -38,7 +38,12 @@ export const dentalSession = reactive({ token: store.get("dental_token"), user: 
 export const setDentalSession = (token, user) => { dentalSession.token = token; dentalSession.user = user; store.set("dental_token", token) }
 export const clearDentalSession = () => { dentalSession.token = null; dentalSession.user = null; store.del("dental_token") }
 const isDental = (path) => path.startsWith("/dental/")
-const tokenFor = (path) => (isFabric(path) ? fabricSession.token : isEstate(path) ? estateSession.token : isLaw(path) ? lawSession.token : isDental(path) ? dentalSession.token : session.token) || ""
+// The hotel likewise (/hotel/...).
+export const hotelSession = reactive({ token: store.get("hotel_token"), user: null })
+export const setHotelSession = (token, user) => { hotelSession.token = token; hotelSession.user = user; store.set("hotel_token", token) }
+export const clearHotelSession = () => { hotelSession.token = null; hotelSession.user = null; store.del("hotel_token") }
+const isHotel = (path) => path.startsWith("/hotel/")
+const tokenFor = (path) => (isFabric(path) ? fabricSession.token : isEstate(path) ? estateSession.token : isLaw(path) ? lawSession.token : isDental(path) ? dentalSession.token : isHotel(path) ? hotelSession.token : session.token) || ""
 
 // On a weak mobile connection a request can hang with no answer at all. So every request has a time limit (20 s for
 // reading, 60 s for sending; opts.timeout for a big upload), a read is sent once more if the first try got nothing,
@@ -76,13 +81,13 @@ export async function api(path, body, opts = {}) {
     if (body) throw e                       // sending is not repeated by itself: it might have arrived
     res = await send(path, body, timeout)   // reading is: one more try
   }
-  if (res.status === 401 && path !== "/login" && path !== "/fabric/login" && path !== "/estate/login" && path !== "/law/login" && path !== "/dental/login") {
+  if (res.status === 401 && path !== "/login" && path !== "/fabric/login" && path !== "/estate/login" && path !== "/law/login" && path !== "/dental/login" && path !== "/hotel/login") {
     // "site": the site's own door (gate.py) is closed for this browser, so the door page comes back
     const d = await res.clone().json().catch(() => ({}))
     if (d.detail === "site") { gate.ok = false; throw new Error("site") }
     // "access": this browser may not open that assistant (access.py), so its login box comes back on the assistants page
     if (d.detail === "access") { accessDenied(d.app); throw new Error("access") }
-    if (isFabric(path)) clearFabricSession(); else if (isEstate(path)) clearEstateSession(); else if (isLaw(path)) clearLawSession(); else if (isDental(path)) clearDentalSession(); else clearSession()
+    if (isFabric(path)) clearFabricSession(); else if (isEstate(path)) clearEstateSession(); else if (isLaw(path)) clearLawSession(); else if (isDental(path)) clearDentalSession(); else if (isHotel(path)) clearHotelSession(); else clearSession()
     throw new Error("401")
   }
   const data = await res.json()
