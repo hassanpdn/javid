@@ -32,9 +32,9 @@ async function close() {
       <p class="muted small">سامانه‌ی ثبت مسافران پلیس روی اینترنت است و این برنامه چیزی به آن نمی‌فرستد. این فهرست را برای وارد کردن در آن کپی کنید.</p>
       <Skeleton v-if="!police" kind="row" :count="4" />
       <p v-else-if="!police.length" class="muted small">امروز هنوز کسی وارد نشده است.</p>
-      <ul v-else class="ht-mini"><li v-for="p in police" :key="p.id"><div class="ht-row-top"><b>{{ p.guest }}</b><span class="tag">اتاق {{ fa(p.room) }}</span></div>
+      <ul v-else class="k-mini"><li v-for="p in police" :key="p.id"><div class="k-row-top"><b>{{ p.guest }}</b><span class="tag">اتاق {{ fa(p.room) }}</span></div>
         <small class="muted">کد ملی <span dir="ltr">{{ fa(p.national_id) || '-' }}</span> · {{ fa(p.people) }} · ساعت {{ fa(p.time) }}<template v-if="p.plate"> · پلاک {{ fa(p.plate) }}</template>
-          · <span :class="p.docs ? '' : 'ht-late'">{{ p.docs ? 'مدارک دیده شد' : 'مدارک همراهان ثبت نشده' }}</span></small></li></ul>
+          · <span :class="p.docs ? '' : 'k-late'">{{ p.docs ? 'مدارک دیده شد' : 'مدارک همراهان ثبت نشده' }}</span></small></li></ul>
     </section>
     <section class="card col-span-12 xl:col-span-5 flex flex-col gap-3" data-tour="ht-close">
       <div class="card-head">بستن روز</div>

@@ -10,10 +10,10 @@ const emit = defineEmits(["open", "book", "message", "changed"])
 <template>
   <p v-if="!alerts.length" class="muted small">کار فوری‌ای نیست.</p>
   <ul v-else class="alerts">
-    <li v-for="a in alerts" :key="a.type + a.title" class="alert dt-alert">
+    <li v-for="a in alerts" :key="a.type + a.title" class="alert k-alert">
       <span :class="['tint', 't-' + a.tone]"><Icon :name="a.icon" :size="20" /></span>
       <div class="alert-body"><b>{{ fa(a.title) }}</b><small class="muted">{{ fa(a.detail) }}</small></div>
-      <div class="dt-btns">
+      <div class="k-btns">
         <button v-if="a.type === 'unconfirmed' || a.type === 'noshow'" class="btn sm" @click="emit('message', { kind: 'reminder', appt_id: a.appt_id })">پیام یادآوری</button>
         <button v-if="a.type === 'slot'" class="btn sm" @click="emit('book', { date: a.date, time: a.time, fromWaitlist: true })">دادن به فهرست انتظار</button>
         <button v-if="a.type === 'plan'" class="btn sm" @click="emit('message', { kind: 'followup', plan_id: a.plan_id })">پیام پیگیری</button>

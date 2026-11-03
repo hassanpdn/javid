@@ -47,22 +47,22 @@ async function save() {
     <form class="dialog" v-pop role="dialog" aria-label="نوبت جدید" @submit.prevent="save">
       <div class="dialog-head"><h3>نوبت جدید</h3><button type="button" class="icon-btn" @click="emit('close')" aria-label="بستن"><Icon name="x" /></button></div>
       <div v-if="preset.fromWaitlist && wait.length && !f.patient_id" class="field"><span>از فهرست انتظار</span>
-        <ul class="dt-results"><li v-for="w in wait" :key="w.id"><button type="button" @click="fromWait(w)"><span>{{ w.patient }} · {{ w.service_text }}</span><small class="muted">{{ w.note }}</small></button></li></ul></div>
+        <ul class="k-results"><li v-for="w in wait" :key="w.id"><button type="button" @click="fromWait(w)"><span>{{ w.patient }} · {{ w.service_text }}</span><small class="muted">{{ w.note }}</small></button></li></ul></div>
       <div class="field"><span>بیمار</span>
-        <div v-if="f.patient_id" class="dt-picked"><b>{{ f.patient }}</b><button v-if="!preset.patient_id" type="button" class="link small" @click="f.patient_id = null; f.waitlist_id = null">تغییر</button></div>
+        <div v-if="f.patient_id" class="k-picked"><b>{{ f.patient }}</b><button v-if="!preset.patient_id" type="button" class="link small" @click="f.patient_id = null; f.waitlist_id = null">تغییر</button></div>
         <template v-else>
           <input v-model="q" placeholder="نام یا شماره‌ی همراه" aria-label="جستجوی بیمار">
-          <ul v-if="found.length" class="dt-results"><li v-for="p in found" :key="p.id"><button type="button" @click="pick(p)"><span>{{ p.name }}</span><small dir="ltr" class="muted">{{ fa(p.phone) }}</small></button></li></ul>
+          <ul v-if="found.length" class="k-results"><li v-for="p in found" :key="p.id"><button type="button" @click="pick(p)"><span>{{ p.name }}</span><small dir="ltr" class="muted">{{ fa(p.phone) }}</small></button></li></ul>
           <small v-else-if="q.trim().length >= 2" class="muted">بیماری پیدا نشد. اول «بیمار جدید» را بزنید.</small>
         </template></div>
       <label class="field"><span>خدمت</span>
-        <select v-model="f.service" class="dt-select" :disabled="!!f.plan_item_id"><option v-for="s in clinicInfo.services" :key="s.key" :value="s.key">{{ s.name }} · {{ fa(s.minutes) }} دقیقه</option></select></label>
+        <select v-model="f.service" class="k-select" :disabled="!!f.plan_item_id"><option v-for="s in clinicInfo.services" :key="s.key" :value="s.key">{{ s.name }} · {{ fa(s.minutes) }} دقیقه</option></select></label>
       <div class="field"><span>روز</span><DatePicker v-model="f.date" :min="clinicInfo.today" label="روز نوبت" /></div>
       <div class="field"><span>ساعت</span>
         <p v-if="times === null" class="muted small">در حال دیدن وقت‌های خالی…</p>
         <p v-else-if="closed" class="muted small">مطب در این روز تعطیل است.</p>
         <p v-else-if="!times.length" class="muted small">در این روز وقت خالی برای {{ fa(minutes) }} دقیقه نیست.</p>
-        <div v-else class="dt-times" role="radiogroup" aria-label="ساعت">
+        <div v-else class="k-times" role="radiogroup" aria-label="ساعت">
           <button v-for="t in times" :key="t" type="button" role="radio" :aria-checked="f.time === t" :class="{ on: f.time === t }" @click="f.time = t">{{ fa(t) }}</button></div></div>
       <p v-if="error" class="error-text">{{ error }}</p>
       <div class="dialog-actions"><button class="btn primary" :disabled="busy || !f.patient_id || !f.time"><Icon name="check" :size="18" />ثبت نوبت</button></div>

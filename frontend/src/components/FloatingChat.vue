@@ -3,6 +3,8 @@
 // Every role gets one; the props decide which endpoint, examples and texts it uses.
 import { ref, watch, onMounted, onUnmounted, defineAsyncComponent } from "vue"
 import { chatUi } from "../lib/chat.js"
+import { phone } from "../lib/viewport.js"
+import { lockScroll } from "../lib/api.js"
 import gsap from "gsap"
 import { motion } from "../lib/motion.js"
 import Icon from "./Icon.vue"
@@ -20,6 +22,7 @@ let ctx
 
 watch(() => chatUi.open, (open) => {
   if (open) { started.value = true; hint.value = false }
+  if (phone.value) lockScroll(open)   // on a phone the chat is full screen: the page behind must not scroll with the keyboard
   if (motion && icon.value) gsap.fromTo(icon.value, { rotation: open ? -90 : 90, scale: .5 }, { rotation: 0, scale: 1, duration: .4, ease: "back.out(2)" })
 })
 
@@ -39,7 +42,7 @@ onMounted(() => {
     // the pulsing ring and the breathing button are CSS animations in main.css (.fab-ring, .fab-core)
   }, fab.value)
 })
-onUnmounted(() => { ctx?.revert(); chatUi.open = false })
+onUnmounted(() => { ctx?.revert(); chatUi.open = false; lockScroll(false) })
 
 function hintSeen() { try { return sessionStorage.getItem("chat-hint") } catch { return "1" } }
 function dismissHint() { hint.value = false; try { sessionStorage.setItem("chat-hint", "1") } catch {} }

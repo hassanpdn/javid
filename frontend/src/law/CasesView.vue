@@ -17,24 +17,24 @@ const shown = () => (list.value || []).filter((c) => !q.value.trim() || (c.title
 
 <template>
   <div class="flex flex-col gap-4">
-    <div class="lw-toolbar">
-      <input v-model="q" class="lw-search" placeholder="جستجو: نام موکل، موضوع یا شماره‌ی پرونده" aria-label="جستجو">
-      <select v-model="f.status" class="lw-select" aria-label="وضعیت"><option value="open">باز</option><option value="closed">مختومه</option><option value="all">همه</option></select>
-      <label v-if="lawSession.user.role !== 'secretary'" class="lw-check"><input v-model="f.mine" type="checkbox">فقط پرونده‌های من</label>
+    <div class="k-toolbar">
+      <input v-model="q" class="k-search" placeholder="جستجو: نام موکل، موضوع یا شماره‌ی پرونده" aria-label="جستجو">
+      <select v-model="f.status" class="k-select" aria-label="وضعیت"><option value="open">باز</option><option value="closed">مختومه</option><option value="all">همه</option></select>
+      <label v-if="lawSession.user.role !== 'secretary'" class="k-check"><input v-model="f.mine" type="checkbox">فقط پرونده‌های من</label>
     </div>
     <div v-if="!list" class="card"><Skeleton kind="row" :count="6" /></div>
     <div v-else-if="!shown().length" class="card empty"><Icon name="file" :size="32" /><p class="muted">پرونده‌ای با این مشخصات نیست.</p></div>
-    <ul v-else class="lw-list">
+    <ul v-else class="k-list">
       <li v-for="c in shown()" :key="c.id">
-        <button class="card lw-row" @click="emit('open', c.id)">
+        <button class="card k-row" @click="emit('open', c.id)">
           <span class="tint t-primary"><Icon name="file" :size="20" /></span>
-          <span class="lw-row-body">
+          <span class="k-row-body">
             <b>{{ c.title }}</b>
-            <span class="lw-meta">{{ c.field_text }} · {{ c.stage_text }} · {{ c.court }}، شعبه‌ی {{ fa(c.branch) }}</span>
-            <span class="lw-meta">طرف دعوا: {{ c.opponent || '-' }} · {{ c.lawyer }}</span>
-            <span v-if="c.next" :class="['tag', 'lw-t-' + toneOf(c.next.left, c.next.kind)]">{{ c.next.kind === 'hearing' ? 'جلسه' : c.next.todo }}: {{ fa(c.next.left_text) }}</span>
+            <span class="k-meta">{{ c.field_text }} · {{ c.stage_text }} · {{ c.court }}، شعبه‌ی {{ fa(c.branch) }}</span>
+            <span class="k-meta">طرف دعوا: {{ c.opponent || '-' }} · {{ c.lawyer }}</span>
+            <span v-if="c.next" :class="['tag', 'k-t-' + toneOf(c.next.left, c.next.kind)]">{{ c.next.kind === 'hearing' ? 'جلسه' : c.next.todo }}: {{ fa(c.next.left_text) }}</span>
           </span>
-          <Icon name="chevron" :size="18" class="lw-go" />
+          <Icon name="chevron" :size="18" class="k-go" />
         </button>
       </li>
     </ul>

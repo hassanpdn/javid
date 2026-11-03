@@ -19,7 +19,7 @@ import SourceTip from "../components/SourceTip.vue"
 import AlertList from "./AlertList.vue"
 const DeadlinesView = defineAsyncComponent(() => import("./DeadlinesView.vue"))
 const CasesView = defineAsyncComponent(() => import("./CasesView.vue"))
-const ChecksView = defineAsyncComponent(() => import("./ChecksView.vue"))
+const ChecksList = defineAsyncComponent(() => import("../components/kit/ChecksList.vue"))
 const SettingsView = defineAsyncComponent(() => import("./SettingsView.vue"))
 const CaseDrawer = defineAsyncComponent(() => import("./CaseDrawer.vue"))
 const NoticeDialog = defineAsyncComponent(() => import("./NoticeDialog.vue"))
@@ -53,14 +53,14 @@ const saved = (cid) => { adding.value = false; opening.value = false; changed();
 <template>
   <AppLayout app="law" :brand="brand()" :chat="CHAT" :title="TITLES[view]" :subtitle="d ? fa(d.today_long + '، ' + d.today) : ''" :nav="nav" v-model="view"
              :tour="{ ...(owner ? LAW_OWNER : LAW_STAFF), ready: !!d && view === 'home' }">
-    <div class="lw-actions" data-tour="lw-actions">
+    <div class="k-actions" data-tour="lw-actions">
       <button class="btn primary" @click="adding = true"><Icon name="mail" :size="18" />ثبت ابلاغیه</button>
       <button class="btn" @click="opening = true"><Icon name="plus" :size="18" />پرونده‌ی جدید</button>
     </div>
 
     <DeadlinesView v-if="view === 'deadlines'" :key="stamp" @open="caseId = $event" />
     <CasesView v-else-if="view === 'cases'" :key="stamp" @open="caseId = $event" />
-    <ChecksView v-else-if="view === 'checks'" :key="stamp" @open="caseId = $event" />
+    <ChecksList v-else-if="view === 'checks'" :key="stamp" @open="caseId = $event" endpoint="/law/checks" intro="این بخش تاریخ ابلاغ، ثبت در دفتر، روز آخر مهلت و ثبت اقدام را کنار هم می‌گذارد و هر جا با هم جور نباشد، همان را با تاریخ‌ها نشان می‌دهد." empty="همه‌ی مهلت‌ها به‌موقع رسیدگی شده است." :icons='{ missed: "alert", late: "clock", entry: "mail" }' :record="{ key: 'case_id', label: 'پرونده' }" how-label="تاریخ‌ها" />
     <SettingsView v-else-if="view === 'settings'" />
     <div v-else class="flex flex-col gap-6">
       <section v-if="owner" v-reveal class="card welcome brief" data-tour="lw-brief">
@@ -92,7 +92,7 @@ const saved = (cid) => { adding.value = false; opening.value = false; changed();
           <section v-reveal class="card" data-tour="lw-team">
             <div class="card-head">وکلای دفتر</div>
             <Skeleton v-if="!o" kind="row" :count="2" />
-            <ul v-else class="lw-team">
+            <ul v-else class="k-team">
               <li v-for="m in o.team" :key="m.id"><b>{{ m.name }}</b><span>{{ fa(m.cases) }} پرونده‌ی باز · {{ fa(m.due) }} مهلت در این هفته</span></li>
             </ul>
           </section>

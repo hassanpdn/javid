@@ -26,7 +26,7 @@ const AgenciesView = defineAsyncComponent(() => import("./AgenciesView.vue"))
 const SiteView = defineAsyncComponent(() => import("./SiteView.vue"))
 const DeskView = defineAsyncComponent(() => import("./DeskView.vue"))
 const ReportView = defineAsyncComponent(() => import("./ReportView.vue"))
-const ChecksView = defineAsyncComponent(() => import("./ChecksView.vue"))
+const ChecksList = defineAsyncComponent(() => import("../components/kit/ChecksList.vue"))
 const SettingsView = defineAsyncComponent(() => import("./SettingsView.vue"))
 const BookingDrawer = defineAsyncComponent(() => import("./BookingDrawer.vue"))
 const BookDialog = defineAsyncComponent(() => import("./BookDialog.vue"))
@@ -66,7 +66,7 @@ const booked = (id) => { booking.value = null; changed(); bookingId.value = id }
 <template>
   <AppLayout app="hotel" :brand="brand()" :chat="CHAT" :title="TITLES[view]" :subtitle="d ? fa(d.today_long + '، ' + d.today) : ''" :nav="nav" v-model="view"
              :tour="{ ...(manager ? HOTEL_MANAGER : HOTEL_DESK), ready: !!d && view === 'home' }">
-    <div v-if="view !== 'site'" class="ht-actions" data-tour="ht-actions">
+    <div v-if="view !== 'site'" class="k-actions" data-tour="ht-actions">
       <button class="btn primary" @click="booking = {}"><Icon name="calendar" :size="18" />رزرو جدید</button>
       <button class="btn" @click="booking = { paste: true }"><Icon name="message" :size="18" />رزرو از روی پیام</button>
     </div>
@@ -79,7 +79,7 @@ const booked = (id) => { booking.value = null; changed(); bookingId.value = id }
     <SiteView v-else-if="view === 'site'" @open="bookingId = $event" />
     <DeskView v-else-if="view === 'desk'" :key="'d' + stamp" @changed="changed" />
     <ReportView v-else-if="view === 'report'" />
-    <ChecksView v-else-if="view === 'checks'" :key="'c' + stamp" @open="bookingId = $event" />
+    <ChecksList v-else-if="view === 'checks'" :key="'c' + stamp" @open="bookingId = $event" endpoint="/hotel/checks" intro="این بخش تخفیف‌ها، تحویل اتاق‌ها، لغوها و صندوق هر روز را کنار هم می‌گذارد و هر جا با هم جور نباشد، همان را با جزئیاتش نشان می‌دهد." empty="همه‌چیز با هم جور است." :icons='{ discount: "chart", cancel_after: "alert", dirty: "bed", cash: "key" }' :record="{ key: 'booking_id', label: 'رزرو' }" how-label="جزئیات" />
     <SettingsView v-else-if="view === 'settings'" />
     <div v-else class="flex flex-col gap-6">
       <section v-if="manager" v-reveal class="card welcome brief" data-tour="ht-brief">

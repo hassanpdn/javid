@@ -22,21 +22,21 @@ async function save() {
   <div class="overlay" @click.self="emit('close')">
     <form class="dialog" v-pop role="dialog" aria-label="پرونده‌ی جدید" @submit.prevent="save">
       <div class="dialog-head"><h3>پرونده‌ی جدید</h3><button type="button" class="icon-btn" @click="emit('close')" aria-label="بستن"><Icon name="x" /></button></div>
-      <div class="lw-grid2">
+      <div class="k-grid2">
         <label class="field"><span>موکل</span><input v-model="f.client" maxlength="60" required></label>
         <label class="field"><span>تلفن موکل</span><input v-model="f.phone" dir="ltr" inputmode="tel" maxlength="20"></label>
       </div>
       <label class="field"><span>موضوع</span><input v-model="f.topic" maxlength="80" placeholder="مثلاً مطالبه‌ی وجه چک" required></label>
       <label class="field"><span>طرف دعوا</span><input v-model="f.opponent" maxlength="80"></label>
-      <div class="lw-grid2">
-        <label class="field"><span>نوع پرونده</span><select v-model="f.field" class="lw-select"><option v-for="(t, k) in FIELDS" :key="k" :value="k">{{ t }}</option></select></label>
-        <label class="field"><span>وکیل مسئول</span><select v-model="f.lawyer_id" class="lw-select"><option v-for="l in lawyers" :key="l.id" :value="l.id">{{ l.name }}</option></select></label>
+      <div class="k-grid2">
+        <label class="field"><span>نوع پرونده</span><select v-model="f.field" class="k-select"><option v-for="(t, k) in FIELDS" :key="k" :value="k">{{ t }}</option></select></label>
+        <label class="field"><span>وکیل مسئول</span><select v-model="f.lawyer_id" class="k-select"><option v-for="l in lawyers" :key="l.id" :value="l.id">{{ l.name }}</option></select></label>
       </div>
-      <div class="lw-grid2">
+      <div class="k-grid2">
         <label class="field"><span>مرجع</span><input v-model="f.court" maxlength="80" placeholder="مثلاً دادگاه عمومی حقوقی تهران"></label>
         <label class="field"><span>شعبه</span><input v-model="f.branch" inputmode="numeric" maxlength="10"></label>
       </div>
-      <div class="lw-grid2">
+      <div class="k-grid2">
         <label class="field"><span>شماره‌ی پرونده</span><input v-model="f.number" dir="ltr" inputmode="numeric" maxlength="24"></label>
         <label class="field"><span>شماره‌ی بایگانی</span><input v-model="f.archive" dir="ltr" inputmode="numeric" maxlength="12"></label>
       </div>

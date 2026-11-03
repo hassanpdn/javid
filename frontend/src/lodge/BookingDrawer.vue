@@ -28,15 +28,15 @@ const copy = async (t) => { try { await navigator.clipboard.writeText(t); toast(
 
 <template>
   <div class="overlay" @click.self="emit('close')">
-    <aside class="drawer lo-drawer" v-drawer aria-label="رزرو">
+    <aside class="drawer k-drawer" v-drawer aria-label="رزرو">
       <div class="drawer-head"><b class="text-ink">رزرو {{ d ? fa(b.id) : '' }}</b><button class="icon-btn" @click="emit('close')" aria-label="بستن"><Icon name="x" /></button></div>
       <div class="drawer-body" tabindex="0">
         <div v-if="!d" class="card"><Skeleton :lines="6" /></div>
         <template v-else>
-          <section class="card lo-head">
-            <div class="lo-row-top"><b class="lo-title">{{ b.guest }}</b><span :class="['tag', 'lo-t-' + STATUS_TONE[b.status]]">{{ b.status_text }}</span></div>
-            <div class="lo-tags"><span class="tag" dir="ltr">{{ fa(b.phone) }}</span><span class="tag">از {{ b.source_text }}</span><span v-if="b.has_account" class="tag lo-t-success">حساب در سایت دارد</span></div>
-            <dl class="lo-dl">
+          <section class="card k-head">
+            <div class="k-row-top"><b class="k-title">{{ b.guest }}</b><span :class="['tag', 'k-t-' + STATUS_TONE[b.status]]">{{ b.status_text }}</span></div>
+            <div class="k-tags"><span class="tag" dir="ltr">{{ fa(b.phone) }}</span><span class="tag">از {{ b.source_text }}</span><span v-if="b.has_account" class="tag k-t-success">حساب در سایت دارد</span></div>
+            <dl class="k-dl">
               <dt>واحد</dt><dd>{{ b.unit }}</dd>
               <dt>اقامت</dt><dd>{{ fa(b.stay_text) }} · {{ fa(b.adults) }} نفر</dd>
               <dt>قیمت</dt><dd class="flex items-center gap-2">{{ fa(b.total_text) }} · بیعانه {{ fa(b.deposit_text) }}<HowTip :lines="d.price_how" /></dd>
@@ -44,7 +44,7 @@ const copy = async (t) => { try { await navigator.clipboard.writeText(t); toast(
               <dt v-if="b.note">یادداشت</dt><dd v-if="b.note">{{ b.note }}</dd>
             </dl>
             <p v-if="d.conflict" class="check warn small"><Icon name="alert" :size="14" /><span>{{ d.conflict }}</span></p>
-            <div class="lo-btns">
+            <div class="k-btns">
               <template v-if="b.status === 'requested'">
                 <button class="btn primary sm" :disabled="!!busy || !!d.conflict" @click="act('ok', '/approve', {}, 'تأیید شد؛ مهمان بیعانه را می‌فرستد')"><Icon name="check" :size="14" />تأیید درخواست</button>
                 <button class="btn ghost sm" @click="open = 'reject'">رد درخواست</button>
@@ -55,10 +55,10 @@ const copy = async (t) => { try { await navigator.clipboard.writeText(t); toast(
             </div>
             <form v-if="open === 'reject' || open === 'cancel'" class="flex flex-col gap-2" @submit.prevent="act(open, open === 'reject' ? '/reject' : '/cancel', { text }, open === 'reject' ? 'درخواست رد شد' : 'رزرو لغو شد')">
               <p v-if="open === 'cancel'" class="small">{{ fa(d.refund.rule) }} اکنون: {{ fa(d.refund.percent) }} درصد<template v-if="d.refund.amount">، {{ fa(d.refund.amount.toLocaleString()) }} تومان</template>.</p>
-              <input v-model="text" class="lo-search" maxlength="300" placeholder="پیام برای مهمان (اختیاری)، مثلاً: آن شب‌ها خانه پر است" aria-label="پیام برای مهمان">
+              <input v-model="text" class="k-search" maxlength="300" placeholder="پیام برای مهمان (اختیاری)، مثلاً: آن شب‌ها خانه پر است" aria-label="پیام برای مهمان">
               <div class="btn-row"><button class="btn danger-soft sm" :disabled="!!busy">{{ open === 'reject' ? 'رد شود' : 'لغو شود' }}</button><button type="button" class="btn ghost sm" @click="open = ''">انصراف</button></div>
             </form>
-            <template v-if="fb"><textarea :value="fb.text" rows="5" class="lo-text" readonly aria-label="پیام نظرخواهی"></textarea>
+            <template v-if="fb"><textarea :value="fb.text" rows="5" class="k-text" readonly aria-label="پیام نظرخواهی"></textarea>
               <small class="muted">{{ fb.has_account ? 'مهمان حساب دارد و فرم نظر را در «سفرهای من» می‌بیند.' : 'مهمان هنوز حساب ندارد؛ با همین شماره می‌تواند حساب بسازد.' }}</small>
               <div class="btn-row"><button class="btn sm" @click="copy(fb.text)">کپی متن</button><button class="btn primary sm" @click="act('fb', '/feedback', {}, 'ثبت شد'); fb = null">فرستادم</button></div></template>
           </section>
@@ -76,7 +76,7 @@ const copy = async (t) => { try { await navigator.clipboard.writeText(t); toast(
             <div class="card-head">گفت‌وگو با مهمان</div>
             <p v-if="!d.messages.length" class="muted small">پیامی نیست.</p>
             <div class="lo-thread"><p v-for="m in d.messages" :key="m.id" :class="m.side">{{ m.text }} <small class="muted">· {{ fa(m.day) }} {{ fa(m.time) }}</small></p></div>
-            <form class="lo-pay" @submit.prevent="act('msg', '/message', { text }, 'پیام فرستاده شد')">
+            <form class="k-pay" @submit.prevent="act('msg', '/message', { text }, 'پیام فرستاده شد')">
               <input v-model="text" maxlength="300" placeholder="پاسخ به مهمان؛ در «سفرهای من» می‌بیند" aria-label="پاسخ"><button class="btn primary sm" :disabled="!!busy || text.trim().length < 2">فرستادن</button></form>
           </section>
 
@@ -87,11 +87,11 @@ const copy = async (t) => { try { await navigator.clipboard.writeText(t); toast(
 
           <section v-if="d.stays.length" class="card">
             <div class="card-head">سفرهای دیگر این مهمان</div>
-            <ul class="lo-mini"><li v-for="s in d.stays" :key="s.id"><span>{{ s.unit }}</span><small class="muted">{{ fa(s.stay_text) }} · {{ s.status_text }}</small></li></ul>
+            <ul class="k-mini"><li v-for="s in d.stays" :key="s.id"><span>{{ s.unit }}</span><small class="muted">{{ fa(s.stay_text) }} · {{ s.status_text }}</small></li></ul>
           </section>
           <section v-if="d.history.length" class="card">
             <div class="card-head">سابقه</div>
-            <ul class="lo-mini"><li v-for="e in d.history" :key="e.id"><span>{{ fa(e.text) }}</span><small class="muted">{{ e.who }} · {{ fa(e.day) }} {{ fa(e.time) }}</small></li></ul>
+            <ul class="k-mini"><li v-for="e in d.history" :key="e.id"><span>{{ fa(e.text) }}</span><small class="muted">{{ e.who }} · {{ fa(e.day) }} {{ fa(e.time) }}</small></li></ul>
           </section>
         </template>
       </div>

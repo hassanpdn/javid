@@ -26,7 +26,7 @@ async function done(k) {
     <section v-else class="card flex flex-col gap-2">
       <Skeleton v-if="!tasks" kind="row" :count="4" />
       <p v-else-if="!tasks.length" class="muted small">درخواست بازی نیست.</p>
-      <ul v-else class="ht-mini"><li v-for="k in tasks" :key="k.id"><div class="ht-row-top"><b>اتاق {{ fa(k.room) }}</b><span :class="['tag', k.kind === 'repair' ? 'ht-t-secondary' : 'ht-t-warning']">{{ k.kind === 'repair' ? 'تعمیر' : 'درخواست مهمان' }}</span></div>
+      <ul v-else class="k-mini"><li v-for="k in tasks" :key="k.id"><div class="k-row-top"><b>اتاق {{ fa(k.room) }}</b><span :class="['tag', k.kind === 'repair' ? 'k-t-secondary' : 'k-t-warning']">{{ k.kind === 'repair' ? 'تعمیر' : 'درخواست مهمان' }}</span></div>
         <span>{{ k.text }}</span><small class="muted">{{ fa(k.day) }} ساعت {{ fa(k.time) }}</small>
         <button class="btn primary sm" style="align-self: flex-start" @click="done(k)">انجام شد</button></li></ul>
     </section>

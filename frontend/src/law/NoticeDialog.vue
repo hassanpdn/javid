@@ -43,11 +43,11 @@ const ready = computed(() => f.case_id && f.kind && f.served && (f.kind !== "hea
 
       <template v-if="saved">
         <p class="check ok small"><Icon name="check" :size="14" /><span>ابلاغیه در پرونده‌ی «{{ saved.case_title }}» ثبت شد.</span></p>
-        <section v-if="saved.deadline" class="lw-result">
-          <div class="lw-row-top"><b>روز آخر {{ saved.todo }}</b><HowTip v-if="saved.how" :lines="saved.how" /></div>
-          <span class="lw-big">{{ fa(saved.deadline_text) }}</span><small class="muted">{{ fa(saved.left_text) }}</small>
+        <section v-if="saved.deadline" class="k-result">
+          <div class="k-row-top"><b>روز آخر {{ saved.todo }}</b><HowTip v-if="saved.how" :lines="saved.how" /></div>
+          <span class="k-big">{{ fa(saved.deadline_text) }}</span><small class="muted">{{ fa(saved.left_text) }}</small>
         </section>
-        <section v-else-if="saved.hearing" class="lw-result"><b>جلسه</b><span class="lw-big">{{ fa(saved.hearing_text) }}</span></section>
+        <section v-else-if="saved.hearing" class="k-result"><b>جلسه</b><span class="k-big">{{ fa(saved.hearing_text) }}</span></section>
         <div class="dialog-actions"><button class="btn primary" @click="emit('saved', saved.case_id)">دیدن پرونده</button><button class="btn ghost" @click="emit('close')">بستن</button></div>
       </template>
 
@@ -63,16 +63,16 @@ const ready = computed(() => f.case_id && f.kind && f.served && (f.kind !== "hea
       <form v-else class="flex flex-col gap-3" @submit.prevent="save">
         <p v-if="method" class="check info small"><Icon name="info" :size="14" /><span>{{ method === 'model' ? 'دستیار متن را خواند' : 'متن با قاعده‌های ثابت خوانده شد' }}. هر چه در متن نبود خالی مانده است و زیر هر مقدار، جایی از متن که از آن آمده نوشته شده است.</span></p>
         <label class="field"><span>پرونده</span>
-          <select v-model="f.case_id" class="lw-select"><option :value="null" disabled>انتخاب کنید</option><option v-for="c in cases" :key="c.id" :value="c.id">{{ c.title }}</option></select>
-          <small v-if="matches.length" class="lw-from">پیدا شد: {{ matches[0].why }} («{{ fa(found.number || found.archive || '') }}»)</small>
-          <small v-else-if="method" class="lw-late">پرونده‌ای با این شماره پیدا نشد. از فهرست انتخاب کنید یا اول پرونده را باز کنید.</small></label>
+          <select v-model="f.case_id" class="k-select"><option :value="null" disabled>انتخاب کنید</option><option v-for="c in cases" :key="c.id" :value="c.id">{{ c.title }}</option></select>
+          <small v-if="matches.length" class="k-from">پیدا شد: {{ matches[0].why }} («{{ fa(found.number || found.archive || '') }}»)</small>
+          <small v-else-if="method" class="k-late">پرونده‌ای با این شماره پیدا نشد. از فهرست انتخاب کنید یا اول پرونده را باز کنید.</small></label>
         <label class="field"><span>نوع ابلاغیه</span>
-          <select v-model="f.kind" class="lw-select"><option value="" disabled>انتخاب کنید</option><option v-for="(t, k) in KINDS" :key="k" :value="k">{{ t }}</option></select>
-          <small v-if="found.kind" class="lw-from">از متن: «{{ fa(found.kind) }}»</small></label>
+          <select v-model="f.kind" class="k-select"><option value="" disabled>انتخاب کنید</option><option v-for="(t, k) in KINDS" :key="k" :value="k">{{ t }}</option></select>
+          <small v-if="found.kind" class="k-from">از متن: «{{ fa(found.kind) }}»</small></label>
         <div class="field"><span>تاریخ ابلاغ</span><DatePicker v-model="f.served" :min="'1400/01/01'" label="تاریخ ابلاغ" />
-          <small v-if="found.served" class="lw-from">از متن: «{{ fa(found.served) }}»</small></div>
-        <div v-if="f.kind === 'hearing'" class="lw-grid2">
-          <div class="field"><span>تاریخ جلسه</span><DatePicker v-model="f.hearing_date" label="تاریخ جلسه" /><small v-if="found.hearing_date" class="lw-from">«{{ fa(found.hearing_date) }}»</small></div>
+          <small v-if="found.served" class="k-from">از متن: «{{ fa(found.served) }}»</small></div>
+        <div v-if="f.kind === 'hearing'" class="k-grid2">
+          <div class="field"><span>تاریخ جلسه</span><DatePicker v-model="f.hearing_date" label="تاریخ جلسه" /><small v-if="found.hearing_date" class="k-from">«{{ fa(found.hearing_date) }}»</small></div>
           <div class="field"><span>ساعت جلسه</span><TimePicker v-model="f.hearing_time" label="ساعت جلسه" /></div>
         </div>
         <p v-if="found.branch || found.court" class="muted small">شعبه و دادگاه در متن: {{ fa(found.court || found.branch) }}</p>

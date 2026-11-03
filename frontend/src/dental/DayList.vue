@@ -21,29 +21,29 @@ const live = (a) => a.status === "booked" || a.status === "confirmed"
 
 <template>
   <p v-if="!rows.length" class="muted small">نوبتی نیست.</p>
-  <ul v-else class="dt-day">
-    <li v-for="r in rows" :key="r.time" :class="['dt-slot', { 'dt-free-row': !r.appt }]">
-      <span class="dt-time">{{ fa(r.time) }}</span>
-      <div v-if="r.appt" class="dt-slot-body">
-        <div class="dt-slot-top">
-          <button class="dt-link" @click="emit('open', r.appt.patient_id)">{{ r.appt.patient }}</button>
-          <span :class="['tag', 'dt-t-' + STATUS_TONE[r.appt.status]]">{{ r.appt.status_text }}</span>
+  <ul v-else class="k-day">
+    <li v-for="r in rows" :key="r.time" :class="['k-slot', { 'k-free-row': !r.appt }]">
+      <span class="k-time">{{ fa(r.time) }}</span>
+      <div v-if="r.appt" class="k-slot-body">
+        <div class="k-slot-top">
+          <button class="k-link" @click="emit('open', r.appt.patient_id)">{{ r.appt.patient }}</button>
+          <span :class="['tag', 'k-t-' + STATUS_TONE[r.appt.status]]">{{ r.appt.status_text }}</span>
         </div>
         <small class="muted">{{ r.appt.service_text }} · {{ fa(r.appt.minutes) }} دقیقه</small>
-        <div v-if="live(r.appt) && !compact" class="dt-btns">
+        <div v-if="live(r.appt) && !compact" class="k-btns">
           <button v-if="r.appt.status === 'booked'" class="btn sm" :disabled="busy === r.appt.id" @click="set(r.appt, 'confirmed')"><Icon name="check" :size="14" />بیمار تأیید کرد</button>
           <button v-if="r.appt.status === 'booked'" class="btn ghost sm" @click="emit('message', { kind: 'reminder', appt_id: r.appt.id })">پیام یادآوری</button>
           <button v-if="owner && !future" class="btn sm" :disabled="busy === r.appt.id" @click="set(r.appt, 'done')">انجام شد</button>
           <button v-if="!future" class="btn ghost sm" :disabled="busy === r.appt.id" @click="set(r.appt, 'noshow')">نیامد</button>
           <button v-if="!past" class="btn ghost sm" :disabled="busy === r.appt.id" @click="set(r.appt, 'cancelled')">لغو</button>
         </div>
-        <div v-else-if="live(r.appt) && compact" class="dt-btns">
+        <div v-else-if="live(r.appt) && compact" class="k-btns">
           <button v-if="owner" class="btn sm" :disabled="busy === r.appt.id" @click="set(r.appt, 'done')">انجام شد</button>
           <button class="btn ghost sm" :disabled="busy === r.appt.id" @click="set(r.appt, 'noshow')">نیامد</button>
         </div>
       </div>
-      <div v-else class="dt-slot-body dt-free-line">
-        <span class="dt-free">خالی</span>
+      <div v-else class="k-slot-body k-free-line">
+        <span class="k-free">خالی</span>
         <button v-if="!past" class="btn ghost sm" @click="emit('book', { date, time: r.time })"><Icon name="plus" :size="14" />نوبت</button>
       </div>
     </li>

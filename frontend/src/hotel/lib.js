@@ -1,7 +1,8 @@
 import { reactive, onMounted, onUnmounted } from "vue"
+import "../styles/kit.css"
+import "./hotel.css"
 import { api, fa } from "../lib/api.js"
 import { toast } from "../lib/notify.js"
-import "./hotel.css"
 
 // The hotel this demo is for, loaded before login, with its room types, meal plans, sources and agencies (all from
 // the server). today: the demo's date («1405/08/11»), the date pickers' first day.

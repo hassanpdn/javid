@@ -19,10 +19,10 @@ const GO = { overbooked: ["grid", "جدول اتاق‌ها"], allotment: ["agen
 <template>
   <p v-if="!alerts.length" class="muted small">کار فوری‌ای نیست.</p>
   <ul v-else class="alerts">
-    <li v-for="a in alerts" :key="a.type + a.title" class="alert ht-alert">
+    <li v-for="a in alerts" :key="a.type + a.title" class="alert k-alert">
       <span :class="['tint', 't-' + a.tone]"><Icon :name="a.icon" :size="20" /></span>
       <div class="alert-body"><b>{{ fa(a.title) }}</b><small class="muted">{{ fa(a.detail) }}</small></div>
-      <div class="ht-btns">
+      <div class="k-btns">
         <button v-if="a.type === 'gap'" class="btn sm" :disabled="busy === a.title" @click="run(a.title, `/hotel/bookings/${a.booking_id}/room`, { room_id: a.room_id }, 'رزرو جابه‌جا شد')">جابه‌جا کن</button>
         <button v-if="a.type === 'task'" class="btn sm" :disabled="busy === a.title" @click="run(a.title, `/hotel/tasks/${a.task_id}/done`, {}, 'انجام شد')">انجام شد</button>
         <button v-if="GO[a.type]" class="btn sm" @click="emit('go', GO[a.type][0])">{{ GO[a.type][1] }}</button>

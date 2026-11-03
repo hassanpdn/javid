@@ -35,7 +35,7 @@ const contact = (kind) => act({ kind, text: note.value }, `/dental/plans/${props
       <Skeleton v-if="!d" :lines="5" />
       <template v-else>
         <p class="muted small">متن را بخوانید، اگر لازم است تغییر دهید و از تلفن مطب برای <span dir="ltr">{{ fa(d.phone) }}</span> بفرستید.</p>
-        <textarea v-model="text" rows="7" class="dt-text ai-draft" aria-label="متن پیام"></textarea>
+        <textarea v-model="text" rows="7" class="k-text ai-draft" aria-label="متن پیام"></textarea>
         <p v-if="d.checked === false" class="check warn small"><Icon name="alert" :size="14" /><span>متن دستیار با اطلاعات طرح جور نبود؛ متن ساده جایگزین شد.</span></p>
         <template v-if="spec.kind === 'reminder'">
           <div class="dialog-actions"><button class="btn" @click="copy"><Icon name="file" :size="16" />کپی متن</button>

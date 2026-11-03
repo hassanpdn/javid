@@ -1,6 +1,7 @@
 import { reactive } from "vue"
-import { api, fa } from "../lib/api.js"
+import "../styles/kit.css"
 import "./lodge.css"
+import { api, fa } from "../lib/api.js"
 
 // The eco-lodge being shown, loaded before login: its words, kinds of unit, sources, and where its website is.
 export const lodgeInfo = reactive({ loaded: false, set_up: false, lodge: {}, site: {}, today: null, kinds: {}, sources: {}, site_url: "/eco", setupOpen: false })

@@ -1,6 +1,6 @@
 import { reactive } from "vue"
+import "../styles/kit.css"
 import { api } from "../lib/api.js"
-import "./dental.css"
 
 // The clinic this demo is for, loaded before login. today: the demo's date («1405/08/11»), the date pickers' first day.
 // services: the clinic's price list from the server (key, name, minutes, price_text).

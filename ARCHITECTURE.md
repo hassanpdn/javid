@@ -92,6 +92,12 @@ serves the site and the API from one address (no CORS). Pages, dialogs and drawe
 loaded on demand, so a visitor downloads only what they open. Every page talks to the server through `lib/api.js`
 only, and pages never compute a business number: the server sends it ready to show.
 
+**A shared kit for the business assistants.** The law office, dental clinic, hotel and eco-lodge are built from the
+same pieces: `frontend/src/components/kit/` (the setup page, the login page, the checks list, the tape chart) and
+`frontend/src/styles/kit.css` (rows, lists, drawers, forms and charts, classes starting with `k-`). An assistant keeps
+only its own words and its own screens; a fix in the kit reaches all of them. The general pieces any page can use
+(the Jalali date and time pickers) are in `components/core/`.
+
 **The model only reads and writes text (guardrails).** Language models are good at reading messy text and writing
 natural sentences, and bad at arithmetic, dates and rules. So:
 - Computing: always code (`facts.py`).

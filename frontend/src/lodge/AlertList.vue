@@ -17,10 +17,10 @@ async function run(a, path, title) {
 <template>
   <p v-if="!alerts.length" class="muted small">کار فوری‌ای نیست.</p>
   <ul v-else class="alerts">
-    <li v-for="a in alerts" :key="a.type + a.title" class="alert lo-alert">
+    <li v-for="a in alerts" :key="a.type + a.title" class="alert k-alert">
       <span :class="['tint', 't-' + a.tone]"><Icon :name="a.icon" :size="20" /></span>
       <div class="alert-body"><b>{{ fa(a.title) }}</b><small class="muted">{{ fa(a.detail) }}</small></div>
-      <div class="lo-btns">
+      <div class="k-btns">
         <button v-if="a.type === 'request'" class="btn sm" :disabled="busy === a.booking_id" @click="run(a, `/lodge/bookings/${a.booking_id}/approve`, 'تأیید شد؛ مهمان بیعانه را می‌فرستد')">تأیید</button>
         <button class="btn ghost sm" @click="emit('open', a.booking_id)">{{ a.type === 'receipt' ? 'دیدن رسید' : a.type === 'feedback' ? 'پیام نظرخواهی' : 'رزرو' }}</button>
       </div>

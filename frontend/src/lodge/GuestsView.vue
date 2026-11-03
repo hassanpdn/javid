@@ -13,10 +13,10 @@ onMounted(() => retryable(load))
 
 <template>
   <div class="flex flex-col gap-4">
-    <input v-model="q" class="lo-search" placeholder="جستجو: نام یا شماره‌ی همراه" aria-label="جستجو">
+    <input v-model="q" class="k-search" placeholder="جستجو: نام یا شماره‌ی همراه" aria-label="جستجو">
     <div v-if="!list" class="card"><Skeleton kind="row" :count="6" /></div>
-    <section v-else class="card"><ul class="lo-mini">
-      <li v-for="g in list" :key="g.id"><div class="lo-row-top"><b>{{ g.name }}</b><span :class="['tag', g.account ? 'lo-t-success' : 'lo-t-secondary']">{{ g.account ? 'حساب در سایت' : 'بدون حساب' }}</span></div>
+    <section v-else class="card"><ul class="k-mini">
+      <li v-for="g in list" :key="g.id"><div class="k-row-top"><b>{{ g.name }}</b><span :class="['tag', g.account ? 'k-t-success' : 'k-t-secondary']">{{ g.account ? 'حساب در سایت' : 'بدون حساب' }}</span></div>
         <small class="muted"><span dir="ltr">{{ fa(g.phone) }}</span> · {{ fa(g.stays) }} اقامت<template v-if="g.last"> · آخرین {{ fa(g.last) }}</template></small></li>
     </ul></section>
   </div>

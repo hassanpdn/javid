@@ -18,7 +18,7 @@ const max = (rows) => Math.max(1, ...rows.map((r) => r.amount))
     <section class="card col-span-12 xl:col-span-7 flex flex-col gap-3" data-tour="ht-forecast">
       <div class="card-head">چهارده شب آینده <small>پر شده تا امروز؛ خط: میانگین همان روز هفته در هشت هفته‌ی گذشته</small></div>
       <ul class="ht-bars"><li v-for="n in d.nights" :key="n.date">
-        <span :class="{ 'ht-late': n.weekend }">{{ fa(n.day) }}</span>
+        <span :class="{ 'k-late': n.weekend }">{{ fa(n.day) }}</span>
         <span class="track"><i :style="{ width: Math.min(100, n.pct) + '%' }"></i><u :style="{ insetInlineStart: Math.min(100, n.usual) + '%' }"></u></span>
         <b>{{ fa(n.pct) }}٪</b>
         <small v-if="n.tip" class="tip">{{ n.tip }}</small></li></ul>
@@ -30,7 +30,7 @@ const max = (rows) => Math.max(1, ...rows.map((r) => r.amount))
       </section>
       <section class="card flex flex-col gap-3">
         <div class="card-head">سهم هر راه رزرو <small>درآمد اتاق، سی روز</small></div>
-        <ul class="ht-mini"><li v-for="c in d.channels" :key="c.name"><div class="ht-row-top"><span>{{ c.name }}</span><b>{{ fa(c.pct) }}٪</b></div><small class="muted">{{ fa(c.text) }} · {{ fa(c.stays) }} اقامت</small></li></ul>
+        <ul class="k-mini"><li v-for="c in d.channels" :key="c.name"><div class="k-row-top"><span>{{ c.name }}</span><b>{{ fa(c.pct) }}٪</b></div><small class="muted">{{ fa(c.text) }} · {{ fa(c.stays) }} اقامت</small></li></ul>
       </section>
       <section class="card flex flex-col gap-2">
         <div class="card-head">فروش بیش از ظرفیت</div>

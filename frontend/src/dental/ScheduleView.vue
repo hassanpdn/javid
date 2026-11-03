@@ -21,12 +21,12 @@ const changed = () => { load().catch(() => {}); api("/dental/waitlist").then((w)
 <template>
   <div class="grid grid-cols-12 gap-6">
     <section class="card col-span-12 xl:col-span-8 flex flex-col gap-4">
-      <div class="dt-toolbar">
+      <div class="k-toolbar">
         <div class="field" style="flex: 1 1 220px"><span>روز</span><DatePicker v-model="day" :min="'1400/01/01'" label="روز" /></div>
       </div>
       <Skeleton v-if="!d" kind="row" :count="8" />
       <template v-else>
-        <h3 class="dt-group">{{ fa(d.date_text) }}</h3>
+        <h3 class="k-group">{{ fa(d.date_text) }}</h3>
         <p v-if="d.closed" class="muted small">مطب در این روز تعطیل است.</p>
         <DayList v-else :rows="d.rows" :date="day" :past="cmp(day, clinicInfo.today) < 0" :future="cmp(day, clinicInfo.today) > 0"
                  @open="emit('open', $event)" @book="emit('book', $event)" @message="emit('message', $event)" @changed="changed" />
@@ -40,9 +40,9 @@ const changed = () => { load().catch(() => {}); api("/dental/waitlist").then((w)
       <p class="muted small">کسانی که نوبت زودتر می‌خواهند. وقتی نوبتی لغو شد، به یکی از آن‌ها بدهید.</p>
       <Skeleton v-if="!wait" kind="row" :count="3" />
       <p v-else-if="!wait.length" class="muted small">کسی در فهرست انتظار نیست.</p>
-      <ul v-else class="dt-mini">
+      <ul v-else class="k-mini">
         <li v-for="w in wait" :key="w.id">
-          <span><button class="dt-link" @click="emit('open', w.patient_id)">{{ w.patient }}</button> · {{ w.service_text }}</span>
+          <span><button class="k-link" @click="emit('open', w.patient_id)">{{ w.patient }}</button> · {{ w.service_text }}</span>
           <small class="muted">{{ fa(w.days) }} روز در انتظار<template v-if="w.note"> · {{ w.note }}</template> · <span dir="ltr">{{ fa(w.phone) }}</span></small>
           <button class="btn sm" style="align-self: flex-start" @click="emit('book', { patient_id: w.patient_id, patient: w.patient, service: w.service, waitlist_id: w.id, date: day })">
             <Icon name="calendar" :size="14" />نوبت دادن</button>

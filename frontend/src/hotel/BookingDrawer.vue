@@ -44,44 +44,44 @@ const toggle = (k) => { open.value = open.value === k ? "" : k; if (k === "dates
 
 <template>
   <div class="overlay" @click.self="emit('close')">
-    <aside class="drawer ht-drawer" v-drawer aria-label="رزرو">
+    <aside class="drawer k-drawer" v-drawer aria-label="رزرو">
       <div class="drawer-head"><b class="text-ink">رزرو {{ d ? fa(d.booking.id) : '' }}</b><button class="icon-btn" @click="emit('close')" aria-label="بستن"><Icon name="x" /></button></div>
       <div class="drawer-body" tabindex="0">
         <div v-if="!d" class="card"><Skeleton :lines="6" /></div>
         <template v-else>
-          <section class="card ht-head">
-            <div class="ht-row-top"><b class="ht-title">{{ b.guest }}</b><span :class="['tag', 'ht-t-' + STATUS_TONE[b.status]]">{{ b.status_text }}</span></div>
-            <div class="ht-tags"><span v-if="b.vip" class="tag ht-t-warning">مهمان ویژه</span><span class="tag" dir="ltr">{{ fa(b.phone) }}</span><span class="tag">{{ b.source_text }}</span>
+          <section class="card k-head">
+            <div class="k-row-top"><b class="k-title">{{ b.guest }}</b><span :class="['tag', 'k-t-' + STATUS_TONE[b.status]]">{{ b.status_text }}</span></div>
+            <div class="k-tags"><span v-if="b.vip" class="tag k-t-warning">مهمان ویژه</span><span class="tag" dir="ltr">{{ fa(b.phone) }}</span><span class="tag">{{ b.source_text }}</span>
               <span v-if="b.ref" class="tag" dir="ltr">{{ b.ref }}</span></div>
             <p v-if="b.notes" class="check warn small"><Icon name="alert" :size="14" /><span>{{ b.notes }}</span></p>
-            <dl class="ht-dl">
+            <dl class="k-dl">
               <dt>اقامت</dt><dd>{{ fa(b.stay_text) }}</dd>
-              <dt>اتاق</dt><dd>{{ b.type_text }}<template v-if="b.room"> · اتاق {{ fa(b.room) }} <span :class="['tag', 'ht-t-' + ROOM_TONE[b.room_status]]">{{ b.room_status_text }}</span></template><template v-else> · هنوز اتاق ندارد</template></dd>
+              <dt>اتاق</dt><dd>{{ b.type_text }}<template v-if="b.room"> · اتاق {{ fa(b.room) }} <span :class="['tag', 'k-t-' + ROOM_TONE[b.room_status]]">{{ b.room_status_text }}</span></template><template v-else> · هنوز اتاق ندارد</template></dd>
               <dt>نفرات</dt><dd>{{ fa(b.people_text) }}<template v-if="b.ages.length"> ({{ fa(b.ages.join('، ')) }} ساله)</template> · {{ b.board_text }}</dd>
               <dt>قیمت</dt><dd class="flex items-center gap-2">{{ fa(b.total_text) }}<template v-if="b.discount"> (با {{ fa(b.discount) }} درصد تخفیف)</template><HowTip :lines="d.price_how" /></dd>
-              <dt v-if="b.status === 'tentative'">بیعانه</dt><dd v-if="b.status === 'tentative'" class="ht-late">تا {{ fa(b.deposit_due_text) }}</dd>
+              <dt v-if="b.status === 'tentative'">بیعانه</dt><dd v-if="b.status === 'tentative'" class="k-late">تا {{ fa(b.deposit_due_text) }}</dd>
               <dt v-if="b.requests">درخواست</dt><dd v-if="b.requests">{{ b.requests }}</dd>
               <dt>رسیدن</dt><dd>ساعت {{ fa(b.eta || hotelInfo.check_in) }}</dd>
             </dl>
-            <div class="ht-btns">
+            <div class="k-btns">
               <button v-if="['tentative', 'confirmed'].includes(b.status)" class="btn sm" @click="message('confirm')"><Icon name="message" :size="14" />پیام تأیید</button>
               <button v-if="b.status === 'out'" class="btn sm" @click="message('thanks')"><Icon name="heart" :size="14" />پیام تشکر</button>
             </div>
-            <template v-if="open === 'msg'"><textarea v-model="msg" rows="7" class="ht-text"></textarea>
+            <template v-if="open === 'msg'"><textarea v-model="msg" rows="7" class="k-text"></textarea>
               <div class="btn-row"><button class="btn sm" @click="copy">کپی متن</button><button class="btn ghost sm" @click="open = ''">بستن</button></div></template>
           </section>
 
           <section v-if="d.suggest" class="card">
             <div class="card-head">{{ b.room ? 'جابه‌جایی اتاق' : 'انتخاب اتاق' }} <small>پیشنهاد دستیار، بهترین اول</small></div>
             <p v-if="!d.suggest.length" class="muted small">اتاق آزاد دیگری از این نوع برای همه‌ی این شب‌ها نیست.</p>
-            <ul class="ht-mini"><li v-for="s in d.suggest" :key="s.room_id">
-              <div class="ht-row-top"><b>اتاق {{ fa(s.number) }}</b><button class="btn sm" :disabled="busy === 'room' + s.room_id" @click="room(s)">{{ b.room ? 'ببر به این اتاق' : 'این اتاق' }}</button></div>
+            <ul class="k-mini"><li v-for="s in d.suggest" :key="s.room_id">
+              <div class="k-row-top"><b>اتاق {{ fa(s.number) }}</b><button class="btn sm" :disabled="busy === 'room' + s.room_id" @click="room(s)">{{ b.room ? 'ببر به این اتاق' : 'این اتاق' }}</button></div>
               <small class="muted">{{ s.why.join('، ') }}</small></li></ul>
           </section>
 
           <section class="card">
             <div class="card-head"><span class="grow">کارها</span></div>
-            <div class="ht-btns">
+            <div class="k-btns">
               <button v-if="front && ['confirmed', 'tentative'].includes(b.status) && today" class="btn primary sm" @click="toggle('in')"><Icon name="key" :size="14" />تحویل اتاق</button>
               <button v-if="front && b.status === 'in_house'" class="btn primary sm" @click="toggle('out')"><Icon name="logout" :size="14" />تسویه و خروج</button>
               <button v-if="b.status === 'in_house'" class="btn sm" @click="toggle('charge')">هزینه</button>
@@ -91,30 +91,30 @@ const toggle = (k) => { open.value = open.value === k ? "" : k; if (k === "dates
               <button v-if="front && ['tentative', 'confirmed'].includes(b.status) && today" class="btn ghost sm" @click="noshow">نیامد</button>
             </div>
             <form v-if="open === 'in'" class="flex flex-col gap-2 mt-3" @submit.prevent="checkin()">
-              <div class="ht-grid2"><label class="field"><span>کد ملی سرپرست</span><input v-model="ci.national_id" inputmode="numeric" maxlength="12" dir="ltr"></label>
+              <div class="k-grid2"><label class="field"><span>کد ملی سرپرست</span><input v-model="ci.national_id" inputmode="numeric" maxlength="12" dir="ltr"></label>
                 <label class="field"><span>پلاک خودرو</span><input v-model="ci.plate" maxlength="20" placeholder="اختیاری"></label></div>
-              <label class="ht-check"><input v-model="ci.docs" type="checkbox">مدارک همه‌ی همراهان دیده شد (برای زوج‌ها شناسنامه یا عقدنامه)</label>
+              <label class="k-check"><input v-model="ci.docs" type="checkbox">مدارک همه‌ی همراهان دیده شد (برای زوج‌ها شناسنامه یا عقدنامه)</label>
               <p v-if="b.room_status === 'dirty'" class="check warn small"><Icon name="alert" :size="14" /><span>اتاق {{ fa(b.room) }} هنوز تمیز نشده است.</span></p>
               <div class="btn-row"><button class="btn primary sm" :disabled="busy === 'in' || !b.room">ثبت ورود</button>
                 <button v-if="b.room_status === 'dirty' && role === 'manager'" type="button" class="btn ghost sm" @click="checkin(true)">با همین وضع تحویل بده</button></div>
-              <small v-if="!b.room" class="ht-late">اول از بالا اتاق را انتخاب کنید.</small>
+              <small v-if="!b.room" class="k-late">اول از بالا اتاق را انتخاب کنید.</small>
             </form>
             <div v-if="open === 'out'" class="flex flex-col gap-2 mt-3">
-              <p class="small">مانده‌ی صورت‌حساب: <b :class="{ 'ht-owe': d.folio.balance > 0 }">{{ fa(d.folio.balance_text) }}</b>. اگر مانده‌ای هست، اول پرداخت را ثبت کنید.</p>
+              <p class="small">مانده‌ی صورت‌حساب: <b :class="{ 'k-owe': d.folio.balance > 0 }">{{ fa(d.folio.balance_text) }}</b>. اگر مانده‌ای هست، اول پرداخت را ثبت کنید.</p>
               <div class="btn-row"><button class="btn primary sm" :disabled="busy === 'out'" @click="checkout">ثبت خروج</button></div>
             </div>
-            <form v-if="open === 'charge'" class="ht-pay mt-3" @submit.prevent="doCharge">
-              <select v-model="ch.kind" class="ht-select" aria-label="نوع هزینه"><option v-for="(t, k) in hotelInfo.charges" v-show="k !== 'room'" :key="k" :value="k">{{ t }}</option></select>
+            <form v-if="open === 'charge'" class="k-pay mt-3" @submit.prevent="doCharge">
+              <select v-model="ch.kind" class="k-select" aria-label="نوع هزینه"><option v-for="(t, k) in hotelInfo.charges" v-show="k !== 'room'" :key="k" :value="k">{{ t }}</option></select>
               <input v-model="ch.amount" inputmode="numeric" placeholder="مبلغ به تومان" aria-label="مبلغ"><input v-model="ch.note" maxlength="120" placeholder="شرح" aria-label="شرح">
               <button class="btn primary sm" :disabled="busy === 'charge' || !digits(ch.amount)">ثبت</button>
             </form>
-            <form v-if="open === 'pay'" class="ht-pay mt-3" @submit.prevent="doPay">
+            <form v-if="open === 'pay'" class="k-pay mt-3" @submit.prevent="doPay">
               <input v-model="pay.amount" inputmode="numeric" placeholder="مبلغ به تومان" aria-label="مبلغ پرداخت">
-              <select v-model="pay.method" class="ht-select" aria-label="روش پرداخت"><option v-for="(t, k) in hotelInfo.methods" :key="k" :value="k">{{ t }}</option></select>
+              <select v-model="pay.method" class="k-select" aria-label="روش پرداخت"><option v-for="(t, k) in hotelInfo.methods" :key="k" :value="k">{{ t }}</option></select>
               <button class="btn primary sm" :disabled="busy === 'pay' || !digits(pay.amount)">ثبت پرداخت</button>
             </form>
             <form v-if="open === 'dates'" class="flex flex-col gap-2 mt-3" @submit.prevent="changeDates">
-              <div class="ht-grid2"><div class="field"><span>ورود</span><DatePicker v-model="dates.arrive" :min="'1400/01/01'" label="ورود" /></div>
+              <div class="k-grid2"><div class="field"><span>ورود</span><DatePicker v-model="dates.arrive" :min="'1400/01/01'" label="ورود" /></div>
                 <div class="field"><span>خروج</span><DatePicker v-model="dates.depart" :min="hotelInfo.today" label="خروج" /></div></div>
               <small class="muted">قیمت شب‌های جدید دوباره حساب می‌شود؛ شب‌هایی که در صورت‌حساب ثبت شده تغییر نمی‌کند.</small>
               <div class="btn-row"><button class="btn primary sm" :disabled="busy === 'dates'">ثبت تاریخ‌ها</button></div>
@@ -127,22 +127,22 @@ const toggle = (k) => { open.value = open.value === k ? "" : k; if (k === "dates
           </section>
 
           <section class="card">
-            <div class="ht-balance"><span>صورت‌حساب: <b :class="{ 'ht-owe': d.folio.balance > 0 }">{{ d.folio.balance > 0 ? 'مانده ' : d.folio.balance < 0 ? 'پیش‌پرداخت ' : '' }}{{ fa(d.folio.balance_text.replace('منفی ', '')) }}</b></span>
+            <div class="k-balance"><span>صورت‌حساب: <b :class="{ 'k-owe': d.folio.balance > 0 }">{{ d.folio.balance > 0 ? 'مانده ' : d.folio.balance < 0 ? 'پیش‌پرداخت ' : '' }}{{ fa(d.folio.balance_text.replace('منفی ', '')) }}</b></span>
               <small class="muted">هزینه‌ها {{ fa(d.folio.charged.toLocaleString()) }} · پرداخت‌ها {{ fa(d.folio.paid.toLocaleString()) }}</small></div>
-            <ul class="ht-mini">
-              <li v-for="x in d.folio.charges" :key="'c' + x.id"><div class="ht-row-top"><span>{{ x.kind_text }}<template v-if="x.note"> · {{ x.note }}</template></span><b>{{ fa(x.amount_text) }}</b></div><small class="muted">{{ fa(x.day_text) }}</small></li>
-              <li v-for="x in d.folio.payments" :key="'p' + x.id"><div class="ht-row-top"><span>{{ x.amount < 0 ? 'برگشت' : 'پرداخت' }} · {{ x.method_text }}</span><b class="ht-paid">{{ fa(x.amount_text) }}</b></div><small class="muted">{{ fa(x.day_text) }}</small></li>
+            <ul class="k-mini">
+              <li v-for="x in d.folio.charges" :key="'c' + x.id"><div class="k-row-top"><span>{{ x.kind_text }}<template v-if="x.note"> · {{ x.note }}</template></span><b>{{ fa(x.amount_text) }}</b></div><small class="muted">{{ fa(x.day_text) }}</small></li>
+              <li v-for="x in d.folio.payments" :key="'p' + x.id"><div class="k-row-top"><span>{{ x.amount < 0 ? 'برگشت' : 'پرداخت' }} · {{ x.method_text }}</span><b class="ht-paid">{{ fa(x.amount_text) }}</b></div><small class="muted">{{ fa(x.day_text) }}</small></li>
             </ul>
           </section>
 
           <section v-if="d.guest && d.guest.stays.length > 1" class="card">
             <div class="card-head">سفرهای این مهمان <small>{{ fa(d.guest.visits) }} اقامت · جمع {{ fa(d.guest.spent_text) }}</small></div>
-            <ul class="ht-mini"><li v-for="s in d.guest.stays.filter((x) => x.id !== b.id)" :key="s.id"><span>{{ s.type_text }}<template v-if="s.room"> · اتاق {{ fa(s.room) }}</template></span><small class="muted">{{ fa(s.stay_text) }} · {{ s.status_text }}</small></li></ul>
+            <ul class="k-mini"><li v-for="s in d.guest.stays.filter((x) => x.id !== b.id)" :key="s.id"><span>{{ s.type_text }}<template v-if="s.room"> · اتاق {{ fa(s.room) }}</template></span><small class="muted">{{ fa(s.stay_text) }} · {{ s.status_text }}</small></li></ul>
           </section>
 
           <section v-if="d.history.length" class="card">
             <div class="card-head">سابقه</div>
-            <ul class="ht-mini"><li v-for="e in d.history" :key="e.id"><span>{{ fa(e.text) }}</span><small class="muted">{{ e.who }} · {{ fa(e.day) }} {{ fa(e.time) }}</small></li></ul>
+            <ul class="k-mini"><li v-for="e in d.history" :key="e.id"><span>{{ fa(e.text) }}</span><small class="muted">{{ e.who }} · {{ fa(e.day) }} {{ fa(e.time) }}</small></li></ul>
           </section>
         </template>
       </div>

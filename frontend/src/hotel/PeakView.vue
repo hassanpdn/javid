@@ -27,20 +27,20 @@ async function assign() {
     <section class="card col-span-12 xl:col-span-7 flex flex-col gap-3" data-tour="ht-arrivals">
       <div class="card-head">ورودی‌های امروز <span class="count">{{ fa(d.arrivals.length) }}</span></div>
       <p v-if="!d.arrivals.length" class="muted small">امروز ورودی نداریم.</p>
-      <ul class="ht-list">
+      <ul class="k-list">
         <li v-for="a in d.arrivals" :key="a.id">
-          <button :class="['card', 'ht-row', a.status !== 'in_house' && a.room_status === 'dirty' ? 'tone-warning' : '']" @click="emit('open', a.id)">
-            <span class="ht-when"><b>{{ fa(a.eta || '14:00') }}</b><small>{{ a.status === 'in_house' ? 'رسید' : 'منتظر' }}</small></span>
-            <span class="ht-row-body">
+          <button :class="['card', 'k-row', a.status !== 'in_house' && a.room_status === 'dirty' ? 'tone-warning' : '']" @click="emit('open', a.id)">
+            <span class="k-when"><b>{{ fa(a.eta || '14:00') }}</b><small>{{ a.status === 'in_house' ? 'رسید' : 'منتظر' }}</small></span>
+            <span class="k-row-body">
               <b>{{ a.guest }}<template v-if="a.vip"> · ویژه</template></b>
-              <span class="ht-meta">{{ a.type_text }} · {{ fa(a.people_text) }} · {{ fa(a.nights_count) }} شب</span>
-              <span class="ht-tags">
-                <span v-if="!a.room" class="tag ht-t-danger">بی‌اتاق</span>
-                <span v-else :class="['tag', 'ht-t-' + ROOM_TONE[a.room_status]]">اتاق {{ fa(a.room) }} · {{ a.room_status_text }}</span>
-                <span :class="['tag', 'ht-t-' + STATUS_TONE[a.status]]">{{ a.status_text }}</span>
+              <span class="k-meta">{{ a.type_text }} · {{ fa(a.people_text) }} · {{ fa(a.nights_count) }} شب</span>
+              <span class="k-tags">
+                <span v-if="!a.room" class="tag k-t-danger">بی‌اتاق</span>
+                <span v-else :class="['tag', 'k-t-' + ROOM_TONE[a.room_status]]">اتاق {{ fa(a.room) }} · {{ a.room_status_text }}</span>
+                <span :class="['tag', 'k-t-' + STATUS_TONE[a.status]]">{{ a.status_text }}</span>
               </span>
             </span>
-            <Icon name="chevron" :size="18" class="ht-go" />
+            <Icon name="chevron" :size="18" class="k-go" />
           </button>
         </li>
       </ul>
@@ -50,23 +50,23 @@ async function assign() {
         <div class="card-head">اول این اتاق‌ها تمیز شود <span class="count">{{ fa(d.first.length) }}</span></div>
         <p class="muted small">اتاق‌هایی که مهمان امروزشان در راه است، به ترتیب ساعت رسیدن؛ مهمان ویژه اول.</p>
         <p v-if="!d.first.length" class="muted small">همه‌ی اتاق‌های ورودی‌ها آماده است.</p>
-        <ol class="ht-mini"><li v-for="r in d.first" :key="r.room_id"><div class="ht-row-top"><b>اتاق {{ fa(r.room) }}<template v-if="r.vip"> · ویژه</template></b><span class="tag ht-t-warning">ساعت {{ fa(r.eta) }}</span></div>
+        <ol class="k-mini"><li v-for="r in d.first" :key="r.room_id"><div class="k-row-top"><b>اتاق {{ fa(r.room) }}<template v-if="r.vip"> · ویژه</template></b><span class="tag k-t-warning">ساعت {{ fa(r.eta) }}</span></div>
           <small class="muted">{{ r.guest }} · {{ r.leaving }}</small></li></ol>
       </section>
       <section class="card flex flex-col gap-2" data-tour="ht-tomorrow">
         <div class="card-head"><span class="grow">ورودی‌های فردا بی‌اتاق</span><span class="count">{{ fa(d.tomorrow.length) }}</span></div>
         <p v-if="!d.tomorrow.length" class="muted small">همه‌ی ورودی‌های فردا اتاق دارند.</p>
         <template v-else>
-          <ul class="ht-mini"><li v-for="b in d.tomorrow" :key="b.id"><div class="ht-row-top"><button class="ht-link" @click="emit('open', b.id)">{{ b.guest }}</button>
-            <span v-if="b.suggest.length" class="tag ht-t-info">اتاق {{ fa(b.suggest[0].number) }}</span><span v-else class="tag ht-t-danger">اتاقی نیست</span></div>
+          <ul class="k-mini"><li v-for="b in d.tomorrow" :key="b.id"><div class="k-row-top"><button class="k-link" @click="emit('open', b.id)">{{ b.guest }}</button>
+            <span v-if="b.suggest.length" class="tag k-t-info">اتاق {{ fa(b.suggest[0].number) }}</span><span v-else class="tag k-t-danger">اتاقی نیست</span></div>
             <small class="muted">{{ b.type_text }} · {{ fa(b.nights_count) }} شب<template v-if="b.suggest.length"> · {{ b.suggest[0].why[0] }}</template></small></li></ul>
           <button class="btn primary sm" style="align-self: flex-start" :disabled="busy" @click="assign"><Icon name="check" :size="14" />پذیرفتن همه‌ی پیشنهادها</button>
         </template>
       </section>
       <section class="card flex flex-col gap-2">
         <div class="card-head">خروجی‌های امروز <span class="count">{{ fa(d.departures.length) }}</span></div>
-        <ul class="ht-mini"><li v-for="b in d.departures" :key="b.id"><div class="ht-row-top"><button class="ht-link" @click="emit('open', b.id)">اتاق {{ fa(b.room) }} · {{ b.guest }}</button>
-          <span v-if="b.status === 'out'" class="tag ht-t-secondary">رفت</span><span v-else-if="b.balance > 0" class="tag ht-t-danger">مانده {{ fa(b.balance_text) }}</span><span v-else class="tag ht-t-success">تسویه</span></div></li></ul>
+        <ul class="k-mini"><li v-for="b in d.departures" :key="b.id"><div class="k-row-top"><button class="k-link" @click="emit('open', b.id)">اتاق {{ fa(b.room) }} · {{ b.guest }}</button>
+          <span v-if="b.status === 'out'" class="tag k-t-secondary">رفت</span><span v-else-if="b.balance > 0" class="tag k-t-danger">مانده {{ fa(b.balance_text) }}</span><span v-else class="tag k-t-success">تسویه</span></div></li></ul>
       </section>
     </div>
   </div>

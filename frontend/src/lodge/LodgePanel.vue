@@ -56,7 +56,7 @@ const added = (id) => { adding.value = false; changed(); bookingId.value = id }
 <template>
   <AppLayout app="lodge" :brand="brand()" :chat="CHAT" :title="TITLES[view]" :subtitle="d ? fa(d.today_long + '، ' + d.today) : ''" :nav="nav" v-model="view"
              :tour="{ ...LODGE, ready: !!d && view === 'home' }">
-    <div class="lo-actions" data-tour="lo-actions">
+    <div class="k-actions" data-tour="lo-actions">
       <button class="btn primary" @click="adding = true"><Icon name="message" :size="18" />رزرو دستی</button>
       <a class="btn" :href="lodgeInfo.site_url" target="_blank" rel="noopener"><Icon name="sparkles" :size="18" />دیدن سایت</a>
     </div>

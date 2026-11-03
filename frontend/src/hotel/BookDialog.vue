@@ -84,7 +84,7 @@ const ETAS = ["12:00", "14:00", "16:00", "18:00", "20:00", "22:00"]
 
       <template v-if="done">
         <p class="check ok small"><Icon name="check" :size="14" /><span>{{ done.guest }} · {{ done.type_text }} · {{ fa(done.stay_text) }} · {{ fa(done.total_text) }} · {{ done.status_text }}</span></p>
-        <label class="field"><span>پیام تأیید برای مهمان (از تلفن هتل بفرستید)</span><textarea v-model="msg" rows="8" class="ht-text"></textarea></label>
+        <label class="field"><span>پیام تأیید برای مهمان (از تلفن هتل بفرستید)</span><textarea v-model="msg" rows="8" class="k-text"></textarea></label>
         <div class="dialog-actions"><button class="btn" @click="copy"><Icon name="file" :size="16" />کپی متن</button>
           <button class="btn primary" @click="emit('saved', done.id)">دیدن رزرو</button></div>
       </template>
@@ -99,33 +99,33 @@ const ETAS = ["12:00", "14:00", "16:00", "18:00", "20:00", "22:00"]
 
       <form v-else class="flex flex-col gap-3" @submit.prevent>
         <p v-if="method" class="check info small"><Icon name="info" :size="14" /><span>{{ method === 'model' ? 'دستیار پیام را خواند' : 'پیام با قاعده‌های ثابت خوانده شد' }}. زیر هر مقدار، جایی از پیام که از آن آمده نوشته شده است.</span></p>
-        <div class="ht-grid2">
-          <div class="field"><span>ورود</span><DatePicker v-model="f.arrive" :min="hotelInfo.today" label="تاریخ ورود" /><small v-if="found.arrive" class="ht-from">«{{ fa(found.arrive) }}»</small></div>
-          <div class="field"><span>خروج</span><DatePicker v-model="f.depart" :min="f.arrive || hotelInfo.today" label="تاریخ خروج" /><small v-if="found.depart && found.depart !== found.arrive" class="ht-from">«{{ fa(found.depart) }}»</small></div>
+        <div class="k-grid2">
+          <div class="field"><span>ورود</span><DatePicker v-model="f.arrive" :min="hotelInfo.today" label="تاریخ ورود" /><small v-if="found.arrive" class="k-from">«{{ fa(found.arrive) }}»</small></div>
+          <div class="field"><span>خروج</span><DatePicker v-model="f.depart" :min="f.arrive || hotelInfo.today" label="تاریخ خروج" /><small v-if="found.depart && found.depart !== found.arrive" class="k-from">«{{ fa(found.depart) }}»</small></div>
         </div>
-        <div class="ht-grid2">
-          <label class="field"><span>بزرگسال</span><select v-model.number="f.adults" class="ht-select"><option v-for="n in 8" :key="n" :value="n">{{ fa(n) }} نفر</option></select>
-            <small v-if="found.adults" class="ht-from">«{{ fa(found.adults) }}»</small></label>
-          <label class="field"><span>پذیرایی</span><select v-model="f.board" class="ht-select"><option v-for="(t, k) in hotelInfo.boards" :key="k" :value="k">{{ t }}</option></select>
-            <small v-if="found.board" class="ht-from">«{{ fa(found.board) }}»</small></label>
+        <div class="k-grid2">
+          <label class="field"><span>بزرگسال</span><select v-model.number="f.adults" class="k-select"><option v-for="n in 8" :key="n" :value="n">{{ fa(n) }} نفر</option></select>
+            <small v-if="found.adults" class="k-from">«{{ fa(found.adults) }}»</small></label>
+          <label class="field"><span>پذیرایی</span><select v-model="f.board" class="k-select"><option v-for="(t, k) in hotelInfo.boards" :key="k" :value="k">{{ t }}</option></select>
+            <small v-if="found.board" class="k-from">«{{ fa(found.board) }}»</small></label>
         </div>
         <div class="field"><span>کودکان (سن هر کدام؛ زیر ۶ سال رایگان)</span>
           <div class="ht-chips">
-            <span v-for="(a, i) in f.ages" :key="i" class="flex items-center gap-1"><select v-model.number="f.ages[i]" class="ht-select" :aria-label="'سن کودک ' + (i + 1)"><option v-for="n in 13" :key="n" :value="n - 1">{{ fa(n - 1) }} ساله</option></select>
+            <span v-for="(a, i) in f.ages" :key="i" class="flex items-center gap-1"><select v-model.number="f.ages[i]" class="k-select" :aria-label="'سن کودک ' + (i + 1)"><option v-for="n in 13" :key="n" :value="n - 1">{{ fa(n - 1) }} ساله</option></select>
               <button type="button" class="icon-btn" aria-label="حذف کودک" @click="f.ages.splice(i, 1)"><Icon name="x" :size="14" /></button></span>
             <button type="button" @click="f.ages.push(6)"><Icon name="plus" :size="14" /> کودک</button>
-          </div><small v-if="found.ages" class="ht-from">«{{ fa(found.ages) }}»</small></div>
-        <div class="ht-grid2">
+          </div><small v-if="found.ages" class="k-from">«{{ fa(found.ages) }}»</small></div>
+        <div class="k-grid2">
           <label class="field"><span>از طریق</span>
-            <select v-model="f.agency_id" class="ht-select"><option :value="null">مستقیم</option><option v-for="a in agencies" :key="a.id" :value="a.id">{{ a.name }}</option></select></label>
+            <select v-model="f.agency_id" class="k-select"><option :value="null">مستقیم</option><option v-for="a in agencies" :key="a.id" :value="a.id">{{ a.name }}</option></select></label>
           <label v-if="!f.agency_id" class="field"><span>راه تماس</span>
-            <select v-model="f.source" class="ht-select"><option value="phone">تلفن</option><option value="whatsapp">واتس‌اپ</option><option value="walkin">حضوری</option></select></label>
+            <select v-model="f.source" class="k-select"><option value="phone">تلفن</option><option value="whatsapp">واتس‌اپ</option><option value="walkin">حضوری</option></select></label>
           <label v-else class="field"><span>تخفیف آژانس</span><input :value="fa(q?.discount ?? 0) + ' درصد'" disabled></label>
         </div>
         <label v-if="!f.agency_id" class="field"><span>تخفیف (درصد)</span><input v-model="f.discount" inputmode="numeric" maxlength="3">
-          <small v-if="overLimit" class="ht-late">بیش از سقف {{ fa(hotelInfo.max_discount) }} درصد است؛ فقط مدیر می‌تواند ثبت کند و در بررسی‌ها دیده می‌شود.</small></label>
+          <small v-if="overLimit" class="k-late">بیش از سقف {{ fa(hotelInfo.max_discount) }} درصد است؛ فقط مدیر می‌تواند ثبت کند و در بررسی‌ها دیده می‌شود.</small></label>
 
-        <div class="field"><span>اتاق‌های خالی در همه‌ی شب‌ها <small v-if="found.type" class="ht-from">پیام: «{{ fa(found.type) }}»</small></span>
+        <div class="field"><span>اتاق‌های خالی در همه‌ی شب‌ها <small v-if="found.type" class="k-from">پیام: «{{ fa(found.type) }}»</small></span>
           <p v-if="!f.depart" class="muted small">تاریخ خروج را انتخاب کنید.</p>
           <ul v-else-if="q" class="ht-quote">
             <li v-for="o in q.options" :key="o.type">
@@ -138,23 +138,23 @@ const ETAS = ["12:00", "14:00", "16:00", "18:00", "20:00", "22:00"]
           <small v-if="q?.waiting" class="muted">{{ fa(q.waiting) }} نفر برای این شب‌ها در فهرست انتظارند.</small>
         </div>
 
-        <div class="ht-grid2">
+        <div class="k-grid2">
           <label class="field"><span>شماره‌ی همراه</span><input v-model="f.phone" dir="ltr" inputmode="tel" maxlength="20" placeholder="09121234567">
-            <small v-if="found.phone" class="ht-from">«{{ fa(found.phone) }}»</small></label>
-          <label class="field"><span>نام مهمان</span><input v-model="f.name" maxlength="60"><small v-if="found.name" class="ht-from">«{{ fa(found.name) }}»</small></label>
+            <small v-if="found.phone" class="k-from">«{{ fa(found.phone) }}»</small></label>
+          <label class="field"><span>نام مهمان</span><input v-model="f.name" maxlength="60"><small v-if="found.name" class="k-from">«{{ fa(found.name) }}»</small></label>
         </div>
         <div v-if="guest" class="ht-guest">
           <b>{{ guest.vip ? 'مهمان ویژه · ' : '' }}{{ fa(guest.visits) }} بار مهمان ما بوده<template v-if="guest.noshows"> · {{ fa(guest.noshows) }} بار نیامده</template></b>
           <small v-if="guest.notes">یادداشت: {{ guest.notes }}</small>
           <small v-if="guest.stays.length">آخرین: {{ guest.stays[0].type_text }}، {{ fa(guest.stays[0].stay_text) }}<template v-if="guest.stays[0].room">، اتاق {{ fa(guest.stays[0].room) }}</template></small>
         </div>
-        <div class="ht-grid2">
-          <label class="field"><span>ساعت رسیدن</span><select v-model="f.eta" class="ht-select"><option v-for="t in ETAS" :key="t" :value="t">{{ fa(t) }}</option></select></label>
+        <div class="k-grid2">
+          <label class="field"><span>ساعت رسیدن</span><select v-model="f.eta" class="k-select"><option v-for="t in ETAS" :key="t" :value="t">{{ fa(t) }}</option></select></label>
           <label class="field"><span>درخواست‌ها</span><input v-model="f.requests" maxlength="300" placeholder="مثلاً تخت بچه، طبقه‌ی بالا"></label>
         </div>
-        <div v-if="chosen" class="ht-grid2">
+        <div v-if="chosen" class="k-grid2">
           <label class="field"><span>پرداخت اکنون (تومان)</span><input v-model="f.pay" inputmode="numeric" :placeholder="'بیعانه ' + fa(chosen.deposit.toLocaleString())"></label>
-          <label class="field"><span>روش پرداخت</span><select v-model="f.method" class="ht-select"><option v-for="(t, k) in hotelInfo.methods" :key="k" :value="k">{{ t }}</option></select></label>
+          <label class="field"><span>روش پرداخت</span><select v-model="f.method" class="k-select"><option v-for="(t, k) in hotelInfo.methods" :key="k" :value="k">{{ t }}</option></select></label>
         </div>
         <p v-if="error" class="error-text">{{ error }}</p>
         <div class="dialog-actions">

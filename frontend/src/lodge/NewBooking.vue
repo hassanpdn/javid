@@ -28,16 +28,16 @@ async function save() {
   <div class="overlay" @click.self="emit('close')">
     <form class="dialog wide" v-pop role="dialog" aria-label="رزرو دستی" @submit.prevent="save">
       <div class="dialog-head"><h3>رزرو دستی</h3><button type="button" class="icon-btn" @click="emit('close')" aria-label="بستن"><Icon name="x" /></button></div>
-      <div class="lo-grid2"><div class="field"><span>ورود</span><DatePicker v-model="f.arrive" :min="lodgeInfo.today" label="ورود" /></div>
+      <div class="k-grid2"><div class="field"><span>ورود</span><DatePicker v-model="f.arrive" :min="lodgeInfo.today" label="ورود" /></div>
         <div class="field"><span>خروج</span><DatePicker v-model="f.depart" :min="f.arrive" label="خروج" /></div></div>
-      <label class="field"><span>چند نفر</span><select v-model.number="f.adults" class="lo-select"><option v-for="n in 10" :key="n" :value="n">{{ fa(n) }} نفر</option></select></label>
+      <label class="field"><span>چند نفر</span><select v-model.number="f.adults" class="k-select"><option v-for="n in 10" :key="n" :value="n">{{ fa(n) }} نفر</option></select></label>
       <div class="field"><span>واحدهای خالی در همه‌ی شب‌ها</span>
         <p v-if="!f.depart" class="muted small">تاریخ خروج را انتخاب کنید.</p>
         <p v-else-if="units && !units.length" class="muted small">برای این شب‌ها واحد خالی نیست.</p>
         <div v-else-if="units" class="lo-chips"><button v-for="u in units" :key="u.id" type="button" :class="{ on: f.unit_id === u.id }" :aria-pressed="f.unit_id === u.id" @click="f.unit_id = u.id">{{ u.name }} · {{ fa(u.quote.total_text) }}</button></div></div>
-      <div class="lo-grid2"><label class="field"><span>نام مهمان</span><input v-model="f.name" maxlength="60"></label>
+      <div class="k-grid2"><label class="field"><span>نام مهمان</span><input v-model="f.name" maxlength="60"></label>
         <label class="field"><span>شماره‌ی همراه</span><input v-model="f.phone" dir="ltr" inputmode="tel" maxlength="20" placeholder="09121234567"></label></div>
-      <div class="lo-grid2"><label class="field"><span>از طریق</span><select v-model="f.source" class="lo-select"><option v-for="(t, k) in lodgeInfo.sources" v-show="k !== 'site'" :key="k" :value="k">{{ t }}</option></select></label>
+      <div class="k-grid2"><label class="field"><span>از طریق</span><select v-model="f.source" class="k-select"><option v-for="(t, k) in lodgeInfo.sources" v-show="k !== 'site'" :key="k" :value="k">{{ t }}</option></select></label>
         <label class="field"><span>یادداشت</span><input v-model="f.note" maxlength="300"></label></div>
       <p v-if="error" class="error-text">{{ error }}</p>
       <div class="dialog-actions"><button class="btn primary" :disabled="busy || !f.unit_id || f.name.trim().length < 3 || !f.phone"><Icon name="check" :size="18" />ثبت رزرو</button></div>

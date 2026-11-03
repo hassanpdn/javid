@@ -886,7 +886,10 @@ details summary { cursor: pointer; color: var(--primary-ink); }
 
   /* the assistant is the middle tab; its window takes the screen and stays above the keyboard */
   .fab-chat, .fab-hint { display: none !important; }
-  .chat-window { inset: 0 0 auto 0; width: auto; height: var(--vvh, 100dvh); border-radius: 0; z-index: 70; }
+  .chat-window { inset: var(--vvt, 0px) 0 auto 0; width: auto; height: var(--vvh, 100dvh); border-radius: 0; z-index: 70; }
+  /* with the keyboard up, dialogs and drawers fill only what is visible, and the tab bar steps aside */
+  .overlay { inset: var(--vvt, 0px) 0 auto 0; height: var(--vvh, 100dvh); }
+  .kb-open .tabbar { display: none; }
   .cw-head { padding-top: calc(env(safe-area-inset-top) + 14px); }
   .chat-window .composer { padding-bottom: calc(env(safe-area-inset-bottom) + 10px); }
 

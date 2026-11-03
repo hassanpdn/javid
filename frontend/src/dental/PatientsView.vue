@@ -15,20 +15,20 @@ onMounted(() => retryable(load))
 
 <template>
   <div class="flex flex-col gap-4">
-    <div class="dt-toolbar"><input v-model="q" class="dt-search" placeholder="جستجو: نام یا شماره‌ی همراه" aria-label="جستجو"></div>
+    <div class="k-toolbar"><input v-model="q" class="k-search" placeholder="جستجو: نام یا شماره‌ی همراه" aria-label="جستجو"></div>
     <div v-if="!list" class="card"><Skeleton kind="row" :count="6" /></div>
     <div v-else-if="!list.length" class="card empty"><Icon name="users" :size="32" /><p class="muted">بیماری با این مشخصات نیست.</p></div>
-    <ul v-else class="dt-list">
+    <ul v-else class="k-list">
       <li v-for="p in list" :key="p.id">
-        <button class="card dt-row" @click="emit('open', p.id)">
+        <button class="card k-row" @click="emit('open', p.id)">
           <span class="tint t-primary"><Icon name="user" :size="20" /></span>
-          <span class="dt-row-body">
+          <span class="k-row-body">
             <b>{{ p.name }}</b>
-            <span class="dt-meta"><span dir="ltr">{{ fa(p.phone) }}</span><template v-if="p.last_text"> · آخرین درمان {{ fa(p.last_text) }}</template></span>
-            <span v-if="p.next" class="tag dt-t-info">نوبت بعدی: {{ fa(p.next.day_text) }} ساعت {{ fa(p.next.time) }}</span>
-            <span v-if="p.left > 0" class="tag dt-t-danger">مانده: {{ fa(p.left_text) }}</span>
+            <span class="k-meta"><span dir="ltr">{{ fa(p.phone) }}</span><template v-if="p.last_text"> · آخرین درمان {{ fa(p.last_text) }}</template></span>
+            <span v-if="p.next" class="tag k-t-info">نوبت بعدی: {{ fa(p.next.day_text) }} ساعت {{ fa(p.next.time) }}</span>
+            <span v-if="p.left > 0" class="tag k-t-danger">مانده: {{ fa(p.left_text) }}</span>
           </span>
-          <Icon name="chevron" :size="18" class="dt-go" />
+          <Icon name="chevron" :size="18" class="k-go" />
         </button>
       </li>
     </ul>

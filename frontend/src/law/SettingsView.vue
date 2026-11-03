@@ -22,14 +22,14 @@ async function save() {
   <form v-if="s" class="grid grid-cols-12 gap-6" @submit.prevent="save">
     <section class="card col-span-12 lg:col-span-7 flex flex-col gap-3">
       <div class="card-head">مدت هر مهلت (روز)</div>
-      <label v-for="k in s.kinds" :key="k.key" class="lw-setting"><span><b>{{ k.name }}</b><small class="muted">{{ k.todo }} · پیش‌فرض {{ fa(k.default) }} روز</small></span>
+      <label v-for="k in s.kinds" :key="k.key" class="k-setting"><span><b>{{ k.name }}</b><small class="muted">{{ k.todo }} · پیش‌فرض {{ fa(k.default) }} روز</small></span>
         <input v-model.number="s.days[k.key]" type="number" min="1" max="120" inputmode="numeric" :aria-label="'روزهای ' + k.name"></label>
       <p class="check info small"><Icon name="info" :size="14" /><span>این عددها مهلت‌های رایج آیین دادرسی است. پیش از تکیه بر آن‌ها، با قانون و رویه‌ی دادگاه‌های خودتان تطبیق دهید.</span></p>
     </section>
     <section class="card col-span-12 lg:col-span-5 flex flex-col gap-3">
       <div class="card-head">تعطیلات قمری امسال</div>
       <p class="muted small">جمعه‌ها و تعطیلات رسمی با تاریخ ثابت شمسی خودبه‌خود حساب می‌شوند. تعطیلات قمری هر سال جابه‌جا می‌شود؛ تاریخ هر کدام را در یک سطر بنویسید، مثلاً ۱۴۰۵/۰۹/۱۰.</p>
-      <textarea v-model="holidays" rows="8" dir="ltr" class="lw-text" aria-label="تعطیلات قمری"></textarea>
+      <textarea v-model="holidays" rows="8" dir="ltr" class="k-text" aria-label="تعطیلات قمری"></textarea>
     </section>
     <div class="col-span-12"><p v-if="error" class="error-text">{{ error }}</p><button class="btn primary" :disabled="busy">ذخیره</button></div>
   </form>

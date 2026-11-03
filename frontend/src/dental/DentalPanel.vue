@@ -21,7 +21,7 @@ import DayList from "./DayList.vue"
 const ScheduleView = defineAsyncComponent(() => import("./ScheduleView.vue"))
 const PatientsView = defineAsyncComponent(() => import("./PatientsView.vue"))
 const PlansView = defineAsyncComponent(() => import("./PlansView.vue"))
-const ChecksView = defineAsyncComponent(() => import("./ChecksView.vue"))
+const ChecksList = defineAsyncComponent(() => import("../components/kit/ChecksList.vue"))
 const PatientDrawer = defineAsyncComponent(() => import("./PatientDrawer.vue"))
 const BookDialog = defineAsyncComponent(() => import("./BookDialog.vue"))
 const PatientDialog = defineAsyncComponent(() => import("./PatientDialog.vue"))
@@ -55,7 +55,7 @@ const sent = () => { message.value = null; changed() }
 <template>
   <AppLayout app="dental" :brand="brand()" :chat="CHAT" :title="TITLES[view]" :subtitle="d ? fa(d.today_long + '، ' + d.today) : ''" :nav="nav" v-model="view"
              :tour="{ ...(owner ? DENTAL_OWNER : DENTAL_STAFF), ready: !!d && view === 'home' }">
-    <div class="dt-actions" data-tour="dt-actions">
+    <div class="k-actions" data-tour="dt-actions">
       <button class="btn primary" @click="booking = {}"><Icon name="calendar" :size="18" />نوبت جدید</button>
       <button class="btn" @click="adding = true"><Icon name="plus" :size="18" />بیمار جدید</button>
     </div>
@@ -63,7 +63,7 @@ const sent = () => { message.value = null; changed() }
     <ScheduleView v-if="view === 'schedule'" :key="stamp" @open="patientId = $event" @book="booking = $event" @message="message = $event" @changed="changed" />
     <PatientsView v-else-if="view === 'patients'" :key="stamp" @open="patientId = $event" />
     <PlansView v-else-if="view === 'plans'" :key="stamp" @open="patientId = $event" @message="message = $event" />
-    <ChecksView v-else-if="view === 'checks'" :key="stamp" @open="patientId = $event" />
+    <ChecksList v-else-if="view === 'checks'" :key="stamp" @open="patientId = $event" endpoint="/dental/checks" intro="این بخش درمان‌های انجام‌شده، پرداخت‌ها و مراحل طرح‌های درمان را کنار هم می‌گذارد و هر جا با هم جور نباشد، همان را با جزئیاتش نشان می‌دهد." empty="همه‌چیز با هم جور است." :icons='{ unpaid: "chart", halfway: "tooth" }' :record="{ key: 'patient_id', label: 'بیمار' }" how-label="جزئیات" />
     <div v-else class="flex flex-col gap-6">
       <section v-if="owner" v-reveal class="card welcome brief" data-tour="dt-brief">
         <div class="welcome-text">

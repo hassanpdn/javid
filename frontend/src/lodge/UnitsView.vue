@@ -45,15 +45,15 @@ const open_ = (u, k) => run(u.id, `/lodge/blocks/${k.id}/delete`, {}, "شب‌ه
     <div v-if="host" class="btn-row"><button class="btn primary" @click="open(null)"><Icon name="plus" :size="18" />واحد جدید</button></div>
     <section v-if="edit" class="card flex flex-col gap-3">
       <div class="card-head">{{ edit.id ? 'ویرایش ' + edit.name : 'واحد جدید' }}</div>
-      <div class="lo-grid2">
+      <div class="k-grid2">
         <label class="field"><span>نام</span><input v-model="edit.name" maxlength="40"></label>
-        <label class="field"><span>نوع</span><select v-model="edit.kind" class="lo-select"><option v-for="(t, k) in lodgeInfo.kinds" :key="k" :value="k">{{ t }}</option></select></label>
+        <label class="field"><span>نوع</span><select v-model="edit.kind" class="k-select"><option v-for="(t, k) in lodgeInfo.kinds" :key="k" :value="k">{{ t }}</option></select></label>
       </div>
-      <div class="lo-grid2">
+      <div class="k-grid2">
         <label class="field"><span>تخت (نفر)</span><input v-model="edit.beds" type="number" min="1" max="20"></label>
         <label class="field"><span>ظرفیت با تشک اضافه</span><input v-model="edit.capacity" type="number" min="1" max="30"></label>
       </div>
-      <div class="lo-grid2">
+      <div class="k-grid2">
         <label class="field"><span>قیمت هر شب (تومان)</span><input v-model="edit.price" inputmode="numeric"></label>
         <label class="field"><span>شب چهارشنبه و پنجشنبه (تومان)</span><input v-model="edit.weekend_price" inputmode="numeric"></label>
       </div>
@@ -68,24 +68,24 @@ const open_ = (u, k) => run(u.id, `/lodge/blocks/${k.id}/delete`, {}, "شب‌ه
     <ul v-else class="lo-units" data-tour="lo-units">
       <li v-for="u in list" :key="u.id" :class="['card', 'lo-unit', { off: !u.active }]">
         <div class="lo-pic"><img v-if="u.photos.length" :src="u.photos[0]" :alt="u.name" loading="lazy"><Art v-else :kind="u.art" />
-          <span :class="['tag', u.active ? 'lo-t-success' : 'lo-t-secondary']">{{ u.active ? 'در سایت' : 'خاموش' }}</span></div>
+          <span :class="['tag', u.active ? 'k-t-success' : 'k-t-secondary']">{{ u.active ? 'در سایت' : 'خاموش' }}</span></div>
         <div class="lo-unit-body">
-          <div class="lo-row-top"><b>{{ u.name }}</b><small class="muted">{{ u.kind_text }}</small></div>
+          <div class="k-row-top"><b>{{ u.name }}</b><small class="muted">{{ u.kind_text }}</small></div>
           <small class="muted">{{ fa(u.beds) }} تخت · تا {{ fa(u.capacity) }} نفر · هر شب {{ fa(u.price_text) }} · آخر هفته {{ fa(u.weekend_text) }}</small>
           <small class="muted">{{ fa(u.next) }} رزرو پیش رو<template v-if="u.rating.avg"> · ★ {{ fa(u.rating.avg) }} ({{ fa(u.rating.count) }})</template></small>
-          <div v-if="u.blocks.length" class="flex flex-col gap-1"><small v-for="k in u.blocks" :key="k.id" class="lo-late">بسته: {{ fa(k.text) }}<template v-if="k.note"> · {{ k.note }}</template>
+          <div v-if="u.blocks.length" class="flex flex-col gap-1"><small v-for="k in u.blocks" :key="k.id" class="k-late">بسته: {{ fa(k.text) }}<template v-if="k.note"> · {{ k.note }}</template>
             <button v-if="host" class="link small" style="margin-inline-start: 8px" @click="open_(u, k)">باز کردن</button></small></div>
           <div v-if="host && u.photo_ids.length" class="lo-photos"><figure v-for="p in u.photo_ids" :key="p.id"><img :src="'/lodge/public/photo/' + p.file" alt="">
             <button class="icon-btn sm" aria-label="برداشتن عکس" @click="delPhoto(u, p)"><Icon name="x" :size="14" /></button></figure></div>
-          <div v-if="host" class="lo-btns">
+          <div v-if="host" class="k-btns">
             <button class="btn sm" @click="open(u)"><Icon name="edit" :size="14" />ویرایش</button>
             <label class="btn ghost sm"><input type="file" accept="image/jpeg,image/png" hidden @change="photo(u, $event)"><Icon name="plus" :size="14" />عکس</label>
             <button class="btn ghost sm" @click="Object.assign(block, { id: u.id, start: lodgeInfo.today, end: null, note: '' })">بستن شب‌ها</button>
             <button class="btn ghost sm" :disabled="busy === u.id" @click="toggle(u)">{{ u.active ? 'خاموش کردن' : 'روشن کردن' }}</button>
           </div>
           <form v-if="block.id === u.id" class="flex flex-col gap-2" @submit.prevent="close(u)">
-            <div class="lo-grid2"><div class="field"><span>از شب</span><DatePicker v-model="block.start" label="از شب" /></div><div class="field"><span>تا روز</span><DatePicker v-model="block.end" :min="block.start" label="تا روز" /></div></div>
-            <input v-model="block.note" class="lo-search" maxlength="80" placeholder="چرا؟ مثلاً تعمیر یا مهمان خانواده" aria-label="دلیل">
+            <div class="k-grid2"><div class="field"><span>از شب</span><DatePicker v-model="block.start" label="از شب" /></div><div class="field"><span>تا روز</span><DatePicker v-model="block.end" :min="block.start" label="تا روز" /></div></div>
+            <input v-model="block.note" class="k-search" maxlength="80" placeholder="چرا؟ مثلاً تعمیر یا مهمان خانواده" aria-label="دلیل">
             <div class="btn-row"><button class="btn primary sm" :disabled="!block.start || !block.end">بستن</button><button type="button" class="btn ghost sm" @click="block.id = 0">انصراف</button></div>
           </form>
         </div>
