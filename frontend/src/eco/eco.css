@@ -48,6 +48,8 @@ h1, h2, h3 { color: var(--ink); line-height: 1.5; margin: 0; }
 .eco-field input, .eco-field select, .eco-field textarea { width: 100%; padding: 10px 14px; border-radius: 12px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); font-size: 15px; }
 .eco-field input:focus, .eco-field select:focus, .eco-field textarea:focus { outline: none; border-color: var(--clay); box-shadow: 0 0 0 4px color-mix(in srgb, var(--clay) 18%, transparent); }
 .eco-field .dp-field { height: 46px; border-radius: 12px; }
+/* every one-line box in a form is as tall as the date picker, so a row of them lines up */
+.eco-field select, .eco-field input { height: 46px; padding-block: 0; }
 
 .eco-section { padding: 56px 0 8px; }
 .eco-section > .eco-wrap > h2 { font-size: 24px; margin-bottom: 4px; }
