@@ -1,12 +1,16 @@
 <script setup>
 // Drawn pictures of the hotel (drawings, not photos whose rights are unknown, as on the eco-lodge's website): «hero»
 // for the top of the page (the hotel on the shore at sunset) and one scene per room type. Plain SVG; the waves move
-// with a CSS animation only.
+// with a CSS animation only. Each now has a generated photo (public/photos, made with Google Flow for the demo); the
+// drawing stays for a kind without one.
 defineProps({ kind: { type: String, default: "hero" } })
+const PHOTOS = { hero: "hotel-hero", dbl_garden: "hotel-dbl_garden", dbl_sea: "hotel-dbl_sea", triple: "hotel-triple", suite: "hotel-suite",
+                 villa: "hotel-villa", breakfast: "hotel-breakfast" }
 </script>
 
 <template>
-  <svg viewBox="0 0 400 260" class="eco-art hs-art" role="img" aria-hidden="true" preserveAspectRatio="xMidYMid slice">
+  <img v-if="PHOTOS[kind]" :src="`/photos/${PHOTOS[kind]}.webp`" alt="" class="eco-art eco-photo" :class="'eco-photo-' + kind" :loading="kind === 'hero' ? 'eager' : 'lazy'" decoding="async">
+  <svg v-else viewBox="0 0 400 260" class="eco-art hs-art" role="img" aria-hidden="true" preserveAspectRatio="xMidYMid slice">
     <defs>
       <linearGradient id="hs-sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1f3b5c" /><stop offset=".55" stop-color="#d98b6a" /><stop offset="1" stop-color="#f3c98b" /></linearGradient>
       <linearGradient id="hs-day" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#a9d3e8" /><stop offset="1" stop-color="#eaf4f6" /></linearGradient>

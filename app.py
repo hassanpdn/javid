@@ -70,7 +70,7 @@ async def site_gate(request: Request, call_next):
         if own_host and host == own_host:
             if path == "/":
                 return FileResponse(html, headers={"Cache-Control": "no-cache"})
-            if not (mine or first == "assets" or first == "fonts" or path in ("/favicon.svg", "/" + html.split("/")[-1])):
+            if not (mine or first in ("assets", "fonts", "photos") or path in ("/favicon.svg", "/" + html.split("/")[-1])):
                 return JSONResponse({"detail": "Not Found"}, status_code=404)
     if public:
         return await call_next(request)

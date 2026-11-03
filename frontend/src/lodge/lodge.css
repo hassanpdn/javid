@@ -29,3 +29,4 @@
 .lo-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 18px; }
 .lo-link { padding: 0; border: 0; background: none; font: inherit; color: var(--ink); font-weight: 700; cursor: pointer; text-align: right; }
 .lo-link:hover { color: var(--primary); }
+.lo-arts img { display: block; width: 100%; height: 100%; object-fit: cover; }

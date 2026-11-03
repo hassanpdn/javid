@@ -2,12 +2,17 @@
 // Drawn pictures of the eco-lodge (Hassan's choice: drawings, not photos from the internet whose rights are unknown).
 // One scene per kind of unit, and «hero» for the website's top: a mud-brick village with domes and windcatchers,
 // dunes, and a night sky. Plain SVG in the lodge's earthy colours; the stars twinkle with a CSS animation only.
+// Each kind now has a generated photo (public/photos, made with Google Flow for the demo, Hassan's choice); the
+// drawing stays for a kind without one. «yard» is the courtyard beside the lodge's story. A host's own uploaded
+// photos still come first wherever a unit is shown.
 defineProps({ kind: { type: String, default: "dome" }, night: { type: Boolean, default: false } })
+const PHOTOS = { hero: "eco-hero", yard: "eco-court", dome: "eco-dome", court: "eco-porch", family: "eco-family", tower: "eco-tower", roof: "eco-roof", garden: "eco-garden" }
 const STARS = [[40, 30], [90, 52], [150, 22], [210, 44], [262, 18], [318, 40], [360, 26], [120, 70], [300, 66], [190, 76], [70, 84], [340, 88]]
 </script>
 
 <template>
-  <svg viewBox="0 0 400 260" class="eco-art" :class="{ night: night || kind === 'roof' || kind === 'hero' }" role="img" aria-hidden="true" preserveAspectRatio="xMidYMid slice">
+  <img v-if="PHOTOS[kind]" :src="`/photos/${PHOTOS[kind]}.webp`" alt="" class="eco-art eco-photo" :class="'eco-photo-' + kind" :loading="kind === 'hero' ? 'eager' : 'lazy'" decoding="async">
+  <svg v-else viewBox="0 0 400 260" class="eco-art" :class="{ night: night || kind === 'roof' || kind === 'hero' }" role="img" aria-hidden="true" preserveAspectRatio="xMidYMid slice">
     <defs>
       <linearGradient id="eco-day" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f6d7a7" /><stop offset="1" stop-color="#fbeedb" /></linearGradient>
       <linearGradient id="eco-night" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1d2346" /><stop offset=".7" stop-color="#3b3a6b" /><stop offset="1" stop-color="#8c5e6e" /></linearGradient>

@@ -23,3 +23,7 @@ html .hs-search { grid-template-columns: 1fr 1fr 110px 130px 190px; }
 @media (max-width: 860px) { html .hs-search { grid-template-columns: 1fr 1fr; } }
 @media (max-width: 560px) { html .hs-search { grid-template-columns: minmax(0, 1fr); } .hs-kids .eco-field { width: calc(50% - 4px); } }
 .hs-art { display: block; width: 100%; height: 100%; }
+html .eco-photo-hero { object-position: center 55%; }
+.hs-before { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); gap: 20px; align-items: start; margin-top: 16px; }
+.hs-before .eco-pic { border-radius: var(--radius); box-shadow: var(--shadow); }
+@media (max-width: 860px) { .hs-before { grid-template-columns: minmax(0, 1fr); } }

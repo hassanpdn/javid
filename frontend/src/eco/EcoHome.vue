@@ -60,7 +60,7 @@ const stars = (n) => "★".repeat(n) + "☆".repeat(5 - n)
   <section class="eco-section">
     <div class="eco-wrap eco-story">
       <div><h2>داستان این خانه</h2><p>{{ site.words.story }}</p><p class="eco-meta">میزبان شما: {{ site.host }}</p></div>
-      <div class="eco-pic"><Art kind="court" /></div>
+      <div class="eco-pic"><Art kind="yard" /></div>
     </div>
   </section>
 

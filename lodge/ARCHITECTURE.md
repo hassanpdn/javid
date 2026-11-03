@@ -100,8 +100,9 @@ choices (dates on a calendar, a unit, the people), so nothing needs reading. Mes
   it can be added later).
 - **Card transfer with a receipt photo**, not an online payment gateway: a gateway needs a merchant account (Hassan's
   choice). The host still checks the money arrived before confirming.
-- **Drawings, not photos from the internet** (Hassan's choice): their rights are clear. The host adds real photos
-  from the panel.
+- **Generated photos, not photos from the internet** (Hassan's choice): made with Google Flow for the demo, so their
+  rights are clear (`frontend/public/photos/`); the photos and drawings in `Art.vue` stay for a kind without a photo. The host
+  adds real photos from the panel, and a real lodge must: a guest should book what is really there.
 
 ## Questions you will be asked
 
@@ -118,7 +119,7 @@ choices (dates on a calendar, a unit, the people), so nothing needs reading. Mes
 | Deposit, its hours, extra person, shortest weekend stay | «متن سایت» page, or `DEFAULTS` in `facts.py` | `test_price_rules` |
 | The cancellation rule | `refund()` in `facts.py` | |
 | What counts as waiting for the host | `alerts()` in `facts.py` | `test_every_planted_situation` |
-| The website's look | `frontend/src/eco/eco.css`, the drawings in `Art.vue` | |
+| The website's look | `frontend/src/eco/eco.css`, the photos and drawings in `Art.vue` | |
 
 ## Tests
 

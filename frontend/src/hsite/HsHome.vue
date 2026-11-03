@@ -106,12 +106,13 @@ const list = computed(() => found.value ? found.value.options : props.site.types
   <section class="eco-section">
     <div class="eco-wrap">
       <h2>پیش از سفر</h2>
-      <ul class="hs-facts" style="margin-top: 16px">
+      <div class="hs-before"><div class="eco-pic"><HsArt kind="breakfast" /></div>
+      <ul class="hs-facts">
         <li><b>ورود و خروج</b><span class="eco-meta">تحویل اتاق از ساعت {{ fa(site.check_in) }}، تخلیه تا ساعت {{ fa(site.check_out) }}. هنگام ورود کارت ملی همه‌ی همراهان لازم است.</span></li>
         <li><b>پذیرایی</b><span class="eco-meta">همه‌ی اتاق‌ها با صبحانه. نیم‌پانسیون {{ fa(site.board_prices.HB) }} و پانسیون کامل {{ fa(site.board_prices.FB) }} برای هر نفر در شب.</span></li>
         <li><b>بیعانه</b><span class="eco-meta">{{ fa(site.deposit) }} درصد قیمت کل، کارت به کارت، تا ۲۴ ساعت پس از رزرو.</span></li>
         <li><b>لغو</b><span class="eco-meta">{{ fa(site.refund_rule) }}</span></li>
-      </ul>
+      </ul></div>
     </div>
   </section>
 </template>
