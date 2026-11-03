@@ -527,7 +527,7 @@ def build():
     store.init()
     s = business.current()
     with store.conn() as c:
-        for t in ("users", "sessions", "reminders", "events", "web_orders", "web_chats"):
+        for t in ("users", "sessions", "reminders", "events", "web_orders", "web_chats") + store.APP_TABLES:
             c.execute(f"DELETE FROM {t}")
         for username, role in (("sahebkar", "owner"), ("forooshande", "seller"), ("hesabdar", "accountant"), ("anbardar", "warehouse")):
             c.execute("INSERT INTO users (username, password, full_name, role) VALUES (?,?,?,?)",
@@ -535,6 +535,7 @@ def build():
         store.set_meta(c, "built_for", today().isoformat())
     write_workbooks(simulate())
     result = import_all()
+    plant_handovers(s)
     with store.conn() as c:   # the log starts with the files being read, and this morning's invoices from the sales file
         store.log(c, None, "import", "سه فایل اکسل خوانده شد", {"files": ["انبار", "فروش", "حسابداری"]})
         seller = {"full_name": business.person("seller", s), "role": "seller"}
@@ -542,6 +543,34 @@ def build():
                              (today().isoformat(),)).fetchall():
             store.log(c, seller, "invoice", f"فاکتور {inv['id']} برای {inv['name']} در فایل فروش ثبت شده", {"files": ["فروش", "انبار"]})
     return result
+
+def plant_handovers(s):
+    """Every past invoice was handed over by the warehouse keeper the afternoon it was written, except one from the
+    last working day (PLANTED «not handed»): the owner's «کارهای امروز» finds it."""
+    keeper = business.person("warehouse", s)
+    with store.conn() as c:
+        past = c.execute("SELECT id, date FROM invoices WHERE date < ? ORDER BY id", (today().isoformat(),)).fetchall()
+        last_day = max((r["date"] for r in past), default=None)
+        skip = max((r["id"] for r in past if r["date"] == last_day), default=None)
+        c.executemany("INSERT INTO handovers (invoice_id, at, who, note) VALUES (?,?,?, '')",
+                      [(r["id"], f"{r['date']} 17:30", keeper) for r in past if r["id"] != skip])
+
+def set_stock(code, meters_now, rolls_now, d, title, change, reason):
+    """The owner corrected a fabric's stock to a shelf count: the row in «انبار» takes the counted meters (and rolls),
+    and a line in «اصلاح موجودی» says how much and why, so the file explains itself to anyone who opens it."""
+    wb = openpyxl.load_workbook(path("stock"))
+    ws = wb["انبار"]
+    head = [c.value for c in ws[1]]
+    ci, ri, mi = head.index("کد کالا"), head.index("تعداد توپ"), head.index("متراژ موجود")
+    for row in ws.iter_rows(min_row=2):
+        if str(row[ci].value) == code:
+            row[mi].value = meters_now
+            if rolls_now is not None:
+                row[ri].value = rolls_now
+    if "اصلاح موجودی" not in wb.sheetnames:
+        _sheet(wb.create_sheet("اصلاح موجودی"), ["تاریخ", "کد کالا", "شرح کالا", "تغییر متراژ", "دلیل"], [])
+    wb["اصلاح موجودی"].append([jstr(d), code, title, change, reason])
+    wb.save(path("stock"))
 
 # ---------- a sale from the phone desk goes into the files ----------
 

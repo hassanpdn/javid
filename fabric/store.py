@@ -47,10 +47,14 @@ CREATE TABLE IF NOT EXISTS import_notes (id INTEGER PRIMARY KEY, file TEXT, note
 -- the warehouse keeper's work: an invoice's fabric handed over (by whom, when, a note if something differed), and a
 -- shelf count beside what the stock file said at that moment (book). A count never changes the stock by itself.
 CREATE TABLE IF NOT EXISTS handovers (invoice_id INTEGER PRIMARY KEY, at TEXT, who TEXT, note TEXT);
-CREATE TABLE IF NOT EXISTS counts (id INTEGER PRIMARY KEY, at TEXT, code TEXT, counted REAL, rolls INTEGER, book REAL, who TEXT, note TEXT);
+CREATE TABLE IF NOT EXISTS counts (id INTEGER PRIMARY KEY, at TEXT, code TEXT, counted REAL, rolls INTEGER, book REAL, who TEXT, note TEXT,
+    applied TEXT);                            -- when the owner set the stock to this count (an adjustment below)
+-- the owner's corrections of stock to a shelf count: the stock check adds them to «اول دوره + ورود − فروش»
+CREATE TABLE IF NOT EXISTS adjustments (id INTEGER PRIMARY KEY, at TEXT, code TEXT, meters REAL, rolls INTEGER, count_id INTEGER, who TEXT);
 """
 DATA_TABLES = ("products", "customers", "invoices", "invoice_lines", "receipts", "cheques_in", "cheques_out", "import_notes",
-               "stock_in", "cash_deposits", "handovers", "counts")
+               "stock_in", "cash_deposits")
+APP_TABLES = ("handovers", "counts", "adjustments")   # the app's own records: kept when a file is uploaded, cleared by a rebuild
 
 def init():
     with conn() as c:
@@ -58,6 +62,8 @@ def init():
         # a fabric.db made before the opening-stock column gets it (CREATE TABLE IF NOT EXISTS keeps old tables)
         if "opening" not in [r["name"] for r in c.execute("PRAGMA table_info(products)")]:
             c.execute("ALTER TABLE products ADD COLUMN opening REAL DEFAULT 0")
+        if "applied" not in [r["name"] for r in c.execute("PRAGMA table_info(counts)")]:
+            c.execute("ALTER TABLE counts ADD COLUMN applied TEXT")
 
 def get_meta(key, default=None):
     with conn() as c:

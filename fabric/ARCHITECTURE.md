@@ -58,7 +58,7 @@ reads them, and writes a phone sale back into them, so the owner can still open 
 - **Money words** (`money()`): «۱۲۸ میلیون تومان», the way the bazaar says it. Every amount the model sees is
   worded this way, so a number it copies can be matched exactly by `checks.only_known_numbers`.
 - **Reconciliation** (`reconcile()`), five checks from numbers alone:
-  - stock: opening + deliveries − sold = on the shelf, per fabric;
+  - stock: opening + deliveries − sold (+ the owner's corrections to a count) = on the shelf, per fabric;
   - invoice numbers have no gaps;
   - each day's cash sales = that day's deposit in «صندوق»;
   - every sale paid by cheque has its cheque in accounts;
@@ -83,7 +83,12 @@ totals. With the AI off, everything works with code-built texts.
   file's «ورود کالا» sheet and the shelf row, so the stock check still adds up) and shelf counts. Counts are blind (the
   file's number shows only after saving) and never change the stock: a difference goes to the owner's «تطبیق». The
   server leaves prices out of `/fabric/stock` for this role; customers, money, files, checks and the log are closed to
-  it, and its assistant answers only stock questions.
+  it, and its assistant answers only stock questions. An invoice of the last seven days not handed over (today's
+  aside) is in the owner's «کارهای امروز»; the demo plants one from the last working day. Only the owner can make a
+  differing count the stock («اصلاح موجودی با این شمارش» in «تطبیق»): the difference is kept as an adjustment that
+  the stock check adds to its sum, the row in the stock file takes the count and its «اصلاح موجودی» sheet says how
+  much and why, and the log has who. Handovers, counts and adjustments are the app's own records: uploading a file
+  keeps them, rebuilding the demo clears them.
 - **A website order is not an invoice** until it is paid, so it never touches stock or the reconciliation early.
 
 ## Questions you will be asked

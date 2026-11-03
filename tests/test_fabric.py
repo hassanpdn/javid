@@ -28,6 +28,7 @@ def test_owner_sees_every_planted_situation(tokens):
     o = httpx.get(base("/overview"), headers=tokens["sahebkar"]).json()
     kinds = {a["type"] for a in o["alerts"]}
     assert {"bounced", "cash", "limit", "low", "quiet", "dead"} <= kinds
+    assert [a["type"] for a in o["alerts"]].count("handover") == 1   # one invoice of the last working day not handed over
     assert o["week"]["left"] < 0                                  # next week's cheques are not covered
     brief = httpx.get(base("/brief"), headers=tokens["sahebkar"], timeout=30).json()
     assert brief["text"]
@@ -210,3 +211,19 @@ def test_a_count_never_changes_stock_and_a_difference_reaches_the_owner(tokens):
     httpx.post(base("/warehouse/count"), json={"code": p["code"], "meters": p["meters"]}, headers=tokens["anbardar"])
     rec = httpx.get(base("/reconcile"), headers=tokens["sahebkar"]).json()
     assert not any(i["kind"] == "count" for i in rec["issues"])
+
+def test_the_owner_can_make_a_count_the_stock_and_the_files_still_add_up(tokens):
+    p = httpx.get(base("/stock"), headers=tokens["anbardar"]).json()[-2]
+    httpx.post(base("/warehouse/count"), json={"code": p["code"], "meters": p["meters"] - 7, "rolls": p["rolls"]}, headers=tokens["anbardar"])
+    issue = next(i for i in httpx.get(base("/reconcile"), headers=tokens["sahebkar"]).json()["issues"] if i["kind"] == "count")
+    assert httpx.post(base(f"/counts/{issue['count_id']}/apply"), headers=tokens["hesabdar"]).status_code == 403   # the owner decides
+    r = httpx.post(base(f"/counts/{issue['count_id']}/apply"), headers=tokens["sahebkar"]).json()
+    assert r["change"] == -7
+    assert httpx.post(base(f"/counts/{issue['count_id']}/apply"), headers=tokens["sahebkar"]).status_code == 409
+    now = next(x for x in httpx.get(base("/stock"), headers=tokens["anbardar"]).json() if x["code"] == p["code"])
+    assert abs(now["meters"] - (p["meters"] - 7)) < .01
+    rec = httpx.get(base("/reconcile"), headers=tokens["sahebkar"]).json()
+    assert not any(i["kind"] == "count" for i in rec["issues"])
+    assert not any(i["kind"] == "stock" and i["code"] == p["code"] for i in rec["issues"])   # the adjustment is in the sum
+    wb = openpyxl.load_workbook(os.path.join(os.path.dirname(conftest.DB_PATH), "fabric_files", "stock.xlsx"))
+    assert list(wb["اصلاح موجودی"].iter_rows(values_only=True))[-1][3] == -7

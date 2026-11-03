@@ -113,7 +113,7 @@ onUnmounted(() => idle("brief"))
             <li v-for="a in d.alerts" :key="a.type + a.title" class="alert">
               <span :class="['tint', 't-' + a.tone]"><Icon :name="a.icon" :size="20" /></span>
               <div class="alert-body"><b>{{ fa(a.title) }}</b><small class="muted">{{ fa(a.detail) }}</small></div>
-              <button class="btn sm" @click="act(a)">{{ ACTION[a.type] }}</button>
+              <button v-if="ACTION[a.type]" class="btn sm" @click="act(a)">{{ ACTION[a.type] }}</button>
             </li>
           </ul>
         </section>

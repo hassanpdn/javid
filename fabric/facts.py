@@ -284,6 +284,10 @@ def alerts(c):
             out.append({"type": "quiet", "tone": "info", "icon": "message", "customer_id": r["id"],
                         "title": f"{r['name']} ({r['city']}) مدتی است خرید نکرده",
                         "detail": f"معمولاً هر {r['usual_gap']} روز سفارش می‌داد؛ آخرین خرید {r['silent_days']} روز پیش بود."})
+    for r in not_handed(c):
+        out.append({"type": "handover", "tone": "warning", "icon": "inbox",
+                    "title": f"جنس فاکتور {r['id']} ({r['name']}) هنوز تحویل نشده است",
+                    "detail": f"فاکتور {jday(r['date'])} ثبت شده ولی انباردار تحویل جنسش را نزده است. بپرسید جنس رفته است یا نه."})
     dead = [p for p in products(c) if p["dead"]]
     if dead:
         out.append({"type": "dead", "tone": "info", "icon": "inbox",
@@ -325,9 +329,10 @@ def brief_facts(o):
 def stock_check(c):
     sold = {r["code"]: r["m"] for r in c.execute("SELECT product_code code, SUM(meters) m FROM invoice_lines GROUP BY product_code")}
     got = {r["code"]: r["m"] for r in c.execute("SELECT code, SUM(meters) m FROM stock_in GROUP BY code")}
+    fixed = {r["code"]: r["m"] for r in c.execute("SELECT code, SUM(meters) m FROM adjustments GROUP BY code")}
     rows, issues = list(c.execute("SELECT * FROM products ORDER BY code")), []
     for p in rows:
-        expected = (p["opening"] or 0) + got.get(p["code"], 0) - sold.get(p["code"], 0)
+        expected = (p["opening"] or 0) + got.get(p["code"], 0) - sold.get(p["code"], 0) + fixed.get(p["code"], 0)
         diff = round(p["meters"] - expected, 1)
         if abs(diff) >= .5:
             title = f"{p['name']} {p['color']}"
@@ -337,8 +342,9 @@ def stock_check(c):
                 "detail": f"به قیمت خرید {money(abs(diff) * p['buy_price'])}. موجودی ثبت‌شده با «اول دوره + ورود کالا − فروش» جور نیست.",
                 "how": [f"موجودی اول دوره (انبار › ستون موجودی اول دوره): {meters(p['opening'])}",
                         f"+ ورود کالا (انبار › برگه ورود کالا): {meters(got.get(p['code'], 0))}",
-                        f"− فروخته‌شده (فروش › ستون متراژ): {meters(sold.get(p['code'], 0))}",
-                        f"= باید در انبار باشد: {meters(expected)}",
+                        f"− فروخته‌شده (فروش › ستون متراژ): {meters(sold.get(p['code'], 0))}"] +
+                       ([f"{'+' if fixed[p['code']] > 0 else '−'} اصلاح با شمارش (انبار › اصلاح موجودی): {meters(abs(fixed[p['code']]))}"] if fixed.get(p["code"]) else []) +
+                       [f"= باید در انبار باشد: {meters(expected)}",
                         f"در فایل انبار ثبت شده: {meters(p['meters'])}"]})
     return {"checked": len(rows), "ok": len(rows) - len(issues), "issues": issues}
 
@@ -412,14 +418,23 @@ def count_check(c, days=30):
     issues = []
     for code, r in latest.items():
         diff = round(r["counted"] - r["book"], 1)
-        if abs(diff) >= .5:
-            issues.append({"kind": "count", "code": code, "diff": diff,
+        if abs(diff) >= .5 and not r["applied"]:
+            issues.append({"kind": "count", "code": code, "diff": diff, "count_id": r["id"],
                            "title": f"شمارش {titles.get(code, code)}: {meters(abs(diff))} {'کمتر' if diff < 0 else 'بیشتر'} از فایل انبار",
                            "detail": "آن‌چه روی قفسه شمرده شد با موجودی فایل انبار در همان لحظه جور نیست. موجودی فایل خودبه‌خود عوض نشده است.",
                            "how": [f"شمرده‌شده روی قفسه ({r['who']}، {jday(r['at'][:10])} ساعت {r['at'][11:16]}): {meters(r['counted'])}" + (f"، {r['rolls']} توپ" if r["rolls"] is not None else ""),
                                    f"− موجودی فایل انبار در همان لحظه: {meters(r['book'])}",
                                    f"= {meters(abs(diff))} {'کم' if diff < 0 else 'زیاد'}"] + ([f"یادداشت انباردار: {r['note']}"] if r["note"] else [])})
     return {"checked": len(latest), "ok": len(latest) - len(issues), "issues": issues}
+
+def not_handed(c, days=7):
+    """Invoices of the last days whose fabric the warehouse keeper has not marked handed over (today's are still
+    being handed over, so they are not counted yet)."""
+    t = today()
+    return [dict(r) for r in c.execute(
+        """SELECT i.id, i.date, cu.name, cu.city FROM invoices i JOIN customers cu ON cu.id = i.customer_id
+           LEFT JOIN handovers h ON h.invoice_id = i.id
+           WHERE h.invoice_id IS NULL AND i.date < ? AND i.date >= ? ORDER BY i.id""", (t.isoformat(), (t - timedelta(days=days)).isoformat()))]
 
 def handover_list(c):
     """Today's invoices for the warehouse keeper: which fabric, how many rolls and meters, for whom and to which city;

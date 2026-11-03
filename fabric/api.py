@@ -567,6 +567,34 @@ def reconcile(user: dict = Depends(BOOKS)):
     with store.conn() as c:
         return facts.reconcile(c)
 
+@router.post("/counts/{cid}/apply")
+def apply_count(cid: int, user: dict = Depends(OWNER)):
+    """The owner sets a fabric's stock to a shelf count: the difference is kept as an adjustment (so the stock check
+    still adds up and shows it), written into the stock file, and logged. Only the owner decides this."""
+    with _lock:
+        with store.conn() as c:
+            n = c.execute("SELECT * FROM counts WHERE id = ?", (cid,)).fetchone()
+            if not n:
+                raise HTTPException(status_code=404, detail="این شمارش پیدا نشد")
+            if n["applied"]:
+                raise HTTPException(status_code=409, detail="موجودی قبلاً با این شمارش اصلاح شده است")
+            p = _product(c, n["code"])
+            change = round(n["counted"] - p["meters"], 1)
+            rolls = n["rolls"] if n["rolls"] is not None else p["rolls"]
+            title = f"{p['name']} {p['color']}".strip()
+            at = store.stamp()
+            c.execute("INSERT INTO adjustments (at, code, meters, rolls, count_id, who) VALUES (?,?,?,?,?,?)",
+                      (at, p["code"], change, rolls - p["rolls"], cid, user["full_name"]))
+            c.execute("UPDATE products SET meters = ?, rolls = ? WHERE code = ?", (n["counted"], rolls, p["code"]))
+            c.execute("UPDATE counts SET applied = ? WHERE id = ?", (at, cid))
+        excel.set_stock(p["code"], n["counted"], rolls, excel.today(), title, change, f"شمارش {n['who']}، تأیید {user['full_name']}")
+        steps = [{"file": "انبار", "text": f"موجودی {title} با شمارش {meters(n['counted'])} شد ({'+' if change > 0 else '−'}{meters(abs(change))})"}]
+        with store.conn() as c:
+            store.log(c, user, "adjust", f"اصلاح موجودی {title}: {meters(p['meters'])} ← {meters(n['counted'])}، با شمارش {n['who']}",
+                      {"files": ["انبار"], "steps": steps})
+        _cache.clear()
+    return {"ok": True, "change": change, "meters": n["counted"]}
+
 @router.get("/events")
 def events(after: int = 0, user: dict = Depends(OWNER)):
     """The event log, newest first. after: only events newer than this id (the dashboard asks every few seconds)."""
