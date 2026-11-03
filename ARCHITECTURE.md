@@ -11,6 +11,7 @@ This is the map. Each assistant has its own document next to its code:
 | Law office | `law/` | [law/ARCHITECTURE.md](law/ARCHITECTURE.md) |
 | Dental clinic | `dental/` | [dental/ARCHITECTURE.md](dental/ARCHITECTURE.md) |
 | Hotel | `hotel/` | [hotel/ARCHITECTURE.md](hotel/ARCHITECTURE.md) |
+| Eco-lodge, with its public website | `lodge/`, `frontend/src/eco/` | [lodge/ARCHITECTURE.md](lodge/ARCHITECTURE.md) |
 
 `CLAUDE.md` is the working rulebook (how code is written here). `PRODUCTION.md` is what it takes to give an
 assistant to a real customer. This file explains what the application is made of and why.
@@ -43,6 +44,7 @@ anything that leaves the office.
    ├── /law/...     (law/api.py)                                                     → law.db
    ├── /dental/...  (dental/api.py)                                                  → dental.db
    ├── /hotel/...   (hotel/api.py, hotel/site.py)                                    → hotel.db
+   ├── /lodge/...   (lodge/api.py; lodge/public.py is public, with guests' accounts)   → lodge.db + photos
    ├── /access/..., /gate/..., /speed                                                → access.db
    └── static files (the built website), mounted last
  Shared: llm.py (the model), checks.py (checks on model text), jalali.py (dates), offline.py (school texts without AI)

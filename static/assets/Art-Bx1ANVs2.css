@@ -1,0 +1,1 @@
+.eco-art{width:100%;height:100%;display:block}.eco-stars circle{animation:3.2s ease-in-out infinite eco-twinkle}@keyframes eco-twinkle{0%,to{opacity:1}50%{opacity:.35}}@media (prefers-reduced-motion:reduce){.eco-stars circle{animation:none}}

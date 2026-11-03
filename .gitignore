@@ -48,3 +48,7 @@ dental.json
 # The hotel set up on this machine (see hotel/info.py)
 hotel.db
 hotel.json
+# The eco-lodge set up on this machine, and its photos and receipts (see lodge/info.py)
+lodge.db
+lodge.json
+lodge_files/

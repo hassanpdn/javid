@@ -54,6 +54,12 @@ const ASSISTANTS = [
     perks: [{ icon: "calendar", text: "جدول اتاق‌ها" }, { icon: "users", text: "حالت شلوغی" }, { icon: "shield", text: "بررسی‌ها" }],
   },
   {
+    key: "lodge", title: "دستیار اقامتگاه بوم‌گردی", icon: "heart", hue: "clay",
+    desc: "برای اقامتگاه ۵ تا ۲۰ واحدی، با سایت عمومی خودش: مهمان شب‌های خالی را می‌بیند، حساب می‌سازد، درخواست رزرو و رسید می‌فرستد و پس از سفر نظر می‌دهد؛ میزبان همه را از پنل می‌گرداند.",
+    roles: ["میزبان", "همکار", "سایت عمومی و پنل مهمان"],
+    perks: [{ icon: "sparkles", text: "سایت عمومی" }, { icon: "check", text: "تأیید رسید" }, { icon: "heart", text: "نظر مهمانان" }],
+  },
+  {
     key: "deed", title: "دستیار استخراج داده‌ی سند", icon: "notebook", hue: "amber",
     desc: "سند دفترچه‌ای اسکن‌شده را می‌خواند و داده‌هایش را برای بررسی و تأیید کارشناس، پیش از تبدیل به سند تک‌برگ، آماده می‌کند.",
     roles: ["کارشناس بررسی"],
@@ -253,6 +259,7 @@ h1 span { background: linear-gradient(90deg, #a99fff, #5fe3f3 60%, #ff9fc6); -we
 .hue-indigo { --c1: #3c4a8f; --c2: #e0a785; }
 .hue-sky { --c1: #1d6fa3; --c2: #f28b82; }
 .hue-ocean { --c1: #0d5c7a; --c2: #e8c27a; }
+.hue-clay { --c1: #8a4320; --c2: #f2c27a; }
 .h-card:hover { border-color: rgba(255,255,255,.28); box-shadow: 0 40px 90px -24px rgba(115,103,240,.55), inset 0 1px 0 rgba(255,255,255,.25); }
 .h-card:focus-visible { outline: 3px solid #8fefff; outline-offset: 4px; }
 .h-glow { position: absolute; inset: 0; pointer-events: none; opacity: 0; transition: opacity .3s;

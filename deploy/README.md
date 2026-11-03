@@ -9,6 +9,30 @@ The demo runs on 89.45.89.72 at https://agent.pudineh.com.
 - The deed assistant (`deed/README.md`) needs, once, as root: `apt install tesseract-ocr tesseract-ocr-fas poppler-utils`, and
   `client_max_body_size 15m;` in the nginx site (scans up to 10 MB are sent as base64), then `systemctl reload nginx`.
 
+## The eco-lodge's public website (eco.pudineh.com)
+
+The lodge's website is public, on its own address; the host's panel stays behind the door at agent.pudineh.com. Once,
+as root:
+
+```
+# 1. DNS: an «eco» A record next to «agent» in /etc/bind/zones/pudineh.com.db (raise the zone's serial), then
+rndc reload pudineh.com
+# 2. nginx
+cp /opt/javid/deploy/eco.pudineh.com.nginx /etc/nginx/sites-available/eco.pudineh.com
+ln -s /etc/nginx/sites-available/eco.pudineh.com /etc/nginx/sites-enabled/
+nginx -t && systemctl reload nginx
+# 3. HTTPS
+certbot --nginx -d eco.pudineh.com
+# 4. the app: in /opt/javid/.env
+#    LODGE_HOST=eco.pudineh.com
+#    LODGE_URL=https://eco.pudineh.com
+systemctl restart javid
+```
+
+Then open the lodge's card on the assistants page and press «ساخت دمو» once: until then the website says it is not set
+up. The lodge is not reset on each visit like the other demos (guests make accounts and reviews there); it is built
+again only from its setup form. Photos and receipts live in `/opt/javid/lodge_files/`.
+
 ## Automatic updates
 
 `.github/workflows/deploy.yml`: a push to a `claude/` branch is merged into `main`, and every change to `main`

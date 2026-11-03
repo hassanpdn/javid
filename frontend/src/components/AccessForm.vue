@@ -172,6 +172,7 @@ const copy = async () => {
 .af-app.hue-indigo { --c1: #3c4a8f; --c2: #e0a785; }
 .af-app.hue-sky { --c1: #1d6fa3; --c2: #f28b82; }
 .af-app.hue-ocean { --c1: #0d5c7a; --c2: #e8c27a; }
+.af-app.hue-clay { --c1: #8a4320; --c2: #f2c27a; }
 .af-app:hover { background: rgba(255,255,255,.08); }
 .af-app:active { transform: scale(.98); }
 .af-app:focus-visible { outline: 3px solid #8fefff; outline-offset: 2px; }

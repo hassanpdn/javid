@@ -3,7 +3,7 @@ from fastapi import FastAPI, Depends, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse
 from pydantic import BaseModel
 from common import normalize, embed, collection
 import llm, offline
@@ -30,6 +30,7 @@ import speed
 from law import api as law_api
 from dental import api as dental_api
 from hotel import api as hotel_api, site as hotel_site
+from lodge import api as lodge_api, public as lodge_public
 THRESHOLD = float(os.getenv("SIMILARITY_THRESHOLD", "0.60"))
 NOT_FOUND = "پاسخ این سؤال در اسناد مدرسه پیدا نشد. می‌توانید سؤال را دقیق‌تر بپرسید یا با دفتر مدرسه تماس بگیرید."
 UNCLEAR = "سؤال شما روشن نیست. لطفاً سؤال را کامل و واضح بنویسید، مثلاً «ساعت کار کارکنان اداری چقدر است؟»"
@@ -50,10 +51,22 @@ app.add_middleware(GZipMiddleware, minimum_size=1000)   # compresses the JS/CSS 
 # "access" in the 401 tells the page which assistant asked, so it can show the login box for it.
 STATIC_TOP = set(os.listdir("static")) if os.path.isdir("static") else set()
 
+# The eco-lodge's public website is open to anyone: its page (/eco, or / on its own address LODGE_HOST) and its API
+# (/lodge/public/...). On its own address nothing else is served, so the lodge's guests never reach the demos.
+LODGE_HOST = os.getenv("LODGE_HOST", "").lower()
+
 @app.middleware("http")
 async def site_gate(request: Request, call_next):
     path = request.url.path
     first = path.strip("/").split("/")[0]
+    public = first == "eco" or path.startswith("/lodge/public/")
+    if LODGE_HOST and request.headers.get("host", "").split(":")[0].lower() == LODGE_HOST:
+        if path == "/":
+            return FileResponse("static/lodge.html", headers={"Cache-Control": "no-cache"})
+        if not (public or first == "assets" or first == "fonts" or path in ("/favicon.svg", "/lodge.html")):
+            return JSONResponse({"detail": "Not Found"}, status_code=404)
+    if public:
+        return await call_next(request)
     if path == "/" or first in STATIC_TOP or first in ("gate", "access"):
         return await call_next(request)
     if not gate.allowed(request):
@@ -286,6 +299,14 @@ app.include_router(law_api.router)
 app.include_router(dental_api.router)
 app.include_router(hotel_api.router)
 app.include_router(hotel_site.router)
+app.include_router(lodge_api.router)
+app.include_router(lodge_public.router)
+
+@app.get("/eco")
+@app.get("/eco/")
+def eco_site():
+    """The eco-lodge's public website (frontend/lodge.html), also reachable on the demo's address."""
+    return FileResponse("static/lodge.html", headers={"Cache-Control": "no-cache"})
 
 # Serve the built frontend (frontend/ -> npm run build -> static/) at http://localhost:8000. Must come after the API routes.
 # Files in assets/ have a hash of their content in the name (a new build gives new names), so the browser keeps them

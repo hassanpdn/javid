@@ -1,1 +1,0 @@
-import{U as e}from"./gate-D1ylLwp-.js";var t=window.matchMedia(`(max-width: 767px)`),n=e(t.matches);t.addEventListener(`change`,e=>{n.value=e.matches});var r=window.visualViewport;if(r){let e=()=>document.documentElement.style.setProperty(`--vvh`,r.height+`px`);r.addEventListener(`resize`,e),e()}export{n as t};

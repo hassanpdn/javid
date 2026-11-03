@@ -24,7 +24,8 @@ def start():
            "ESTATE_PATH": os.path.join(tmp, "estate.json"), "ESTATE_DB_PATH": os.path.join(tmp, "estate.db"),
            "LAW_PATH": os.path.join(tmp, "law.json"), "LAW_DB_PATH": os.path.join(tmp, "law.db"),
            "DENTAL_PATH": os.path.join(tmp, "dental.json"), "DENTAL_DB_PATH": os.path.join(tmp, "dental.db"),
-           "HOTEL_PATH": os.path.join(tmp, "hotel.json"), "HOTEL_DB_PATH": os.path.join(tmp, "hotel.db")}
+           "HOTEL_PATH": os.path.join(tmp, "hotel.json"), "HOTEL_DB_PATH": os.path.join(tmp, "hotel.db"),
+           "LODGE_PATH": os.path.join(tmp, "lodge.json"), "LODGE_DB_PATH": os.path.join(tmp, "lodge.db"), "LODGE_DIR": os.path.join(tmp, "lodge_files")}
     for script in ("seed.py", "ingest.py"):
         subprocess.run([sys.executable, script], cwd=ROOT, env=env, check=True, capture_output=True)
     proc = subprocess.Popen([sys.executable, "-m", "uvicorn", "app:app", "--port", str(APP_PORT)],
