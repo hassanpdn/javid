@@ -7,7 +7,7 @@
 import { ref, computed, onMounted, onUnmounted, defineAsyncComponent } from "vue"
 import { api, fa, hotelSession, retryable } from "../lib/api.js"
 import { busy, idle } from "../lib/notify.js"
-import { brand, CHAT, useSiteBookings } from "./lib.js"
+import { brand, CHAT, useSiteBookings, hotelInfo } from "./lib.js"
 import { HOTEL_MANAGER, HOTEL_DESK } from "../lib/tours.js"
 import AppLayout from "../components/AppLayout.vue"
 import Icon from "../components/Icon.vue"
@@ -69,6 +69,7 @@ const booked = (id) => { booking.value = null; changed(); bookingId.value = id }
     <div v-if="view !== 'site'" class="k-actions" data-tour="ht-actions">
       <button class="btn primary" @click="booking = {}"><Icon name="calendar" :size="18" />رزرو جدید</button>
       <button class="btn" @click="booking = { paste: true }"><Icon name="message" :size="18" />رزرو از روی پیام</button>
+      <a class="btn" :href="hotelInfo.site_url" target="_blank" rel="noopener"><Icon name="sparkles" :size="18" />دیدن سایت هتل</a>
     </div>
 
     <PeakView v-if="view === 'peak'" :key="'p' + stamp" @open="bookingId = $event" @changed="changed" />

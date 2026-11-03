@@ -41,13 +41,47 @@ CREATE TABLE IF NOT EXISTS waitlist (id INTEGER PRIMARY KEY, guest_id INTEGER, t
 CREATE TABLE IF NOT EXISTS closes (day TEXT PRIMARY KEY, at TEXT, user_id INTEGER, posted INTEGER, cash_expected INTEGER, cash_counted INTEGER, note TEXT);
 CREATE TABLE IF NOT EXISTS web_chats (id TEXT PRIMARY KEY, state TEXT, updated TEXT);
 CREATE TABLE IF NOT EXISTS events (id INTEGER PRIMARY KEY, at TEXT, who TEXT, role TEXT, kind TEXT, text TEXT, booking_id INTEGER);
+-- the public website (public.py): guests' own accounts, which bookings each made, and deposit receipts (waiting, ok, rejected)
+CREATE TABLE IF NOT EXISTS site_accounts (id INTEGER PRIMARY KEY, name TEXT, phone TEXT UNIQUE, password TEXT, created TEXT);
+CREATE TABLE IF NOT EXISTS site_sessions (token TEXT PRIMARY KEY, account_id INTEGER, created_at TEXT DEFAULT CURRENT_TIMESTAMP);
+CREATE TABLE IF NOT EXISTS site_bookings (booking_id INTEGER PRIMARY KEY, account_id INTEGER);
+CREATE TABLE IF NOT EXISTS receipts (id INTEGER PRIMARY KEY, booking_id INTEGER, at TEXT, file TEXT, status TEXT);
 """
+# wiped when the demo is built again; guests' accounts and sessions are not, and their bookings still to come are carried
+# over (keep_site / restore_site), so a guest of the public website never loses their account or their trip
 TABLES = ("users", "sessions", "meta", "rooms", "room_log", "guests", "agencies", "allotments", "groups", "bookings", "charges",
-          "payments", "tasks", "waitlist", "closes", "web_chats", "events")
+          "payments", "tasks", "waitlist", "closes", "web_chats", "events", "site_bookings", "receipts")
+DIR = os.getenv("HOTEL_DIR", "hotel_files")   # receipts' photos
 
 def init():
+    os.makedirs(DIR, exist_ok=True)
     with conn() as c:
         c.executescript(SCHEMA)
+
+def keep_site():
+    """The website guests' bookings still to come (with their payments and receipts), read before a rebuild."""
+    with conn() as c:
+        rows = c.execute("""SELECT b.*, s.account_id, g.name AS g_name, g.phone AS g_phone FROM site_bookings s
+                            JOIN bookings b ON b.id = s.booking_id JOIN guests g ON g.id = b.guest_id
+                            WHERE b.status IN ('tentative', 'confirmed') AND b.arrive >= ?""", (today().isoformat(),)).fetchall()
+        return [{"b": dict(r), "pays": [dict(p) for p in c.execute("SELECT * FROM payments WHERE booking_id = ?", (r["id"],))],
+                 "receipts": [dict(x) for x in c.execute("SELECT * FROM receipts WHERE booking_id = ?", (r["id"],))]} for r in rows]
+
+def restore_site(c, kept):
+    """Put them back into the rebuilt demo, without a room (the desk gives one, as with any booking)."""
+    cols = ("type", "arrive", "depart", "adults", "children", "board", "source", "status", "deposit_due", "nights", "total", "discount", "eta",
+            "requests", "created")
+    for k in kept:
+        b = k["b"]
+        g = c.execute("SELECT id FROM guests WHERE phone = ? ORDER BY id DESC LIMIT 1", (b["g_phone"],)).fetchone()
+        gid = g["id"] if g else c.execute("INSERT INTO guests (name, phone, vip, notes, created) VALUES (?,?,0,'',?)",
+                                          (b["g_name"], b["g_phone"], today().isoformat())).lastrowid
+        bid = c.execute(f"INSERT INTO bookings (guest_id, {', '.join(cols)}) VALUES (?{', ?' * len(cols)})", (gid, *(b[x] for x in cols))).lastrowid
+        c.execute("INSERT INTO site_bookings (booking_id, account_id) VALUES (?, ?)", (bid, b["account_id"]))
+        for p in k["pays"]:
+            c.execute("INSERT INTO payments (booking_id, at, amount, method, kind) VALUES (?,?,?,?,?)", (bid, p["at"], p["amount"], p["method"], p["kind"]))
+        for r in k["receipts"]:
+            c.execute("INSERT INTO receipts (booking_id, at, file, status) VALUES (?,?,?,?)", (bid, r["at"], r["file"], r["status"]))
 
 def wipe():
     with conn() as c:
@@ -95,6 +129,22 @@ def user_by_token(token):
 def logout(token):
     with conn() as c:
         c.execute("DELETE FROM sessions WHERE token = ?", (token,))
+        c.execute("DELETE FROM site_sessions WHERE token = ?", (token,))
+
+hash_password, check_password = school_db.hash_password, school_db.check_password
+
+def account_by_token(token):
+    if not token:
+        return None
+    with conn() as c:
+        row = c.execute("""SELECT a.* FROM site_sessions s JOIN site_accounts a ON a.id = s.account_id
+                           WHERE s.token = ? AND s.created_at > datetime('now', '-30 days')""", (token,)).fetchone()
+    return dict(row) if row else None
+
+def account_session(c, account_id):
+    token = secrets.token_urlsafe(32)
+    c.execute("INSERT INTO site_sessions (token, account_id) VALUES (?, ?)", (token, account_id))
+    return token
 
 def logout_all():
     with conn() as c:
@@ -105,5 +155,9 @@ def public_user(u):
             "role_name": ROLE_NAMES.get(u["role"], u["role"])}
 
 def log(c, user, kind, text, booking_id=None, at=None):
-    c.execute("INSERT INTO events (at, who, role, kind, text, booking_id) VALUES (?,?,?,?,?,?)",
-              (at or stamp(), user["full_name"] if user else "سایت هتل", ROLE_NAMES.get(user["role"], "") if user else "", kind, text, booking_id))
+    """user: a staff user, a website guest ({"name": ...}) or None (the website's assistant)."""
+    if user and "role" in user:
+        who, role = user["full_name"], ROLE_NAMES.get(user["role"], "")
+    else:
+        who, role = (user["name"] if user else "سایت هتل"), ("مهمان" if user else "")
+    c.execute("INSERT INTO events (at, who, role, kind, text, booking_id) VALUES (?,?,?,?,?,?)", (at or stamp(), who, role, kind, text, booking_id))

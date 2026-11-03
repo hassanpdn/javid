@@ -35,6 +35,7 @@ def build():
     T = t.isoformat()
     iso = lambda n: (t + timedelta(days=n)).isoformat()
     store.init()
+    kept = store.keep_site()   # the public website's guests keep their trips still to come
     store.wipe()
     now = datetime.fromisoformat(store.stamp())
     with store.conn() as c:
@@ -276,6 +277,8 @@ def build():
             short = 1_200_000 if k == 1 else 0
             c.execute("INSERT INTO closes (day, at, user_id, posted, cash_expected, cash_counted, note) VALUES (?,?,?,?,?,?,?)",
                       (day, f"{day} 23:55", U["reception"], posted, cash, cash - short, "صندوق شمرده شد" if short else ""))
+
+        store.restore_site(c, kept)
 
         # the log of the last days
         for b in c.execute("SELECT * FROM bookings WHERE created >= ? ORDER BY created", (iso(-2),)).fetchall():

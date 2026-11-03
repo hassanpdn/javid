@@ -33,6 +33,29 @@ Then open the lodge's card on the assistants page and press «ساخت دمو» 
 up. The lodge is not reset on each visit like the other demos (guests make accounts and reviews there); it is built
 again only from its setup form. Photos and receipts live in `/opt/javid/lodge_files/`.
 
+## The hotel's public website (hotel.pudineh.com)
+
+The same steps for the hotel, whose panel also stays behind the door. Once, as root:
+
+```
+# 1. DNS: a «hotel» A record next to «agent» in /etc/bind/zones/pudineh.com.db (raise the zone's serial), then
+rndc reload pudineh.com
+# 2. nginx
+cp /opt/javid/deploy/hotel.pudineh.com.nginx /etc/nginx/sites-available/hotel.pudineh.com
+ln -s /etc/nginx/sites-available/hotel.pudineh.com /etc/nginx/sites-enabled/
+nginx -t && systemctl reload nginx
+# 3. HTTPS
+certbot --nginx -d hotel.pudineh.com
+# 4. the app: in /opt/javid/.env
+#    HOTEL_HOST=hotel.pudineh.com
+#    HOTEL_URL=https://hotel.pudineh.com
+systemctl restart javid
+```
+
+Then open the hotel's card and fill its setup form once: until then the website says it is not set up. Like the lodge,
+the hotel is no longer forgotten on each visit; the demo data is still rebuilt each day (and from its setup form), and
+guests' accounts and their bookings still to come are carried over. Receipts live in `/opt/javid/hotel_files/`.
+
 ## Automatic updates
 
 `.github/workflows/deploy.yml`: a push to a `claude/` branch is merged into `main`, and every change to `main`

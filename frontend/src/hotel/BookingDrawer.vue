@@ -2,7 +2,8 @@
 // One booking in a side drawer: the guest (past stays, notes), the stay and its price night by night, the room (the
 // assistant's suggestions, best first, with why), the folio (charges, payments, what is left), and what can be done
 // now: take a payment, check in (national ID, plate, the couple's papers), add a charge, change the dates, settle
-// and check out, cancel by the hotel's rule, mark a no-show, copy the confirmation or the thank-you message.
+// and check out, cancel by the hotel's rule, mark a no-show, copy the confirmation or the thank-you message. A booking
+// from the public website may carry the guest's deposit receipt: a person checks the bank and accepts or turns it down.
 import { ref, reactive, computed, watch } from "vue"
 import { api, fa, hotelSession } from "../lib/api.js"
 import { toast } from "../lib/notify.js"
@@ -39,6 +40,7 @@ const noshow = () => act("noshow", `/hotel/bookings/${props.id}/noshow`, {}, "ن
 const changeDates = () => act("dates", `/hotel/bookings/${props.id}/dates`, { ...dates }, "تاریخ‌ها و قیمت به‌روز شد")
 const message = async (kind) => { try { msg.value = (await api(`/hotel/bookings/${props.id}/message?kind=${kind}`)).text; open.value = "msg" } catch (e) { toast({ tone: "danger", title: e.message }) } }
 const copy = async () => { try { await navigator.clipboard.writeText(msg.value); toast({ tone: "success", title: "متن کپی شد" }) } catch {} }
+const receipt = (ok) => act("rc", `/hotel/bookings/${props.id}/receipt`, { ok }, ok ? "بیعانه ثبت شد و رزرو قطعی شد" : "رسید پذیرفته نشد؛ مهمان در سایت می‌بیند")
 const toggle = (k) => { open.value = open.value === k ? "" : k; if (k === "dates") Object.assign(dates, { arrive: b.value.arrive_j, depart: b.value.depart_j }) }
 </script>
 
@@ -69,6 +71,16 @@ const toggle = (k) => { open.value = open.value === k ? "" : k; if (k === "dates
             </div>
             <template v-if="open === 'msg'"><textarea v-model="msg" rows="7" class="k-text"></textarea>
               <div class="btn-row"><button class="btn sm" @click="copy">کپی متن</button><button class="btn ghost sm" @click="open = ''">بستن</button></div></template>
+          </section>
+
+          <section v-if="d.receipt" class="card" :class="{ 'k-receipt-wait': d.receipt.status === 'waiting' }">
+            <div class="card-head">رسید بیعانه از سایت <small>{{ fa(d.receipt.at) }}</small></div>
+            <img v-if="d.receipt.data" :src="d.receipt.data" alt="رسید بیعانه" class="ht-receipt">
+            <p v-if="d.receipt.status === 'waiting'" class="small">بیعانه‌ی این رزرو {{ fa(d.receipt.deposit_text) }} است. اگر این مبلغ به حساب هتل آمده، تأیید کنید تا ثبت و رزرو قطعی شود.</p>
+            <p v-else class="muted small">{{ d.receipt.status === 'ok' ? 'تأیید شد و بیعانه ثبت شد.' : 'پذیرفته نشد.' }}</p>
+            <div v-if="d.receipt.status === 'waiting' && b.status === 'tentative'" class="btn-row">
+              <button class="btn primary sm" :disabled="busy === 'rc'" @click="receipt(true)">واریز دیده شد، ثبت بیعانه</button>
+              <button class="btn ghost sm" :disabled="busy === 'rc'" @click="receipt(false)">پذیرفته نیست</button></div>
           </section>
 
           <section v-if="d.suggest" class="card">

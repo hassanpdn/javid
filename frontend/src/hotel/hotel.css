@@ -42,3 +42,4 @@
 .ht-hero i { position: absolute; inset-inline: -10%; height: 26px; border-radius: 50%; background: color-mix(in srgb, var(--info) 45%, transparent); }
 .ht-hero i:nth-child(1) { bottom: -8px; } .ht-hero i:nth-child(2) { bottom: 8px; opacity: .6; } .ht-hero i:nth-child(3) { bottom: 24px; opacity: .3; }
 .ht-block { display: flex; flex-direction: column; gap: 6px; padding: 10px 12px; border-radius: var(--radius-sm); background: var(--bg); }
+.ht-receipt { max-width: 220px; border-radius: var(--radius-sm); border: 1px solid var(--line); }

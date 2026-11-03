@@ -53,7 +53,9 @@ happens without a person pressing a button.
 | `facts.py` | Every number and rule: prices, availability, room suggestions, folios, refunds, today's alerts, the manager's checks, the report, the busy-day page. No web code, no model. |
 | `read.py` | A booking request from pasted text. Rules read it; the model may only add a name, room type or meals whose words are in the text. |
 | `api.py` | The routes. Thin: validate, check the role, call `facts`, write, log. Holds `make_booking()`, used by the website too. |
-| `site.py` | The hotel's website conversation. Asks only what it needs, shows free rooms with prices, makes a tentative booking. |
+| `site.py` | The website conversation inside the panel («سایت هتل»). Asks only what it needs, shows free rooms with prices, makes a tentative booking. |
+| `public.py` | The real public website's API (`/hotel/public/...`, on hotel.pudineh.com): search, guests' own accounts, a tentative booking, the deposit receipt, cancelling. |
+| `frontend/src/hsite/` + `frontend/hotel.html` | The public website, its own small page (borrows the eco-lodge website's layout, `eco/eco.css`, in the hotel's colours). |
 | `demo.py` | Four months of stays and two months ahead, with the planted situations listed at its top. |
 | `frontend/src/hotel/` | The screens. They show what the server sends and never compute a business number. |
 
@@ -127,6 +129,14 @@ name a culprit.
 - **The check-in refuses a dirty room** unless the manager forces it, and a forced one shows up in the checks.
 - **The police's guest registration and booking sites are not connected.** Both are on the internet, and a real
   customer installs offline. The desk gets a ready list to copy. This is written in `PRODUCTION.md`.
+- **The public website books a room type, never a room, and the booking waits for its deposit.** The guest pays card
+  to card and sends a photo of the receipt; a person at the desk looks at the bank and accepts it (the deposit is
+  recorded, the booking confirmed) or turns it down. No gateway: Hassan's choice for the eco-lodge, kept here.
+- **Guests see only what they booked with their account.** No text message checks a mobile number, so a phone booking
+  under the same number stays with the desk.
+- **The hotel is not reset on each visit any more,** because its website has guests' accounts. The demo is still
+  rebuilt each day around today; accounts are not wiped and bookings still to come are put back without a room
+  (`store.keep_site` / `restore_site`).
 - **Housekeeping has its own phone page** with no prices, phones or bookings: it needs only the rooms, in the order to
   do them.
 

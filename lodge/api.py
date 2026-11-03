@@ -116,9 +116,9 @@ def stay(arrive, depart):
         raise HTTPException(status_code=422, detail="تاریخ ورود گذشته است")
     return a, d
 
-def save_image(data_url, prefix):
+def save_image(data_url, prefix, folder=None):
     """A photo sent as a data URL: only JPEG or PNG (by its first bytes), at most 6 MB, made at most 1600 px wide and
-    saved as JPEG. Returns the file name."""
+    saved as JPEG in folder (the lodge's own by default; the hotel's website uses it for receipts). Returns the file name."""
     from PIL import Image
     try:
         raw = base64.b64decode(data_url.split(",", 1)[-1], validate=True)
@@ -132,14 +132,14 @@ def save_image(data_url, prefix):
         im = Image.open(io.BytesIO(raw))
         im.thumbnail((1600, 1600))
         name = f"{prefix}-{secrets.token_hex(8)}.jpg"
-        im.convert("RGB").save(os.path.join(store.DIR, name), "JPEG", quality=82)
+        im.convert("RGB").save(os.path.join(folder or store.DIR, name), "JPEG", quality=82)
     except Exception:
         raise HTTPException(status_code=422, detail="فایل عکس خوانده نشد")
     return name
 
-def image_data(name):
+def image_data(name, folder=None):
     try:
-        with open(os.path.join(store.DIR, os.path.basename(name)), "rb") as f:
+        with open(os.path.join(folder or store.DIR, os.path.basename(name)), "rb") as f:
             raw = f.read()
     except OSError:
         return None

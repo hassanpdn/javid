@@ -324,7 +324,14 @@ def alerts(c):
             out.append({"type": "vip", "tone": "danger", "icon": "alert", "booking_id": v["id"], "order": 1,
                         "title": f"مهمان ویژه، {v['guest']}، ساعت {v['eta'] or CHECK_IN} می‌رسد و " + (f"اتاق {v['room']} هنوز تمیز نشده است" if v["room"] else "هنوز اتاقی برایش انتخاب نشده است"),
                         "detail": f"{v['type_text']}، {v['stay_text']}. " + (f"یادداشت: {v['notes']}. " if v["notes"] else "") + "اتاقش را در فهرست خانه‌داری اول بگذارید."})
-    for b in c.execute("SELECT * FROM bookings WHERE status = 'tentative' AND deposit_due < ? ORDER BY arrive", (st,)):
+    for b in c.execute("""SELECT b.* FROM bookings b JOIN receipts r ON r.booking_id = b.id WHERE r.status = 'waiting' AND b.status = 'tentative'
+                          ORDER BY r.at"""):
+        v = booking_view(c, b)
+        out.append({"type": "receipt", "tone": "info", "icon": "file", "booking_id": v["id"], "order": 2,
+                    "title": f"{v['guest']} رسید بیعانه را از سایت فرستاده است",
+                    "detail": f"{v['type_text']}، {v['stay_text']}، {v['total_text']}. واریز را در حساب ببینید و در پرونده‌ی رزرو تأیید کنید تا رزرو قطعی شود."})
+    for b in c.execute("""SELECT * FROM bookings WHERE status = 'tentative' AND deposit_due < ?
+                          AND id NOT IN (SELECT booking_id FROM receipts WHERE status = 'waiting') ORDER BY arrive""", (st,)):
         v = booking_view(c, b)
         out.append({"type": "deposit", "tone": "warning", "icon": "clock", "booking_id": v["id"], "order": 2,
                     "title": f"مهلت بیعانه‌ی {v['guest']} گذشته است ({v['stay_text']})",

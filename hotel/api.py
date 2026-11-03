@@ -8,7 +8,7 @@ Every number is worked out by code (facts.py). The model reads pasted text (read
 summary, whose numbers are checked, with a code-written fallback. Messages to guests are built by code and sent by a
 person. Nothing is confirmed, cancelled or charged by the assistant: it suggests, the operator decides.
 """
-import json, re, threading
+import json, os, re, threading
 from datetime import date
 from fastapi import APIRouter, Depends, Header, HTTPException
 from pydantic import BaseModel, Field
@@ -73,7 +73,8 @@ def info_():
     return {"set_up": True, "hotel": info.public(), "today": facts.jfull(store.today().isoformat()),
             "types": [{"key": k, "name": v[0], "beds": v[1], "most": v[2], "price": s["prices"][k]} for k, v in facts.TYPES.items()],
             "boards": facts.BOARDS, "sources": facts.SOURCES, "charges": facts.CHARGES, "methods": facts.METHODS, "agencies": agencies,
-            "max_discount": s["max_discount"], "check_in": facts.CHECK_IN, "check_out": facts.CHECK_OUT}
+            "max_discount": s["max_discount"], "check_in": facts.CHECK_IN, "check_out": facts.CHECK_OUT,
+            "site_url": os.getenv("HOTEL_URL") or "/hotel-site"}
 
 @router.get("/setup/default")
 def setup_default():
@@ -102,7 +103,6 @@ def reset():
         _cache.clear()
 
 def ensure_fresh():
-    import os
     store.init()
     if info.is_set_up() and store.get_meta("built_for") != store.today().isoformat() and os.getenv("KEEP_DB") != "1":
         demo.build()
@@ -366,7 +366,35 @@ def booking(bid: int, user: dict = Depends(ALL)):
         if b["guest_id"]:
             g = c.execute("SELECT * FROM guests WHERE id = ?", (b["guest_id"],)).fetchone()
             out["guest"] = _guest_card(c, g)
+        r = c.execute("SELECT * FROM receipts WHERE booking_id = ? ORDER BY id DESC LIMIT 1", (bid,)).fetchone()
+        if r:
+            from lodge.api import image_data
+            dep = round((b["total"] or 0) * facts.settings(c)["deposit"] / 100 / 10_000) * 10_000
+            out["receipt"] = {"status": r["status"], "at": facts.jfull(r["at"]) + " " + r["at"][11:16], "data": image_data(r["file"], store.DIR),
+                              "deposit": dep, "deposit_text": facts.money(dep)}
         return out
+
+class ReceiptCheck(BaseModel):
+    ok: bool
+
+@router.post("/bookings/{bid}/receipt")
+def check_receipt(bid: int, req: ReceiptCheck, user: dict = Depends(DESK)):
+    """The website guest's receipt, checked against the bank by a person: the deposit is recorded (the booking is
+    confirmed), or the receipt is turned down and the guest sees it on the website."""
+    with store.conn() as c:
+        b = _booking(c, bid)
+        r = c.execute("SELECT * FROM receipts WHERE booking_id = ? AND status = 'waiting'", (bid,)).fetchone()
+        if not r or b["status"] != "tentative":
+            raise HTTPException(status_code=409, detail="رسیدی منتظر بررسی نیست")
+        c.execute("UPDATE receipts SET status = ? WHERE id = ?", ("ok" if req.ok else "rejected", r["id"]))
+        if not req.ok:
+            store.log(c, user, "receipt", "رسید بیعانه پذیرفته نشد", bid)
+            return {"status": "tentative"}
+        dep = round((b["total"] or 0) * facts.settings(c)["deposit"] / 100 / 10_000) * 10_000
+        c.execute("INSERT INTO payments (booking_id, at, amount, method, kind, user_id) VALUES (?,?,?, 'transfer', 'deposit', ?)", (bid, store.stamp(), dep, user["id"]))
+        c.execute("UPDATE bookings SET status = 'confirmed', deposit_due = NULL WHERE id = ?", (bid,))
+        store.log(c, user, "pay", f"بیعانه‌ی {facts.money(dep)} با رسید سایت ثبت شد؛ رزرو قطعی شد", bid)
+    return {"status": "confirmed"}
 
 class RoomIn(BaseModel):
     room_id: int
