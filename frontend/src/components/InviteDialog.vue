@@ -1,32 +1,41 @@
 <script setup>
-// «دعوت‌نامه» (permanent account, from «دسترسی‌ها»): the guest's name, the assistants to show them and Persian or
-// English; the letter is drawn beside the form as it is filled in (lib/invite.js) and «دانلود PDF» saves it. One
-// assistant: its own description in the letter; two or more: a short general overview and their names. Nothing is
-// sent to the server and nothing is kept: the PDF is made in this browser only when downloading.
+// «دعوت‌نامه» (permanent account, from «دسترسی‌ها»): آقای or خانم and the guest's name, the assistants to show them,
+// Persian or English, and the login to print in it (username, password, until when; all optional). The letter is drawn
+// beside the form as it is filled in (lib/invite.js) and «دانلود PDF» saves it. One assistant: its problem, solution
+// and gains; two or more: a general overview and their names. person: an access to start from (right after it is
+// made, its password too). Nothing is sent to the server and nothing is kept.
 import { ref, reactive, computed, watch, onMounted } from "vue"
 import { access } from "../lib/access.js"
 import { today as browserToday, format } from "../lib/jalali.js"
 import { drawInvite, toPdf, PAGE } from "../lib/invite.js"
 import Icon from "./Icon.vue"
+import DatePicker from "./core/DatePicker.vue"
+import TimePicker from "./core/TimePicker.vue"
 import "./hub-dialog.css"
 
-const props = defineProps({ assistants: Array })
+const props = defineProps({ assistants: Array, person: { type: Object, default: null } })
 const emit = defineEmits(["close"])
-const form = reactive({ name: "", english: false, apps: [] })
+const p = props.person || {}
+const [day, hour] = (p.expires_on || "").split(" ")
+const form = reactive({ hon: "", name: p.name || "", english: false, apps: p.apps ? [...p.apps] : [],
+                        username: p.username || "", password: p.password || "", date: day || null, time: day ? hour || "23:55" : null })
 const canvas = ref(null), drawing = ref(false), saving = ref(false), error = ref("")
 const lang = computed(() => (form.english ? "en" : "fa"))
 const ready = computed(() => form.name.trim().length >= 2 && form.apps.length > 0)
 const toggle = (k) => { form.apps = form.apps.includes(k) ? form.apps.filter((x) => x !== k) : [...form.apps, k] }
+const todayStr = computed(() => access.today || format(browserToday()))
+watch(() => form.date, (d) => { if (!d) form.time = null; else if (!form.time) form.time = "20:00" })
+const HONS = computed(() => form.english ? [["m", "Mr."], ["f", "Ms."], ["", "بدون عنوان"]] : [["m", "جناب آقای"], ["f", "سرکار خانم"], ["", "بدون عنوان"]])
 
-// redrawn a moment after each change, so typing a name stays smooth
+// redrawn a moment after each change, so typing stays smooth
 let timer
 async function draw() {
   drawing.value = true
   try {
     const apps = props.assistants.filter((a) => form.apps.includes(a.key))
-    const shown = apps.length ? apps : [props.assistants[0]]
     const name = form.name.trim() || (form.english ? "Your guest" : "نام مهمان")
-    await drawInvite(canvas.value, { lang: lang.value, name, apps: shown, today: access.today || format(browserToday()) })
+    const login = { username: form.username.trim(), password: form.password.trim(), expires: form.date ? `${form.date} ${form.time || "23:55"}` : "" }
+    await drawInvite(canvas.value, { lang: lang.value, hon: form.hon, name, apps: apps.length ? apps : [props.assistants[0]], login, today: todayStr.value })
   } catch (e) { error.value = "پیش‌نمایش ساخته نشد: " + e.message }
   drawing.value = false
 }
@@ -59,6 +68,12 @@ async function download() {
 
       <div class="iv-body">
         <form class="iv-form" @submit.prevent="download" novalidate>
+          <div class="hd-field">
+            <span class="hd-label">عنوان</span>
+            <div class="iv-seg" role="radiogroup" aria-label="عنوان">
+              <button v-for="[k, t] in HONS" :key="k" type="button" role="radio" :aria-checked="form.hon === k" :class="{ on: form.hon === k }" @click="form.hon = k">{{ t }}</button>
+            </div>
+          </div>
           <label class="hd-field">
             <span class="hd-label">نام و نام خانوادگی مهمان</span>
             <span class="hd-input"><Icon name="user" :size="19" />
@@ -78,6 +93,18 @@ async function download() {
                 <span class="iv-app-icon"><Icon :name="a.icon" :size="18" /></span><span class="iv-app-name">{{ a.title }}</span>
                 <span class="iv-tick"><Icon name="check" :size="12" /></span>
               </button>
+            </div>
+          </div>
+
+          <div class="hd-field">
+            <span class="hd-label">اطلاعات ورود <small class="iv-hint">اختیاری؛ خالی بماند یعنی «جداگانه فرستاده می‌شود»</small></span>
+            <div class="iv-two">
+              <span class="hd-input"><Icon name="userCheck" :size="18" /><input v-model="form.username" maxlength="30" dir="ltr" placeholder="نام کاربری" autocomplete="off" spellcheck="false" aria-label="نام کاربری" /></span>
+              <span class="hd-input"><Icon name="lock" :size="18" /><input v-model="form.password" maxlength="100" dir="ltr" placeholder="رمز عبور" autocomplete="off" spellcheck="false" aria-label="رمز عبور" /></span>
+            </div>
+            <div class="iv-when">
+              <div class="iv-picker"><DatePicker v-model="form.date" :min="todayStr" clearable label="معتبر تا" placeholder="معتبر تا (بدون تاریخ)" /></div>
+              <div class="iv-picker"><TimePicker v-model="form.time" :disabled="!form.date" label="ساعت" /></div>
             </div>
           </div>
 
@@ -128,6 +155,16 @@ async function download() {
 .iv-tick { position: absolute; top: 50%; left: 10px; display: grid; place-items: center; width: 20px; height: 20px; margin-top: -10px; border-radius: 50%;
   color: #fff; background: var(--c1); opacity: 0; transform: scale(.5); transition: opacity .2s, transform .25s; }
 .iv-app.on .iv-tick { opacity: 1; transform: none; }
+.iv-seg { display: flex; gap: 6px; padding: 4px; border-radius: 14px; background: rgba(10,9,32,.5); border: 1px solid rgba(255,255,255,.12); }
+.iv-seg button { flex: 1; height: 38px; border: 0; border-radius: 10px; cursor: pointer; font: inherit; font-size: 13.5px; color: #cfcbf3; background: transparent; white-space: nowrap; }
+.iv-seg button.on { color: #fff; background: #6a5cf5; font-weight: 700; }
+.iv-seg button:focus-visible { outline: 3px solid #8fefff; outline-offset: 1px; }
+.iv-two, .iv-when { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.iv-when { grid-template-columns: 2fr 1fr; margin-top: 10px; }
+.iv-two > *, .iv-when > * { min-width: 0; }
+.iv-picker { --dp-panel: #1c1a3f; --dp-field-bg: rgba(10,9,32,.6); --dp-field-line: rgba(255,255,255,.14); --dp-text: #fff; --dp-muted: #9a96c4; --dp-accent: #8f85ff; }
+.iv-picker :deep(.dp-field) { --dp-panel: inherit; --dp-field-bg: inherit; --dp-field-line: inherit; --dp-text: inherit; --dp-muted: inherit; --dp-accent: inherit; height: 50px; border-radius: 14px; }
+@media (max-width: 480px) { .iv-two { grid-template-columns: 1fr; } }
 .iv-preview { position: sticky; top: 0; display: flex; flex-direction: column; gap: 8px; }
 .iv-preview-label { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 700; color: #d6d3f5; }
 .iv-preview canvas { width: 100%; height: auto; aspect-ratio: 1654 / 2339; border-radius: 10px; background: #fff; box-shadow: 0 20px 50px -20px rgba(0,0,0,.8); transition: opacity .2s; }

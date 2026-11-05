@@ -11,7 +11,7 @@ const InviteDialog = defineAsyncComponent(() => import("./InviteDialog.vue"))
 // collapsible (the assistants page): only the header shows until it is opened, so the assistants page stays short
 const props = defineProps({ assistants: Array, collapsible: { type: Boolean, default: false } })
 const open = ref(false)
-const inviting = ref(false), list = ref([]), loading = ref(true), editing = ref(null), adding = ref(false), removing = ref(null), error = ref("")
+const inviting = ref(null), list = ref([]), loading = ref(true), editing = ref(null), adding = ref(false), removing = ref(null), error = ref("")
 
 // a failed call says so: an empty list must mean "nobody yet", never "the list did not load"
 const load = async () => {
@@ -43,7 +43,7 @@ const remove = async (p) => {
         <div><h2>دسترسی‌ها</h2><p>چه کسی، با چه رمزی، کدام دستیار را ببیند.</p></div>
       </div>
       <div class="am-tools">
-        <button class="am-btn am-invite" @click="inviting = true"><Icon name="mail" :size="17" />دعوت‌نامه</button>
+        <button class="am-btn am-invite" @click="inviting = {}"><Icon name="mail" :size="17" />دعوت‌نامه</button>
         <button class="am-add" @click="adding = true"><Icon name="plus" :size="18" />دسترسی جدید</button>
       </div>
     </header>
@@ -81,6 +81,7 @@ const remove = async (p) => {
           </div>
           <div v-else class="am-actions">
             <button class="am-btn" @click="editing = p"><Icon name="pencil" :size="15" />تغییر</button>
+            <button class="am-btn" @click="inviting = p"><Icon name="mail" :size="15" />دعوت‌نامه</button>
             <button class="am-btn" @click="removing = p.id"><Icon name="x" :size="15" />پاک کردن</button>
           </div>
         </div>
@@ -90,8 +91,9 @@ const remove = async (p) => {
     </div>
     <!-- to body: this section's frosted glass would otherwise hold the dialog inside it -->
     <Teleport to="body">
-      <InviteDialog v-if="inviting" :assistants="assistants" @close="inviting = false" />
-      <AccessForm v-if="adding || editing" :assistants="assistants" :person="editing" @saved="load" @close="adding = false; editing = null" />
+      <InviteDialog v-if="inviting" :assistants="assistants" :person="inviting" @close="inviting = null" />
+      <AccessForm v-if="adding || editing" :assistants="assistants" :person="editing" @saved="load" @close="adding = false; editing = null"
+                  @invite="(p) => { adding = false; editing = null; inviting = p }" />
     </Teleport>
   </section>
 </template>

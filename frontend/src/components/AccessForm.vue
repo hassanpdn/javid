@@ -10,7 +10,7 @@ import TimePicker from "./core/TimePicker.vue"
 import "./hub-dialog.css"
 
 const props = defineProps({ assistants: Array, person: { type: Object, default: null } })
-const emit = defineEmits(["close", "saved"])
+const emit = defineEmits(["close", "saved", "invite"])
 const editing = !!props.person
 
 // Today and now come from the server's clock (access.today, access.now); the browser's only if the server hasn't said.
@@ -95,6 +95,7 @@ const copy = async () => {
         <div><dt>تا</dt><dd>{{ done.expires_on ? jalaliText(done.expires_on) : "بدون تاریخ انقضا" }}</dd></div>
       </dl>
       <button type="button" class="hd-btn" @click="copy"><Icon :name="copied ? 'check' : 'file'" :size="18" />{{ copied ? "کپی شد" : "کپی متن برای فرستادن" }}</button>
+      <button type="button" class="hd-ghost" @click="emit('invite', done)"><Icon name="mail" :size="16" />ساخت دعوت‌نامه با همین اطلاعات</button>
     </section>
 
     <form v-else class="hd wide" v-pop @submit.prevent="save" novalidate>
