@@ -49,6 +49,12 @@ const ASSISTANTS = [
     perks: [{ icon: "calendar", text: "نوبت فردا" }, { icon: "heart", text: "طرح شروع‌نشده" }, { icon: "users", text: "فهرست انتظار" }],
   },
   {
+    key: "lang", title: "دستیار آموزشگاه زبان", icon: "globe", hue: "cobalt",
+    desc: "برای آموزشگاهی که جدول کلاس‌ها، ثبت‌نام و نمره‌هایش در دفتر و اکسل است: جدول کلاس‌ها با تداخل‌یاب، آزمون آنلاین و تعیین سطح، و مسیر هر زبان‌آموز از ترم امروز تا آخرین کتاب.",
+    roles: ["مدیر", "منشی", "استاد", "زبان‌آموز"],
+    perks: [{ icon: "route", text: "مسیر زبان‌آموز" }, { icon: "calendar", text: "جدول بی‌تداخل" }, { icon: "check", text: "آزمون آنلاین" }],
+  },
+  {
     key: "hotel", title: "دستیار هتل", icon: "bed", hue: "ocean",
     desc: "رزرو تا تسویه در یک پنل: قیمت هر شب با فصل و آخر هفته، جدول اتاق‌ها، ورود و خروج، خانه‌داری، آژانس‌ها و سایت هتل؛ و در روزهای شلوغ، فهرستی که می‌گوید اول چه کاری.",
     roles: ["مدیر هتل", "رزرو", "پذیرش", "خانه‌داری", "سایت هتل"],
@@ -267,6 +273,7 @@ h1 span { background: linear-gradient(90deg, #a99fff, #5fe3f3 60%, #ff9fc6); -we
 .hue-sky { --c1: #1d6fa3; --c2: #f28b82; }
 .hue-ocean { --c1: #0d5c7a; --c2: #e8c27a; }
 .hue-clay { --c1: #8a4320; --c2: #f2c27a; }
+.hue-cobalt { --c1: #2a5bd0; --c2: #f5b82e; }
 .h-card:hover { border-color: rgba(255,255,255,.28); box-shadow: 0 40px 90px -24px rgba(115,103,240,.55), inset 0 1px 0 rgba(255,255,255,.25); }
 .h-card:focus-visible { outline: 3px solid #8fefff; outline-offset: 4px; }
 .h-glow { position: absolute; inset: 0; pointer-events: none; opacity: 0; transition: opacity .3s;

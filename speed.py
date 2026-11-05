@@ -27,6 +27,7 @@ SCREENS = {   # screen key -> words on the page
     "dental:owner": "دندان‌پزشکی، دندان‌پزشک", "dental:secretary": "دندان‌پزشکی، منشی",
     "hotel:manager": "هتل، مدیر", "hotel:reservation": "هتل، رزرو", "hotel:reception": "هتل، پذیرش", "hotel:housekeeping": "هتل، خانه‌داری",
     "lodge:host": "بوم‌گردی، میزبان", "lodge:helper": "بوم‌گردی، همکار",
+    "lang:owner": "آموزشگاه زبان، مدیر", "lang:secretary": "آموزشگاه زبان، منشی", "lang:teacher": "آموزشگاه زبان، استاد", "lang:student": "آموزشگاه زبان، زبان‌آموز",
 }
 KINDS = {"load": "باز شدن سایت", "open": "باز شدن از داخل سایت"}
 

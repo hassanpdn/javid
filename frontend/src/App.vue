@@ -2,7 +2,7 @@
 // Root: the site's door and the list of assistants (live demo only), the school setup form (first run, or when asked for),
 // the login page, or the panel for the user's role
 import { computed, watch, onMounted, defineAsyncComponent } from "vue"
-import { api, session, clearSession, clearFabricSession, clearEstateSession, clearLawSession, clearDentalSession, clearHotelSession, clearLodgeSession, lockScroll } from "./lib/api.js"
+import { api, session, clearSession, clearFabricSession, clearEstateSession, clearLawSession, clearDentalSession, clearHotelSession, clearLodgeSession, clearLangSession, lockScroll } from "./lib/api.js"
 import { schoolInfo, setupUi, loadSchool } from "./lib/school.js"
 import { gate, checkGate } from "./lib/gate.js"
 import { access, checkAccess, canOpen } from "./lib/access.js"
@@ -21,6 +21,7 @@ const LawApp = page(() => import("./law/LawApp.vue"))
 const DentalApp = page(() => import("./dental/DentalApp.vue"))
 const HotelApp = page(() => import("./hotel/HotelApp.vue"))
 const LodgeApp = page(() => import("./lodge/LodgeApp.vue"))
+const LangApp = page(() => import("./lang/LangApp.vue"))
 const SetupPage = page(loadSetup)
 const LoginPage = page(loadLogin)
 const ManagerPanel = page(PANELS.manager)
@@ -38,7 +39,7 @@ const boot = async () => {
   if (gate.reset) {
     gate.reset = false
     try { await api("/setup/reset", {}) } catch {}
-    clearSession(); clearFabricSession(); clearEstateSession(); clearLawSession(); clearDentalSession(); clearHotelSession(); clearLodgeSession()
+    clearSession(); clearFabricSession(); clearEstateSession(); clearLawSession(); clearDentalSession(); clearHotelSession(); clearLodgeSession(); clearLangSession()
   }
   if (!canOpen("school") || schoolInfo.loaded) return
   // signed out, the next page is the setup form or the login page: download both while the school's details arrive,
@@ -85,6 +86,7 @@ watch(user, () => lockScroll(false))
   <DentalApp v-else-if="gate.app === 'dental'" />
   <HotelApp v-else-if="gate.app === 'hotel'" />
   <LodgeApp v-else-if="gate.app === 'lodge'" />
+  <LangApp v-else-if="gate.app === 'lang'" />
   <template v-else-if="!schoolInfo.loaded"></template>
   <SetupPage v-else-if="!user && (!schoolInfo.set_up || setupUi.open)" />
   <LoginPage v-else-if="!user" />

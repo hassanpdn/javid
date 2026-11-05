@@ -48,7 +48,12 @@ export const lodgeSession = reactive({ token: store.get("lodge_token"), user: nu
 export const setLodgeSession = (token, user) => { lodgeSession.token = token; lodgeSession.user = user; store.set("lodge_token", token) }
 export const clearLodgeSession = () => { lodgeSession.token = null; lodgeSession.user = null; store.del("lodge_token") }
 const isLodge = (path) => path.startsWith("/lodge/")
-const tokenFor = (path) => (isFabric(path) ? fabricSession.token : isEstate(path) ? estateSession.token : isLaw(path) ? lawSession.token : isDental(path) ? dentalSession.token : isHotel(path) ? hotelSession.token : isLodge(path) ? lodgeSession.token : session.token) || ""
+// The language institute likewise (/lang/...).
+export const langSession = reactive({ token: store.get("lang_token"), user: null })
+export const setLangSession = (token, user) => { langSession.token = token; langSession.user = user; store.set("lang_token", token) }
+export const clearLangSession = () => { langSession.token = null; langSession.user = null; store.del("lang_token") }
+const isLang = (path) => path.startsWith("/lang/")
+const tokenFor = (path) => (isFabric(path) ? fabricSession.token : isEstate(path) ? estateSession.token : isLaw(path) ? lawSession.token : isDental(path) ? dentalSession.token : isHotel(path) ? hotelSession.token : isLodge(path) ? lodgeSession.token : isLang(path) ? langSession.token : session.token) || ""
 
 // On a weak mobile connection a request can hang with no answer at all. So every request has a time limit (20 s for
 // reading, 60 s for sending; opts.timeout for a big upload), a read is sent once more if the first try got nothing,
@@ -86,13 +91,13 @@ export async function api(path, body, opts = {}) {
     if (body) throw e                       // sending is not repeated by itself: it might have arrived
     res = await send(path, body, timeout)   // reading is: one more try
   }
-  if (res.status === 401 && path !== "/login" && path !== "/fabric/login" && path !== "/estate/login" && path !== "/law/login" && path !== "/dental/login" && path !== "/hotel/login" && path !== "/lodge/login") {
+  if (res.status === 401 && path !== "/login" && path !== "/fabric/login" && path !== "/estate/login" && path !== "/law/login" && path !== "/dental/login" && path !== "/hotel/login" && path !== "/lodge/login" && path !== "/lang/login") {
     // "site": the site's own door (gate.py) is closed for this browser, so the door page comes back
     const d = await res.clone().json().catch(() => ({}))
     if (d.detail === "site") { gate.ok = false; throw new Error("site") }
     // "access": this browser may not open that assistant (access.py), so its login box comes back on the assistants page
     if (d.detail === "access") { accessDenied(d.app); throw new Error("access") }
-    if (isFabric(path)) clearFabricSession(); else if (isEstate(path)) clearEstateSession(); else if (isLaw(path)) clearLawSession(); else if (isDental(path)) clearDentalSession(); else if (isHotel(path)) clearHotelSession(); else if (isLodge(path)) clearLodgeSession(); else clearSession()
+    if (isFabric(path)) clearFabricSession(); else if (isEstate(path)) clearEstateSession(); else if (isLaw(path)) clearLawSession(); else if (isDental(path)) clearDentalSession(); else if (isHotel(path)) clearHotelSession(); else if (isLodge(path)) clearLodgeSession(); else if (isLang(path)) clearLangSession(); else clearSession()
     throw new Error("401")
   }
   const data = await res.json()

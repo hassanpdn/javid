@@ -32,6 +32,7 @@ from law import api as law_api
 from dental import api as dental_api
 from hotel import api as hotel_api, site as hotel_site, public as hotel_public
 from lodge import api as lodge_api, public as lodge_public
+from lang import api as lang_api
 THRESHOLD = float(os.getenv("SIMILARITY_THRESHOLD", "0.60"))
 NOT_FOUND = "پاسخ این سؤال در اسناد مدرسه پیدا نشد. می‌توانید سؤال را دقیق‌تر بپرسید یا با دفتر مدرسه تماس بگیرید."
 UNCLEAR = "سؤال شما روشن نیست. لطفاً سؤال را کامل و واضح بنویسید، مثلاً «ساعت کار کارکنان اداری چقدر است؟»"
@@ -189,6 +190,7 @@ def setup_reset():
     estate_api.reset()   # and the real estate agency starts fresh
     law_api.reset()      # and the law office
     dental_api.reset()   # and the dental clinic
+    lang_api.reset()     # and the language institute
     # the hotel and the eco-lodge are not: their public websites keep working and their guests keep their accounts
     return {"ok": True}
 
@@ -310,6 +312,7 @@ app.include_router(hotel_site.router)
 app.include_router(hotel_public.router)
 app.include_router(lodge_api.router)
 app.include_router(lodge_public.router)
+app.include_router(lang_api.router)
 
 @app.get("/eco")
 @app.get("/eco/")

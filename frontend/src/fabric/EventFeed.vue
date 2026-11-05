@@ -15,7 +15,9 @@ const LOOK = { invoice: ["file", "success"], upload: ["refresh", "warning"], rem
                web_order: ["message", "success"], customer: ["user", "info"],
                listing: ["file", "primary"], request: ["users", "info"], site: ["message", "success"], call: ["send", "info"], visit: ["calendar", "warning"],
                deal: ["check", "success"], status: ["refresh", "warning"], contact: ["refresh", "secondary"], report: ["message", "info"], settings: ["edit", "secondary"],
-               case: ["file", "primary"], notice: ["mail", "info"], done: ["check", "success"], note: ["edit", "secondary"] }
+               case: ["file", "primary"], notice: ["mail", "info"], done: ["check", "success"], note: ["edit", "secondary"],
+               enroll: ["users", "success"], pay: ["chart", "success"], class: ["calendar", "primary"], teacher: ["user", "info"], student: ["user", "info"],
+               attendance: ["check", "info"], score: ["edit", "secondary"], exam: ["sparkles", "warning"], test: ["book", "primary"] }
 // the short feed leaves out logins; the full log keeps everything
 const shown = computed(() => props.full ? items.value : items.value.filter((e) => e.kind !== "login").slice(0, props.limit))
 let timer

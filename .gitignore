@@ -53,3 +53,6 @@ hotel_files/
 lodge.db
 lodge.json
 lodge_files/
+# The language institute set up on this machine (see lang/institute.py)
+lang.db
+lang.json
