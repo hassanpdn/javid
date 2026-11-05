@@ -54,31 +54,63 @@ function releaseFocus(el) {
 const isPhone = () => window.matchMedia("(max-width: 767px)").matches
 const slideUp = (el) => motion && gsap && gsap.fromTo(el, { yPercent: 100 }, { yPercent: 0, duration: .5, ease: "power4.out", clearProps: "transform" })
 
-// A sheet follows the finger when it is pulled down from its top part, and closes past 110px (or a quick flick).
-// Closing is a click on the overlay behind it, the same thing that closes it on a computer.
+// A sheet follows the finger when it is pulled down, and closes past 110px (or a quick flick). The pull may start on
+// its top part, or anywhere on it while what is under the finger is scrolled to the top (as in the phone's own sheets);
+// pulling down in the middle of a list scrolls the list instead. Closing is a click on the overlay behind it, the same
+// thing that closes it on a computer.
+// Touch events, not pointer events: on a phone the browser takes a downward drag for a scroll and cancels the pointer
+// events (pointercancel), so the sheet never moved. touchmove is listened to with passive: false, so once the sheet is
+// being pulled the page does not scroll under the finger.
 function draggable(el) {
-  let startY = null, dy = 0, t0 = 0
-  const down = (e) => {
-    if (!isPhone() || e.button > 0 || e.clientY - el.getBoundingClientRect().top > 64 || e.target.closest("button, input, textarea, select")) return
-    startY = e.clientY; dy = 0; t0 = Date.now(); el.style.transition = "none"
+  let startY = null, dy = 0, t0 = 0, pulling = false, scroller = null
+  const atTop = (target) => {
+    for (let n = target; n && n !== el.parentElement; n = n.parentElement) {
+      const o = getComputedStyle(n).overflowY
+      if ((o === "auto" || o === "scroll") && n.scrollHeight > n.clientHeight + 1) { scroller = n; return n.scrollTop <= 0 }
+    }
+    return true
   }
-  const move = (e) => {
-    if (startY === null) return
-    dy = Math.max(0, e.clientY - startY); el.style.transform = `translateY(${dy}px)`
+  const start = (y, target) => {
+    if (!isPhone() || target.closest("input, textarea, select, canvas")) return
+    startY = y; dy = 0; t0 = Date.now(); pulling = false
+    const onTop = y - el.getBoundingClientRect().top <= 64 && !target.closest("button")
+    pulling = onTop ? "top" : (atTop(target) ? "maybe" : false)
+    if (!pulling) startY = null
   }
-  const up = () => {
+  const follow = (y, e) => {
     if (startY === null) return
-    startY = null; el.style.transition = "transform .25s ease"
+    const d = y - startY
+    if (pulling === "maybe") {                       // decide on the first few pixels: down pulls the sheet, up scrolls
+      if (Math.abs(d) < 6) return
+      if (d < 0 || (scroller && scroller.scrollTop > 0)) { startY = null; return }
+      pulling = "body"
+    }
+    if (e?.cancelable) e.preventDefault()
+    if (dy === 0) el.style.transition = "none"
+    dy = Math.max(0, d); el.style.transform = `translateY(${dy}px)`
+  }
+  const end = () => {
+    if (startY === null) return
+    startY = null; scroller = null; el.style.transition = "transform .25s ease"
     const flick = dy > 40 && dy / Math.max(1, Date.now() - t0) > .6
     if (dy > 110 || flick) {
       el.style.transform = "translateY(100%)"
       setTimeout(() => el.parentElement?.dispatchEvent(new MouseEvent("click", { bubbles: true })), 200)
     } else el.style.transform = ""
+    dy = 0
   }
-  el.addEventListener("pointerdown", down)
-  window.addEventListener("pointermove", move)
-  window.addEventListener("pointerup", up)
-  el._undrag = () => { window.removeEventListener("pointermove", move); window.removeEventListener("pointerup", up) }
+  const ts = (e) => { if (e.touches.length === 1) start(e.touches[0].clientY, e.target) }
+  const tm = (e) => follow(e.touches[0].clientY, e)
+  // a mouse in a narrow window (testing on a computer) pulls only from the top part, as before
+  const pd = (e) => { if (e.pointerType === "mouse" && e.button === 0 && e.clientY - el.getBoundingClientRect().top <= 64 && !e.target.closest("button, input, textarea, select")) start(e.clientY, e.target) }
+  const pm = (e) => { if (e.pointerType === "mouse") follow(e.clientY) }
+  const pu = (e) => { if (e.pointerType === "mouse") end() }
+  el.addEventListener("touchstart", ts, { passive: true })
+  el.addEventListener("touchmove", tm, { passive: false })
+  el.addEventListener("touchend", end); el.addEventListener("touchcancel", end)
+  el.addEventListener("pointerdown", pd)
+  window.addEventListener("pointermove", pm); window.addEventListener("pointerup", pu)
+  el._undrag = () => { window.removeEventListener("pointermove", pm); window.removeEventListener("pointerup", pu) }
 }
 
 // v-pop: dialogs spring in. v-pop:drop is the smaller version for dropdown menus.
