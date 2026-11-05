@@ -111,8 +111,9 @@ const remove = async (p) => {
 .am-add { display: inline-flex; align-items: center; gap: 8px; height: 46px; padding: 0 18px; border: 0; border-radius: 14px; cursor: pointer;
   font: inherit; font-size: 14.5px; font-weight: 700; color: #fff; background: linear-gradient(110deg, #6a5cf5, #8f6bff 45%, #1fb8d6); background-size: 180% 100%;
   box-shadow: 0 14px 30px -12px rgba(115,103,240,.9); transition: background-position .5s; }
-.am-tools { display: flex; flex-wrap: wrap; gap: 10px; }
-.am-invite { height: 46px; padding: 0 16px; border-radius: 14px; font-size: 14.5px; font-weight: 700; }
+.am-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+/* the same size and shape as «دسترسی جدید» beside it, only quieter (.am-btn comes later, so both classes here) */
+.am-btn.am-invite { height: 46px; gap: 8px; padding: 0 18px; border-radius: 14px; font-size: 14.5px; font-weight: 700; color: #fff; }
 .am-add:hover { background-position: 100% 0; }
 .am-add:focus-visible { outline: 3px solid #8fefff; outline-offset: 3px; }
 
@@ -171,7 +172,7 @@ const remove = async (p) => {
 @media (max-width: 480px) {
   .am { padding: 18px 14px; border-radius: 24px; }
   .am-tools { width: 100%; }
-  .am-add, .am-invite { flex: 1; justify-content: center; }
+  .am-add, .am-btn.am-invite { flex: 1; justify-content: center; padding: 0 12px; white-space: nowrap; }
 }
 @keyframes am-up { from { opacity: 0; transform: translateY(30px); } }
 @media (prefers-reduced-motion: reduce) { .am { animation: none; } }

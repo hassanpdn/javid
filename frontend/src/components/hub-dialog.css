@@ -37,7 +37,9 @@
 .hd-spin { width: 18px; height: 18px; border-radius: 50%; border: 2.5px solid rgba(255,255,255,.35); border-top-color: #fff; animation: hd-rot .8s linear infinite; }
 
 @media (max-width: 767px) {
-  .hd-overlay { place-items: end stretch; padding: 0; }
+  /* only the part of the screen the keyboard leaves visible (--vvh, --vvt from lib/viewport.js), so a sheet with a
+     field in focus sits above the keyboard instead of under it */
+  .hd-overlay { place-items: end stretch; padding: 0; inset: var(--vvt, 0px) 0 auto 0; height: var(--vvh, 100dvh); }
   .hd, .hd.wide { width: 100%; max-height: calc(var(--vvh, 100dvh) - env(safe-area-inset-top) - 20px);
     border-radius: 22px 22px 0 0; padding: 22px 18px calc(env(safe-area-inset-bottom) + 18px); }
   .hd::before { content: ""; flex: none; display: block; width: 46px; height: 5px; margin: -10px auto 2px; border-radius: 999px; background: rgba(255,255,255,.2); }

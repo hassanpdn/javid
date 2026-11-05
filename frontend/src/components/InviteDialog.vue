@@ -41,6 +41,8 @@ async function draw() {
 }
 watch(form, () => { clearTimeout(timer); timer = setTimeout(draw, 220) }, { deep: true })
 onMounted(draw)
+// phones: once the keyboard is up (the sheet has shrunk to the visible part), keep the field being typed in on screen
+const keepInView = (e) => { if (e.target.matches("input")) setTimeout(() => e.target.scrollIntoView({ block: "center", behavior: "smooth" }), 320) }
 
 async function download() {
   if (!ready.value) { error.value = form.apps.length ? "نام مهمان را بنویسید." : "دست‌کم یک دستیار را انتخاب کنید."; return }
@@ -60,7 +62,7 @@ async function download() {
 
 <template>
   <div class="hd-overlay" @click.self="emit('close')">
-    <section class="hd iv" v-pop role="dialog" aria-label="دعوت‌نامه">
+    <section class="hd iv" v-pop role="dialog" aria-label="دعوت‌نامه" @focusin="keepInView">
       <div class="hd-head">
         <div><h3>دعوت‌نامه</h3><p>نام مهمان و دستیارها را انتخاب کنید؛ دعوت‌نامه کنار فرم ساخته می‌شود. چیزی جایی ذخیره نمی‌شود.</p></div>
         <button type="button" class="hd-x" aria-label="بستن" @click="emit('close')"><Icon name="x" :size="18" /></button>
