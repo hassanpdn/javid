@@ -165,6 +165,14 @@ def test_messages_and_unpaid(tokens):
     post(f"/students/{u['student_id']}/payments", {"enrollment_id": e["id"], "amount": e["left"], "method": "cash"}, "monshi", tokens)
     assert u["student_id"] not in {a.get("student_id") for a in get("/today", "monshi", tokens).json()["alerts"] if a["type"] == "unpaid"}
 
+def test_fee_message_for_next_term(tokens):
+    """A learner who owes only next term's fee gets the fee message too (the file shows that balance)."""
+    nx = next(c for c in get("/timetable?term=next", "modir", tokens).json()["classes"] if c["free"] > 0)
+    sid = post("/students", {"name": "مهسا آزمایشی", "phone": "09127776600"}, "monshi", tokens).json()["id"]
+    assert post("/enroll", {"student_id": sid, "class_id": nx["id"]}, "monshi", tokens).status_code == 200
+    m = get(f"/students/{sid}/message?kind=unpaid", "monshi", tokens)
+    assert m.status_code == 200 and "ترم بعد" in m.json()["text"]
+
 def test_model_numbers_are_checked(tokens):
     fake_llm.MODE = "badnum"                                       # the model changes the numbers
     try:

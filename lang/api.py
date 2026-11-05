@@ -507,11 +507,23 @@ def message(sid: int, kind: str, user: dict = Depends(OFFICE)):
             course = st["course_name"] if st else ""
             text = f"{hello} در جلسه‌های {days} کلاس {course} شما را ندیدیم. اگر مشکلی پیش آمده، با دفتر آموزشگاه تماس بگیرید تا با هم راهی پیدا کنیم؛ درس این جلسه‌ها را هم می‌توانید از استاد بگیرید."
         elif kind == "unpaid":
-            u = next((x for x in facts.unpaid(c) if x["student_id"] == sid), None)
-            if not u:
+            # the same balances the learner's file shows: this term's and the next term's, this term's first
+            owed = []
+            for e in c.execute("""SELECT e.*, cl.course, t.kind, t.start FROM enrollments e JOIN classes cl ON cl.id = e.class_id JOIN terms t ON t.id = cl.term_id
+                                  WHERE e.student_id = ? AND e.status IN ('active', 'registered') ORDER BY t.start""", (sid,)):
+                left = e["fee"] - facts.paid_of(c, e["id"])
+                if left > 0:
+                    owed.append((e, left))
+            if not owed:
                 raise HTTPException(status_code=409, detail="شهریه‌ی این زبان‌آموز مانده‌ای ندارد")
-            text = (f"{hello} از شهریه‌ی کلاس {u['course']} ({facts.money(u['fee'])}) {facts.money(u['left'])} مانده است. لطفاً در دفتر آموزشگاه بپردازید، "
-                    "یا کارت به کارت کنید و رسید را برای ما بفرستید.")
+            e, left = owed[0]
+            course = cur.TERM[e["course"]]["name"]
+            if e["kind"] == "current":
+                text = (f"{hello} از شهریه‌ی کلاس {course} ({facts.money(e['fee'])}) {facts.money(left)} مانده است. لطفاً در دفتر آموزشگاه بپردازید، "
+                        "یا کارت به کارت کنید و رسید را برای ما بفرستید.")
+            else:
+                text = (f"{hello} جای شما در کلاس {course} ترم بعد نگه داشته شده است. ترم از {facts.jlong(e['start'])} شروع می‌شود و از شهریه‌ی آن "
+                        f"({facts.money(e['fee'])}) {facts.money(left)} مانده است. لطفاً پیش از شروع ترم در دفتر آموزشگاه بپردازید، یا کارت به کارت کنید و رسید را برای ما بفرستید.")
         elif kind == "renew":
             r = next((x for x in facts.renewals(c) if x["student_id"] == sid), None)
             t, nt = facts.term_view(facts.term(c, "current")), facts.term_view(facts.term(c, "next"))
