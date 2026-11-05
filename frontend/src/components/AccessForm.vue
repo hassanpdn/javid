@@ -1,16 +1,20 @@
 <script setup>
-// Give or change one person's access (permanent account only, access.py): their name, username and password, the
-// assistants they may open (one or more), and an optional expiry date and time. After saving with a password, a text ready to send.
-import { ref, reactive, computed, watch, onMounted } from "vue"
+// Give or change one person's access (permanent account only, access.py): their name, username and password (both made
+// here for a new access), the assistants they may open (one or more), and an optional expiry date and time. With
+// «دعوت‌نامه‌ی PDF» ticked, the invitation letter for the same person is drawn beside the form (آقای/خانم, Persian or
+// English; lib/invite.js) and downloaded as soon as the access is saved, with this username and password in it.
+// After saving with a password, a text ready to send. invite: open with the letter already ticked (a person's card).
+import { ref, reactive, computed, watch, onMounted, nextTick } from "vue"
 import { access, accessCall, checkAccess } from "../lib/access.js"
 import { today as browserToday, jalaliText, format } from "../lib/jalali.js"
 import Icon from "./Icon.vue"
+import { drawInvite, toPdf, PAGE } from "../lib/invite.js"
 import DatePicker from "./core/DatePicker.vue"
 import TimePicker from "./core/TimePicker.vue"
 import "./hub-dialog.css"
 
-const props = defineProps({ assistants: Array, person: { type: Object, default: null } })
-const emit = defineEmits(["close", "saved", "invite"])
+const props = defineProps({ assistants: Array, person: { type: Object, default: null }, invite: { type: Boolean, default: false } })
+const emit = defineEmits(["close", "saved"])
 const editing = !!props.person
 
 // Today and now come from the server's clock (access.today, access.now); the browser's only if the server hasn't said.
@@ -49,7 +53,46 @@ const makePassword = () => {
   form.password = Array.from(bytes, (b) => abc[b % abc.length]).join("")
   show.value = true
 }
-if (!editing) makePassword()
+// a username nobody has to think of: «pd» and five letters or digits, easy to read out (the server says if it is taken)
+const makeUsername = () => {
+  const abc = "abcdefghjkmnpqrstuvwxyz23456789", bytes = crypto.getRandomValues(new Uint8Array(5))
+  form.username = "pd" + Array.from(bytes, (b) => abc[b % abc.length]).join("")
+}
+if (!editing) { makePassword(); makeUsername() }
+
+// ---------- the invitation letter ----------
+const letter = reactive({ on: !editing || props.invite, hon: "", english: false })
+const canvas = ref(null), drawing = ref(false)
+const HONS = computed(() => letter.english ? [["m", "Mr."], ["f", "Ms."], ["", "بدون عنوان"]] : [["m", "جناب آقای"], ["f", "سرکار خانم"], ["", "بدون عنوان"]])
+const chosen = () => props.assistants.filter((a) => form.apps.includes(a.key))
+async function draw() {
+  if (!letter.on || !canvas.value) return
+  drawing.value = true
+  try {
+    const apps = chosen()
+    const name = form.name.trim() || (letter.english ? "Your guest" : "نام مهمان")
+    await drawInvite(canvas.value, { lang: letter.english ? "en" : "fa", hon: letter.hon, name, apps: apps.length ? apps : [props.assistants[0]], today: todayStr.value,
+                                     login: { username: form.username.trim(), password: form.password.trim(), expires: expiresOn.value || "" } })
+  } catch (e) { error.value = "پیش‌نمایش دعوت‌نامه ساخته نشد: " + e.message }
+  drawing.value = false
+}
+// redrawn a moment after each change, so typing stays smooth
+let timer
+watch([form, letter], () => { clearTimeout(timer); timer = setTimeout(draw, 220) }, { deep: true })
+watch(() => letter.on, (on) => { if (on) nextTick(draw) })
+onMounted(() => nextTick(draw))
+// the PDF is made in this browser and downloaded; nothing of it goes to the server
+async function download() {
+  clearTimeout(timer); await draw()
+  const title = (letter.english ? "Invitation - " : "دعوت‌نامه - ") + form.name.trim()
+  const url = URL.createObjectURL(await toPdf(canvas.value, title))
+  const a = document.createElement("a")
+  a.href = url; a.download = title.replace(/[\\/:*?"<>|]/g, "").replace(/\u200c/g, " ") + ".pdf"   // Chrome turns the zero-width non-joiner of «دعوت‌نامه» into «_»
+  document.body.appendChild(a); a.click(); a.remove()
+  setTimeout(() => URL.revokeObjectURL(url), 4000)
+}
+// phones: once the keyboard is up (the sheet has shrunk to the visible part), keep the field being typed in on screen
+const keepInView = (e) => { if (e.target.matches("input")) setTimeout(() => e.target.scrollIntoView({ block: "center", behavior: "smooth" }), 320) }
 
 const toggle = (key) => {
   form.apps = form.apps.includes(key) ? form.apps.filter((k) => k !== key) : [...form.apps, key]
@@ -67,6 +110,7 @@ const save = async () => {
     const body = { name: form.name, username: form.username, password: form.password, apps: form.apps, expires_on: expiresOn.value }
     const p = await accessCall(editing ? `/access/people/${props.person.id}` : "/access/people", body)
     emit("saved")
+    if (letter.on) { try { await download() } catch (e) { error.value = "دسترسی ذخیره شد ولی PDF ساخته نشد: " + e.message; sending.value = false; return } }
     if (form.password) done.value = { ...p, password: form.password }
     else emit("close")
   } catch (e) { error.value = e.message }
@@ -95,18 +139,20 @@ const copy = async () => {
         <div><dt>تا</dt><dd>{{ done.expires_on ? jalaliText(done.expires_on) : "بدون تاریخ انقضا" }}</dd></div>
       </dl>
       <button type="button" class="hd-btn" @click="copy"><Icon :name="copied ? 'check' : 'file'" :size="18" />{{ copied ? "کپی شد" : "کپی متن برای فرستادن" }}</button>
-      <button type="button" class="hd-ghost" @click="emit('invite', done)"><Icon name="mail" :size="16" />ساخت دعوت‌نامه با همین اطلاعات</button>
+      <button v-if="letter.on" type="button" class="hd-ghost" @click="download"><Icon name="file" :size="16" />دانلود دوباره‌ی دعوت‌نامه</button>
     </section>
 
-    <form v-else class="hd wide" v-pop @submit.prevent="save" novalidate>
+    <form v-else :class="['hd', 'wide', { 'af-letter': letter.on }]" v-pop @submit.prevent="save" @focusin="keepInView" novalidate>
       <div class="hd-head">
         <div>
           <h3>{{ editing ? `دسترسی ${person.name}` : "دسترسی جدید" }}</h3>
-          <p>چه کسی، با چه رمزی، کدام دستیار را ببیند.</p>
+          <p>چه کسی، با چه رمزی، کدام دستیار را ببیند؛ و اگر بخواهید، دعوت‌نامه‌ی PDF برای همین شخص.</p>
         </div>
         <button type="button" class="hd-x" aria-label="بستن" @click="emit('close')"><Icon name="x" :size="18" /></button>
       </div>
 
+      <div class="af-body">
+      <div class="af-fields">
       <label class="hd-field">
         <span class="hd-label">اسم</span>
         <span class="hd-input"><Icon name="user" :size="19" /><input ref="nameEl" v-model="form.name" maxlength="60" placeholder="مثلاً خانم احمدی، مدیر دبستان نمونه" /></span>
@@ -118,6 +164,7 @@ const copy = async () => {
           <span class="hd-input"><Icon name="userCheck" :size="19" />
             <input v-model="form.username" maxlength="30" dir="ltr" autocapitalize="none" autocomplete="off" spellcheck="false" />
           </span>
+          <button type="button" class="af-gen" @click="makeUsername"><Icon name="refresh" :size="14" />نام کاربری جدید</button>
         </label>
         <label class="hd-field">
           <span class="hd-label">رمز عبور</span>
@@ -151,13 +198,65 @@ const copy = async () => {
         <p class="af-end"><Icon name="info" :size="15" />{{ expiresOn ? `تا ${jalaliText(expiresOn)} باز است، بعد خودش بسته می‌شود.` : "خالی بماند یعنی تاریخ انقضا ندارد و تا وقتی خودتان پاکش نکنید باز است." }}</p>
       </div>
 
+      <button type="button" role="switch" :aria-checked="letter.on" :class="['af-switch', { on: letter.on }]" @click="letter.on = !letter.on">
+        <span class="af-switch-text"><b>دعوت‌نامه‌ی PDF هم ساخته شود</b>
+          <small>{{ letter.on ? "پس از ذخیره، دعوت‌نامه با همین نام کاربری و رمز دانلود می‌شود. جایی ذخیره نمی‌شود." : "فقط دسترسی ساخته می‌شود." }}</small></span>
+        <span class="af-knob" aria-hidden="true"><i></i></span>
+      </button>
+      <template v-if="letter.on">
+        <div class="hd-field">
+          <span class="hd-label">عنوان در دعوت‌نامه</span>
+          <div class="af-seg" role="radiogroup" aria-label="عنوان">
+            <button v-for="[k, t] in HONS" :key="k" type="button" role="radio" :aria-checked="letter.hon === k" :class="{ on: letter.hon === k }" @click="letter.hon = k">{{ t }}</button>
+          </div>
+        </div>
+        <button type="button" role="switch" :aria-checked="letter.english" :class="['af-switch', 'sub', { on: letter.english }]" @click="letter.english = !letter.english">
+          <span class="af-switch-text"><b>دعوت‌نامه به انگلیسی</b><small>{{ letter.english ? "همه‌ی متن‌ها و نام‌ها انگلیسی است؛ اسم را هم انگلیسی بنویسید." : "متن فارسی است." }}</small></span>
+          <span class="af-knob" aria-hidden="true"><i></i></span>
+        </button>
+        <p v-if="editing && !form.password" class="af-end"><Icon name="info" :size="15" />رمز فعلی دیده نمی‌شود؛ برای آمدن رمز در دعوت‌نامه «رمز جدید» را بزنید، وگرنه در آن نوشته می‌شود «جداگانه فرستاده می‌شود».</p>
+      </template>
+
       <p class="hd-error" role="alert">{{ error }}</p>
-      <button class="hd-btn" :disabled="sending"><span v-if="sending" class="hd-spin" aria-hidden="true"></span>{{ editing ? "ذخیره" : "دادن دسترسی" }}</button>
+      <button class="hd-btn" :disabled="sending"><span v-if="sending" class="hd-spin" aria-hidden="true"></span>
+        <Icon v-else-if="letter.on" name="file" :size="18" />{{ (editing ? "ذخیره" : "دادن دسترسی") + (letter.on ? " و دانلود دعوت‌نامه" : "") }}</button>
+      </div>
+
+      <div v-if="letter.on" :class="['af-preview', { busy: drawing }]">
+        <span class="af-preview-label"><Icon name="eye" :size="15" />پیش‌نمایش دعوت‌نامه</span>
+        <canvas ref="canvas" :width="PAGE.w" :height="PAGE.h" role="img" aria-label="پیش‌نمایش دعوت‌نامه"></canvas>
+      </div>
+      </div>
     </form>
   </div>
 </template>
 
 <style scoped>
+/* with the letter: the form on one side, its preview on the other (one under the other on phones) */
+.hd.wide.af-letter { width: min(100%, 1120px); }
+.af-body { display: flex; flex-direction: column; gap: 14px; }
+.af-fields { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.af-letter .af-body { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, .9fr); gap: 22px; align-items: start; }
+.af-preview { position: sticky; top: 0; display: flex; flex-direction: column; gap: 8px; }
+.af-preview-label { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 700; color: #d6d3f5; }
+.af-preview canvas { width: 100%; height: auto; aspect-ratio: 1654 / 2339; border-radius: 10px; background: #fff; box-shadow: 0 20px 50px -20px rgba(0,0,0,.8); transition: opacity .2s; }
+.af-preview.busy canvas { opacity: .75; }
+@media (max-width: 860px) { .af-letter .af-body { grid-template-columns: 1fr; } .af-preview { position: static; } }
+.af-switch { display: flex; align-items: center; gap: 12px; width: 100%; padding: 12px 14px; border-radius: 14px; cursor: pointer; text-align: right; font: inherit; color: inherit;
+  background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.12); }
+.af-switch.on:not(.sub) { border-color: rgba(143,133,255,.6); background: rgba(106,92,245,.14); }
+.af-switch:focus-visible { outline: 3px solid #8fefff; outline-offset: 2px; }
+.af-switch-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.af-switch-text b { color: #fff; font-size: 14px; }
+.af-switch-text small { color: #b7b3d9; font-size: 12px; line-height: 1.7; }
+.af-knob { flex: none; position: relative; width: 46px; height: 26px; border-radius: 999px; background: rgba(255,255,255,.18); transition: background .2s; }
+.af-knob i { position: absolute; top: 3px; right: 3px; width: 20px; height: 20px; border-radius: 50%; background: #fff; transition: transform .25s; }
+.af-switch.on .af-knob { background: #6a5cf5; }
+.af-switch.on .af-knob i { transform: translateX(-20px); }
+.af-seg { display: flex; gap: 6px; padding: 4px; border-radius: 14px; background: rgba(10,9,32,.5); border: 1px solid rgba(255,255,255,.12); }
+.af-seg button { flex: 1; height: 38px; border: 0; border-radius: 10px; cursor: pointer; font: inherit; font-size: 13.5px; color: #cfcbf3; background: transparent; white-space: nowrap; }
+.af-seg button.on { color: #fff; background: #6a5cf5; font-weight: 700; }
+.af-seg button:focus-visible { outline: 3px solid #8fefff; outline-offset: 1px; }
 .af-two { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .af-two > * { min-width: 0; }
 @media (max-width: 560px) { .af-two { grid-template-columns: 1fr; } }

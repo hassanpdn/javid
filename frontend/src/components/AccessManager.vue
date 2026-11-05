@@ -1,17 +1,15 @@
 <script setup>
 // «دسترسی‌ها» on the assistants page, for the permanent account only (access.py): everyone given access, which
 // assistants they see and until when. New access, changes and removal happen here (AccessForm for the details).
-import { ref, onMounted, defineAsyncComponent } from "vue"
+import { ref, onMounted } from "vue"
 import { accessCall, jalaliText } from "../lib/access.js"
 import Icon from "./Icon.vue"
 import AccessForm from "./AccessForm.vue"
-// the invitation letter: shown only after a click, so its code downloads only then
-const InviteDialog = defineAsyncComponent(() => import("./InviteDialog.vue"))
 
 // collapsible (the assistants page): only the header shows until it is opened, so the assistants page stays short
 const props = defineProps({ assistants: Array, collapsible: { type: Boolean, default: false } })
 const open = ref(false)
-const inviting = ref(null), list = ref([]), loading = ref(true), editing = ref(null), adding = ref(false), removing = ref(null), error = ref("")
+const inviting = ref(false), list = ref([]), loading = ref(true), editing = ref(null), adding = ref(false), removing = ref(null), error = ref("")
 
 // a failed call says so: an empty list must mean "nobody yet", never "the list did not load"
 const load = async () => {
@@ -43,7 +41,6 @@ const remove = async (p) => {
         <div><h2>دسترسی‌ها</h2><p>چه کسی، با چه رمزی، کدام دستیار را ببیند.</p></div>
       </div>
       <div class="am-tools">
-        <button class="am-btn am-invite" @click="inviting = {}"><Icon name="mail" :size="17" />دعوت‌نامه</button>
         <button class="am-add" @click="adding = true"><Icon name="plus" :size="18" />دسترسی جدید</button>
       </div>
     </header>
@@ -80,8 +77,8 @@ const remove = async (p) => {
             <button class="am-btn" @click="removing = null">نه</button>
           </div>
           <div v-else class="am-actions">
-            <button class="am-btn" @click="editing = p"><Icon name="pencil" :size="15" />تغییر</button>
-            <button class="am-btn" @click="inviting = p"><Icon name="mail" :size="15" />دعوت‌نامه</button>
+            <button class="am-btn" @click="inviting = false; editing = p"><Icon name="pencil" :size="15" />تغییر</button>
+            <button class="am-btn" @click="inviting = true; editing = p"><Icon name="mail" :size="15" />دعوت‌نامه</button>
             <button class="am-btn" @click="removing = p.id"><Icon name="x" :size="15" />پاک کردن</button>
           </div>
         </div>
@@ -91,9 +88,7 @@ const remove = async (p) => {
     </div>
     <!-- to body: this section's frosted glass would otherwise hold the dialog inside it -->
     <Teleport to="body">
-      <InviteDialog v-if="inviting" :assistants="assistants" :person="inviting" @close="inviting = null" />
-      <AccessForm v-if="adding || editing" :assistants="assistants" :person="editing" @saved="load" @close="adding = false; editing = null"
-                  @invite="(p) => { adding = false; editing = null; inviting = p }" />
+      <AccessForm v-if="adding || editing" :assistants="assistants" :person="editing" :invite="inviting" @saved="load" @close="adding = false; editing = null; inviting = false" />
     </Teleport>
   </section>
 </template>
@@ -112,8 +107,6 @@ const remove = async (p) => {
   font: inherit; font-size: 14.5px; font-weight: 700; color: #fff; background: linear-gradient(110deg, #6a5cf5, #8f6bff 45%, #1fb8d6); background-size: 180% 100%;
   box-shadow: 0 14px 30px -12px rgba(115,103,240,.9); transition: background-position .5s; }
 .am-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
-/* the same size and shape as «دسترسی جدید» beside it, only quieter (.am-btn comes later, so both classes here) */
-.am-btn.am-invite { height: 46px; gap: 8px; padding: 0 18px; border-radius: 14px; font-size: 14.5px; font-weight: 700; color: #fff; }
 .am-add:hover { background-position: 100% 0; }
 .am-add:focus-visible { outline: 3px solid #8fefff; outline-offset: 3px; }
 
@@ -172,7 +165,7 @@ const remove = async (p) => {
 @media (max-width: 480px) {
   .am { padding: 18px 14px; border-radius: 24px; }
   .am-tools { width: 100%; }
-  .am-add, .am-btn.am-invite { flex: 1; justify-content: center; padding: 0 12px; white-space: nowrap; }
+  .am-add { flex: 1; justify-content: center; white-space: nowrap; }
 }
 @keyframes am-up { from { opacity: 0; transform: translateY(30px); } }
 @media (prefers-reduced-motion: reduce) { .am { animation: none; } }
