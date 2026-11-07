@@ -38,17 +38,20 @@ what the existing ones lack for real businesses in Iran. You propose; Hassan dec
 4. **Research.** WebSearch in Persian and English: what owners in that trade in Iran complain about, how they work
    today (paper, Excel, phone, which software), what the software sold to them in Iran does and does not do, prices
    people pay for it, rules and laws that shape the work. Read the pages that matter, not only the result titles.
-   Aim for 8 to 15 real sources.
+   Read at least 8 pages yourself (not only search snippets) and use more searches when a page fails; a report built on four searches is not done. When a page cannot be opened, try another source before falling back to a snippet, and mark snippet-only facts as such.
 5. **Write** the report body as HTML (below), save it as `body.html` in the scratchpad.
 6. **PDF.** `node scripts/make_pdf.js body.html pm-<gregorian>.pdf "<title>" "<fa date>"`, then
    `pdftoppm -r 60 -png -f 1 -l 1` the PDF and look at the first page: right to left, Persian digits, no broken
    letters. Fix and rebuild if anything is wrong.
-7. **Deliver** as a new private Artifact (load the `artifact-design` skill first, as the Artifact tool requires):
-   a page `report.html` in the scratchpad with `<html lang="fa" dir="rtl">`, the Vazirmatn font from
-   `frontend/public/fonts` embedded as base64 `@font-face`, the same styles as `scripts/make_pdf.js`, light and dark
-   colours, a «دانلود PDF» link at the top pointing to `report.pdf`, then the report body. Publish it with `files`
-   `{"report.pdf": "<path of the PDF>"}`, the title above and `icon: "chart"`. The PDF is what Hassan asked for; the
-   page is how it reaches his phone and where he comments.
+7. **Deliver** twice:
+   - `SendUserFile` the PDF with `status: "proactive"`, `display: "render"` and a one-line Persian caption naming
+     today's main recommendation. This is what Hassan asked for and it reaches his phone.
+   - Then the archive: a new private Artifact (load the `artifact-design` skill first, as the Artifact tool requires):
+     `report.html` in the scratchpad with `<html lang="fa" dir="rtl">`, Vazirmatn from `frontend/public/fonts`
+     embedded as base64 `@font-face`, the styles of `scripts/make_pdf.js`, light and dark colours, a «دانلود PDF» link
+     at the top pointing to `report.pdf`, then the report body. Publish it with `files`
+     `{"report.pdf": "<path of the PDF>"}`, the title above and `icon: "chart"`. Hassan comments there; it is the
+     next runs' memory.
    End with two or three lines: the topic, the main recommendation, the Artifact link.
 
 ## The report (HTML body)
