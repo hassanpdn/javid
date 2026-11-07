@@ -6,6 +6,11 @@ Wants=network-online.target
 
 [Service]
 Type=oneshot
+# A service gets no HOME, so without these restic has no cache and fetches every folder's record from Drive again
+# to see what changed (a run that should take a minute took over 15). rclone finds its Drive login under HOME too.
+Environment=HOME=/root
+Environment=RESTIC_CACHE_DIR=/var/cache/restic
+CacheDirectory=restic
 ExecStart=/usr/bin/python3 /usr/local/sbin/server-backup
 Nice=10
 IOSchedulingClass=idle
