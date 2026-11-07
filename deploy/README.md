@@ -93,3 +93,68 @@ Then add three repository secrets on GitHub (Settings > Secrets and variables > 
 
 Only if `deploy/javid-deploy.sh` itself changes, copy it again (step 1); changes to `after-update.sh` need nothing. By hand: `sudo -u javid javid-deploy`. Logs: `journalctl -u javid -f`.
 Otherwise demo data is rebuilt when the day changes or from the setup form.
+
+## Backups and alerts
+
+`deploy/backup.py` runs every night at 03:30 Tehran time and keeps 14 days in `/var/backups/javid/`: every database
+(copied safely while the app writes, then checked), the settings files, `.env`, and the hotel's, lodge's and fabric
+shop's files, in one `javid-<date>.tar.gz` readable only by the `javid` user. `deploy/watch.py` runs every 5 minutes and
+sends an alert when the app or the site stops answering, the disk is nearly full, the night's backup failed, the HTTPS
+certificate is near its end, or the app logs server errors; once when it starts, every 6 hours while it lasts, and
+«درست شد» when it is gone. `.github/workflows/uptime.yml` checks the site from outside every 15 minutes, for when the whole
+server is down. Changes to `backup.py` and `watch.py` arrive with the code; only the four unit files below need copying
+again if they change.
+
+Once, as root:
+
+```
+install -d -m 700 -o javid -g javid /var/backups/javid
+usermod -aG systemd-journal javid          # the watcher reads the app's log (journalctl -u javid)
+cp /opt/javid/deploy/javid-backup.service /opt/javid/deploy/javid-backup.timer \
+   /opt/javid/deploy/javid-watch.service /opt/javid/deploy/javid-watch.timer /etc/systemd/system/
+systemctl daemon-reload
+systemctl enable --now javid-backup.timer javid-watch.timer
+systemctl start javid-backup               # a first backup now
+cat /var/backups/javid/last.json           # "ok": true
+systemctl list-timers 'javid-*'            # both timers and when they run next
+```
+
+Where alerts go: Bale works from a server in Iran and reaches the phone; email if the server can send mail. Either or
+both, in `/opt/javid/.env` (read on every run, no restart needed):
+
+```
+# Bale: in Bale, ask @botfather for a new bot and copy its token. Send any message to the new bot, then
+#   curl -s https://tapi.bale.ai/bot<TOKEN>/getUpdates
+# and take "chat":{"id": ...} from the answer.
+BALE_TOKEN=
+BALE_CHAT_ID=
+# Email (port 465 = SSL, 587 = STARTTLS)
+SMTP_HOST=
+SMTP_PORT=465
+SMTP_USER=
+SMTP_PASSWORD=
+ALERT_EMAIL=
+```
+
+Then check it: `sudo -u javid /opt/javid/.venv/bin/python /opt/javid/deploy/watch.py --test` should bring a message. For
+the outside check, put the same values in GitHub (Settings > Secrets and variables > Actions) as `BALE_TOKEN`,
+`BALE_CHAT_ID` and/or `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `ALERT_EMAIL`. GitHub is outside Iran, so
+when Iran's international internet is cut, that check reports the site down although people in Iran can still open it.
+
+A backup only on this server is lost with this server. Two ways to keep a copy elsewhere:
+
+- From your own computer, now and then (or from a scheduled task on it): `rsync -a root@89.45.89.72:/var/backups/javid/ ~/javid-backups/`
+- Or from the server every night, to another server: `apt install rsync` on both, then
+  `sudo -u javid ssh-keygen -t ed25519 -N ""` and add `/home/javid/.ssh/id_ed25519.pub` to the other server's
+  `authorized_keys`; connect once by hand (`sudo -u javid ssh backup@other-server true`) to accept its key, and set
+  `BACKUP_REMOTE=backup@other-server:/backups/javid/` in `.env`. A failed copy fails the backup, and the watcher says so.
+
+To bring something back from a backup (here only the accounts, `access.db`), as root:
+
+```
+systemctl stop javid
+mkdir -p /tmp/restore && tar -xzf /var/backups/javid/javid-2026-11-07_0330.tar.gz -C /tmp/restore
+cp /tmp/restore/javid-2026-11-07_0330/access.db /opt/javid/access.db && chown javid:javid /opt/javid/access.db
+systemctl start javid
+rm -rf /tmp/restore
+```

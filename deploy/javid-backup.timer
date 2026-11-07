@@ -1,0 +1,10 @@
+[Unit]
+Description=javid nightly backup at 03:30 Tehran time
+
+[Timer]
+OnCalendar=*-*-* 03:30:00 Asia/Tehran
+Persistent=true
+RandomizedDelaySec=10min
+
+[Install]
+WantedBy=timers.target

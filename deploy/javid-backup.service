@@ -1,0 +1,12 @@
+# Nightly backup of the live server: deploy/backup.py (what it keeps and where: see that file and deploy/README.md)
+[Unit]
+Description=javid nightly backup
+
+[Service]
+Type=oneshot
+User=javid
+WorkingDirectory=/opt/javid
+ExecStart=/opt/javid/.venv/bin/python /opt/javid/deploy/backup.py
+# the watcher sends the alert when this fails (last.json in the backup folder)
+Nice=10
+IOSchedulingClass=idle

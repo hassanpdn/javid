@@ -1,0 +1,63 @@
+# From outside: is https://agent.pudineh.com answering? Every 15 minutes from GitHub's servers, for the case the watcher
+# on the server (deploy/watch.py) cannot report: the whole server or its network is down.
+# It sends one alert when the site stops answering (three tries a minute apart) and one when it answers again, through
+# the same channels as the watcher; a run is red while the site is down.
+# Secrets (repo Settings > Secrets and variables > Actions), the same values as in the server's .env:
+#   BALE_TOKEN, BALE_CHAT_ID   and/or   SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD, ALERT_EMAIL
+# GitHub is outside Iran: when Iran's international internet is cut, this check sees the site down while people in
+# Iran can still open it.
+name: Uptime
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: uptime
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Does the site answer?
+        id: check
+        continue-on-error: true
+        run: |
+          for i in 1 2 3; do python3 deploy/watch.py --outside https://agent.pudineh.com && exit 0; sleep 60; done
+          exit 1
+      - name: How did the last run end?
+        id: prev
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: echo "conclusion=$(gh run list -R "$GITHUB_REPOSITORY" --workflow uptime.yml --limit 2 --json conclusion -q '.[1].conclusion')" >> "$GITHUB_OUTPUT"
+      - name: Send the alert (only when the state changed)
+        if: (steps.check.outcome == 'failure') != (steps.prev.outputs.conclusion == 'failure')
+        env:
+          DOWN: ${{ steps.check.outcome == 'failure' }}
+          BALE_TOKEN: ${{ secrets.BALE_TOKEN }}
+          BALE_CHAT_ID: ${{ secrets.BALE_CHAT_ID }}
+          SMTP_HOST: ${{ secrets.SMTP_HOST }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT }}
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+          ALERT_EMAIL: ${{ secrets.ALERT_EMAIL }}
+        run: |
+          python3 - <<'PY'
+          import os, sys
+          sys.path.insert(0, "deploy")
+          import watch
+          if os.environ["DOWN"] == "true":
+              watch.send("هشدار از بیرون: سایت agent.pudineh.com سه بار پشت سر هم از سرورهای GitHub جواب نداد. ممکن است کل سرور یا شبکه‌اش قطع باشد.")
+          else:
+              watch.send("درست شد: سایت agent.pudineh.com دوباره از بیرون جواب می‌دهد.")
+          PY
+      - name: Red while the site is down
+        if: steps.check.outcome == 'failure'
+        run: exit 1

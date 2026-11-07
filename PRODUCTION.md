@@ -90,7 +90,7 @@ These are guesses made while building the demo. Remind Hassan of them before any
 6. Packaging: one Windows installer that brings Python, the program and (for the deed assistant) Tesseract, runs it
    as a background service that starts with Windows, and listens only on the office network. This likely needs a new
    packaging tool: ask Hassan before adding it.
-7. Nightly backup to a second disk or a USB stick, kept for 30 days, and a tested way to restore it.
+7. Nightly backup to a second disk or a USB stick, kept for 30 days, and a tested way to restore it. A start exists: `deploy/backup.py` (every database copied safely while in use and checked, settings and files with it; `BACKUP_DIR` and `BACKUP_KEEP_DAYS` set where and how long) runs on the live Linux server from a systemd timer. On a customer's Windows computer it still needs a scheduled task, `BACKUP_DIR` on the second disk, and a way to tell the office when it fails (`deploy/watch.py` sends to Bale or email, which needs internet).
 8. A licence key tied to the computer, checked without internet, renewed yearly.
 9. Updates on a USB stick: a new installer that keeps the data and applies the migrations.
 10. A log file the customer can send by phone or USB when something goes wrong.

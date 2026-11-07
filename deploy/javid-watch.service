@@ -1,0 +1,9 @@
+# Checks the live server and sends alerts to Bale and/or email: deploy/watch.py
+[Unit]
+Description=javid watcher
+
+[Service]
+Type=oneshot
+User=javid
+WorkingDirectory=/opt/javid
+ExecStart=/opt/javid/.venv/bin/python /opt/javid/deploy/watch.py
