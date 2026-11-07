@@ -1,0 +1,11 @@
+# Left out of the server's backup: what an install or a build makes again.
+**/.venv
+**/venv
+**/node_modules
+**/__pycache__
+**/.cache
+**/.npm
+**/.nuxt
+**/.output/cache
+/var/backups/javid/.work-*
+/var/backups/postgres/*.part

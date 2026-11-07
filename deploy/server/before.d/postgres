@@ -1,0 +1,9 @@
+#!/bin/bash
+# Before the server's backup: every PostgreSQL database as one SQL file, made by PostgreSQL itself while it runs (its
+# data folder cannot be copied safely in use). One file, replaced each night; restic keeps the nights before.
+# To bring it back: gunzip -c /var/backups/postgres/all.sql.gz | sudo -u postgres psql
+set -euo pipefail
+install -d -m 700 -o postgres -g postgres /var/backups/postgres
+sudo -u postgres pg_dumpall --clean --if-exists | gzip -6 > /var/backups/postgres/all.sql.gz.part
+mv /var/backups/postgres/all.sql.gz.part /var/backups/postgres/all.sql.gz
+echo "postgres: $(du -h /var/backups/postgres/all.sql.gz | cut -f1)"

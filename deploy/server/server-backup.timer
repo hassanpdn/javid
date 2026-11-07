@@ -1,0 +1,10 @@
+[Unit]
+Description=server backup every night at 04:15 Tehran time (after javid's own, at 03:30)
+
+[Timer]
+OnCalendar=*-*-* 04:15:00 Asia/Tehran
+Persistent=true
+RandomizedDelaySec=10min
+
+[Install]
+WantedBy=timers.target

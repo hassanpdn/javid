@@ -9,11 +9,10 @@ rebuilt every day, but they are small and copied too, so one backup is the whole
 Each database is copied with SQLite's own backup (safe while the app is writing to it) and then checked with
 «PRAGMA integrity_check» before it counts. Everything goes into one file, /var/backups/javid/javid-<date>.tar.gz,
 readable only by the javid user (it holds .env and password hashes). Files older than BACKUP_KEEP_DAYS (14) are deleted.
-A backup only on the same disk is lost with that disk, so it can also go elsewhere:
-- BACKUP_RCLONE: an rclone remote, e.g. «javid-drive:» (Google Drive through an encrypted rclone remote, set up as in
-  deploy/README.md). The file is copied there, and backups older than BACKUP_REMOTE_KEEP_DAYS (30) are deleted there.
-- BACKUP_REMOTE: an rsync destination over SSH, e.g. backup@other-server:/backups/javid/.
-A failed copy fails the backup, so the watcher says so.
+A backup only on the same disk is lost with that disk: the server's own backup (deploy/server/server-backup.py, every
+night at 04:15) takes this folder, with the rest of the server, encrypted to Google Drive. BACKUP_REMOTE (an rsync
+destination over SSH, e.g. backup@other-server:/backups/javid/) can also copy each file to another machine; a failed
+copy fails the backup, so the watcher says so.
 
 last.json in the backup folder says when the last backup ran and whether it worked; deploy/watch.py alerts when it
 failed or is older than a day. Exit code 1 on failure, so systemd shows it too.
@@ -84,12 +83,6 @@ def offsite(path, remote):
     """Copies the backup to another machine over SSH (the javid user's key must be allowed there)."""
     subprocess.run(["rsync", "-a", "--partial", "-e", "ssh -o BatchMode=yes -o ConnectTimeout=30", str(path), remote], check=True, timeout=1800)
 
-def to_rclone(path, remote, keep_days):
-    """Copies the backup to an rclone remote (Google Drive), then deletes its backups there older than keep_days."""
-    rc = ["rclone", "--config", os.getenv("RCLONE_CONFIG", str(Path.home() / ".config/rclone/rclone.conf"))]
-    subprocess.run(rc + ["copy", str(path), remote], check=True, timeout=3600)
-    subprocess.run(rc + ["delete", remote, "--min-age", f"{keep_days}d", "--include", "javid-*.tar.gz"], check=True, timeout=600)
-
 def write_status(dest, **status):
     (dest / "last.json").write_text(json.dumps({"at": datetime.now().isoformat(timespec="seconds"), **status}, ensure_ascii=False))
 
@@ -105,10 +98,6 @@ def main():
         out = backup(APP, DEST)
         gone = prune(DEST, KEEP_DAYS)
         copies = []
-        drive = os.getenv("BACKUP_RCLONE", "").strip()
-        if drive:
-            to_rclone(out, drive, int(os.getenv("BACKUP_REMOTE_KEEP_DAYS", "30")))
-            copies.append(drive)
         remote = os.getenv("BACKUP_REMOTE", "").strip()
         if remote:
             offsite(out, remote)

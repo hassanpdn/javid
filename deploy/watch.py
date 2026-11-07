@@ -1,7 +1,8 @@
 """Watches the live server and tells Hassan when something is wrong (run every 5 minutes by the javid-watch timer).
 
 Checks: the app answers on the server itself, the site answers through nginx and HTTPS, the disk has room, last
-night's backup worked (deploy/backup.py), the HTTPS certificate has more than 14 days left, and the app's log of the
+night's backups worked (javid's own, deploy/backup.py, and the whole server's to Google Drive,
+deploy/server/server-backup.py), the HTTPS certificate has more than 14 days left, and the app's log of the
 last minutes has no server errors (500s or crashes).
 
 Each problem is sent once when it starts, again every 6 hours while it lasts, and «درست شد» once when it is gone. A run
@@ -60,6 +61,19 @@ def check_backup(state_dir=STATE_DIR, now=None):
     age = now - datetime.fromisoformat(last["at"]).timestamp()
     return None if age <= BACKUP_AGE else f"آخرین پشتیبان {round(age / 3600)} ساعت پیش گرفته شده است."
 
+SERVER_STATUS = Path(os.getenv("SERVER_BACKUP_STATUS", "/var/lib/server-backup/last.json"))
+
+def check_server_backup(path=None, now=None):
+    """The whole server's backup to Google Drive. Before it is set up (no status file yet) there is nothing to check."""
+    path, now = path or SERVER_STATUS, now or time.time()
+    if not path.exists():
+        return None
+    last = json.loads(path.read_text())
+    if not last.get("ok"):
+        return f"پشتیبان سرور در گوگل درایو دیشب گرفته نشد: {last.get('error', '')}"
+    age = now - datetime.fromisoformat(last["at"]).timestamp()
+    return None if age <= BACKUP_AGE else f"آخرین پشتیبان سرور در گوگل درایو {round(age / 3600)} ساعت پیش گرفته شده است."
+
 def check_cert(host=None, now=None):
     host = host or PUBLIC.split("//")[-1].split("/")[0]
     try:
@@ -82,9 +96,9 @@ def check_errors():
     return None if not bad else f"{len(bad)} خطای سرور در چند دقیقه‌ی گذشته. اولی: {bad[0].strip()[:200]}"
 
 # key: (check, kind). state: a problem that lasts and then goes away; event: something that happened
-NAMES = {"app": "برنامه روی سرور", "public": "سایت", "disk": "دیسک", "backup": "پشتیبان‌گیری", "cert": "گواهی HTTPS", "errors": "خطای سرور"}
+NAMES = {"app": "برنامه روی سرور", "public": "سایت", "disk": "دیسک", "backup": "پشتیبان‌گیری", "server_backup": "پشتیبان سرور در گوگل درایو", "cert": "گواهی HTTPS", "errors": "خطای سرور"}
 CHECKS = {"app": (check_app, "state"), "public": (check_public, "state"), "disk": (check_disk, "state"),
-          "backup": (check_backup, "state"), "cert": (check_cert, "state"), "errors": (check_errors, "event")}
+          "backup": (check_backup, "state"), "server_backup": (check_server_backup, "state"), "cert": (check_cert, "state"), "errors": (check_errors, "event")}
 
 def decide(found, state, now):
     """found: {key: problem text or None}. Returns (messages to send, new state)."""

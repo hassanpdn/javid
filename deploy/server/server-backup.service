@@ -1,0 +1,12 @@
+# The whole server's nightly backup to Google Drive: /usr/local/sbin/server-backup (deploy/server/server-backup.py)
+[Unit]
+Description=server backup (restic to Google Drive)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 /usr/local/sbin/server-backup
+Nice=10
+IOSchedulingClass=idle
+TimeoutStartSec=8h
