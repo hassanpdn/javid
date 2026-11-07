@@ -17,7 +17,7 @@ by itself. After a change to `server-backup.py`, `before.d/` or the unit files, 
 apt install -y restic
 install -d -m 700 /etc/server-backup /etc/server-backup/before.d
 
-# 2. Google Drive for root: on your Mac run   rclone authorize "drive" "eyJzY29wZSI6ImRyaXZlLmZpbGUifQ=="
+# 2. Google Drive for root: on your Mac run   rclone authorize "drive" "eyJzY29wZSI6ImRyaXZlLmZpbGUifQ"
 #    sign in, allow, copy the {...} line it prints, and put it in place of PASTE (drive.file: rclone sees only what it made)
 rclone config create gdrive drive scope drive.file token 'PASTE'
 rclone lsd gdrive:                                   # no error = connected
