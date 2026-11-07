@@ -167,6 +167,7 @@ The code is written fast by a model and nobody else reviews it, so these keep it
 - Dropdowns get their arrow from `main.css` (12px in from the edge); don't put back the browser's own.
 - Keep the site light: endless animations are CSS keyframes on translate/scale/rotate/opacity, never GSAP; a dialog, drawer or page shown only after a click is `defineAsyncComponent`. When the site feels slow, or a change adds animation, a page or a library, use the `perf-check` skill (`.claude/skills/perf-check`: scripts that measure, and `reference.md` with what was learned).
 - Security reviews go to the `security-reviewer` agent (`.claude/agents/security-reviewer.md`): read only, it reports findings with file, line, abuse path and a proposed fix, and changes nothing. Use it before a release and after a change to logins, uploads, the API or deployment.
+- The product manager (`.claude/skills/product-manager`) runs every morning as a scheduled task: one topic a day (a new assistant worth building, or what an existing one lacks for its trade), a Persian PDF with sourced proposals, a weekly ranking on Saturdays, archived in Hassan's Drive folder «گزارش مدیر محصول». It only proposes; nothing is built until Hassan picks a proposal and its spec is agreed.
 
 - Role and identity come from the logged-in user (`require_role`, `user["ref_id"]`), never from the request body or the question.
 - Numbers are computed by code; the model only writes text. Model output that contains numbers is checked against the computed facts (stats replies, warning dates, parent answers).
