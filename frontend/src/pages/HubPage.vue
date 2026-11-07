@@ -14,6 +14,7 @@ const AccessManager = defineAsyncComponent(() => import("../components/AccessMan
 const AccessDialog = defineAsyncComponent(() => import("../components/AccessDialog.vue"))
 const LoginLog = defineAsyncComponent(() => import("../components/LoginLog.vue"))
 const SpeedPanel = defineAsyncComponent(() => import("../components/SpeedPanel.vue"))
+const ServerHealth = defineAsyncComponent(() => import("../components/ServerHealth.vue"))
 const DataMap = defineAsyncComponent(() => import("../components/DataMap.vue"))
 
 const emit = defineEmits(["open"])
@@ -208,6 +209,7 @@ const unlean = (e) => { e.currentTarget.style.setProperty("--rx", "0deg"); e.cur
     <AccessManager v-if="access.admin" :assistants="ASSISTANTS" collapsible />
     <LoginLog v-if="access.admin" collapsible />
     <SpeedPanel v-if="access.admin" collapsible />
+    <ServerHealth v-if="access.admin" collapsible />
     <AccessDialog v-if="asking" @close="asking = null" @opened="opened" />
     <p class="h-foot"><Icon name="shield" :size="15" />همه‌ی اطلاعات این نسخه ساختگی است.</p>
   </main>

@@ -27,6 +27,7 @@ from deed import api as deed_api
 from estate import api as estate_api
 from estate import site as estate_site
 import speed
+import health
 import sources
 from law import api as law_api
 from dental import api as dental_api
@@ -305,6 +306,7 @@ app.include_router(estate_api.router)
 app.include_router(estate_site.router)
 app.include_router(speed.router)
 app.include_router(sources.router)
+app.include_router(health.router)
 app.include_router(law_api.router)
 app.include_router(dental_api.router)
 app.include_router(hotel_api.router)
