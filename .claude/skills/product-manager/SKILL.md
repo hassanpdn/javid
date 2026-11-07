@@ -21,6 +21,27 @@ what the existing ones lack for real businesses in Iran. You propose; Hassan dec
   office computer without internet, numbers computed by code, the model only writes text, a person approves anything
   that leaves the office. A proposal that breaks one of these says so plainly.
 
+## Being designed now: building management (مدیریت ساختمان)
+
+A real product, not a demo, kept apart from this repository's demos: any building is defined from scratch and the
+app shows the building's own name. The first customer is Hassan's own building, «عمارت یاس»: 19 units, today a fixed
+charge of 300,000 tomans per unit a month; notices by email for now (no SMS yet). Planned phases: (1) units, people
+and access, a digital notice board where residents mark «دیدم», reporting breakdowns, the building's book of
+repairmen, the monthly service log; (2) money: charges, one-off costs split per unit, expenses, the fund check;
+(3) weighted votes by floor area, the maintenance calendar, documents with expiry dates, handing management over;
+(4) the assistant and a lobby screen.
+
+On every `new` day, research this product instead of the approved queue, one subject per run, in this order, then
+start again with what is still unclear:
+1. What the Iranian apps really offer (Sharjeman, Barsam, Apartmana, Pelak 21, Maniar, Mahak's, and others you find):
+   from their own sites, Bazaar pages and help pages, not from advertising articles. Say which planned features each
+   one has, so the features we call different are checked.
+2. What managers and residents complain about: Bazaar reviews of those apps, forums, news.
+3. The law: قانون تملک آپارتمان‌ها and its executive regulation (how costs are split, the general meeting, votes and
+   quorum, the manager's duties), from official texts where possible.
+4. Phase one in detail: screens, roles, what to leave out, what would make 19 neighbours actually use it.
+Title these reports `دستیار جدید - مدیریت ساختمان`.
+
 ## Each run
 
 1. **Today.** From this folder: `node scripts/today.js`. It prints the Jalali date, whether it is Saturday (weekly
