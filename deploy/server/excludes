@@ -9,3 +9,8 @@
 **/.output/cache
 /var/backups/javid/.work-*
 /var/backups/postgres/*.part
+# rclone's settings are the login to Google Drive: never inside the backup kept on that Drive
+/root/.config/rclone
+# downloaded packages, fetched again by an install
+/root/.local/share/pnpm
+**/.pnpm-store
