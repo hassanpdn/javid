@@ -141,13 +141,35 @@ the outside check, put the same values in GitHub (Settings > Secrets and variabl
 `BALE_CHAT_ID` and/or `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `ALERT_EMAIL`. GitHub is outside Iran, so
 when Iran's international internet is cut, that check reports the site down although people in Iran can still open it.
 
-A backup only on this server is lost with this server. Two ways to keep a copy elsewhere:
+A backup only on this server is lost with this server, so each night's file also goes to Google Drive, encrypted by
+rclone before it leaves (the backup holds `.env` and guests' details), into a folder rclone made itself and can only
+see its own files in. 30 days are kept there. Once:
 
-- From your own computer, now and then (or from a scheduled task on it): `rsync -a root@89.45.89.72:/var/backups/javid/ ~/javid-backups/`
-- Or from the server every night, to another server: `apt install rsync` on both, then
-  `sudo -u javid ssh-keygen -t ed25519 -N ""` and add `/home/javid/.ssh/id_ed25519.pub` to the other server's
-  `authorized_keys`; connect once by hand (`sudo -u javid ssh backup@other-server true`) to accept its key, and set
-  `BACKUP_REMOTE=backup@other-server:/backups/javid/` in `.env`. A failed copy fails the backup, and the watcher says so.
+```
+# on the server, as root
+apt install -y rclone && rclone version
+curl -s -o /dev/null -w "%{http_code}\n" https://www.googleapis.com/drive/v3/about     # 401 = Drive is reachable
+
+# on your Mac (Homebrew): sign in to Google in the browser that opens, allow, and copy the {...} line it prints
+brew install rclone
+rclone authorize "drive" "eyJzY29wZSI6ImRyaXZlLmZpbGUifQ=="
+
+# on the server: the Drive remote with that token, then an encrypting remote on top of it. Keep the password
+# somewhere other than this server (a password manager): without it the backups on Drive cannot be opened.
+sudo -u javid rclone config create gdrive drive scope drive.file token '{"access_token":...PASTE...}'
+sudo -u javid rclone config create javid-drive crypt remote gdrive:javid-backups password 'YOUR-LONG-PASSWORD' --obscure
+echo 'BACKUP_RCLONE=javid-drive:' >> /opt/javid/.env
+systemctl start javid-backup && cat /var/backups/javid/last.json     # "offsite": ["javid-drive:"]
+sudo -u javid rclone ls javid-drive:                                   # the backups on Drive, decrypted names
+```
+
+Or to another server instead of Drive: `apt install rsync` on both, then
+`sudo -u javid ssh-keygen -t ed25519 -N ""`, add `/home/javid/.ssh/id_ed25519.pub` to the other server's
+`authorized_keys`, connect once by hand (`sudo -u javid ssh backup@other-server true`) to accept its key, and set
+`BACKUP_REMOTE=backup@other-server:/backups/javid/` in `.env`.
+
+A backup from Drive, when this server is gone: on any computer with rclone, make the same two remotes (a new token
+from `rclone authorize`, the same password), then `rclone copy javid-drive:javid-2026-11-07_0330.tar.gz ./`.
 
 To bring something back from a backup (here only the accounts, `access.db`), as root:
 

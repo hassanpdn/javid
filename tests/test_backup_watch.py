@@ -93,3 +93,13 @@ def test_error_lines():
     assert watch.ERROR_LINE.search('INFO:     127.0.0.1:1 - "GET /lang/today HTTP/1.1" 500 Internal Server Error')
     assert watch.ERROR_LINE.search("ERROR:    Exception in ASGI application")
     assert not watch.ERROR_LINE.search('INFO:     127.0.0.1:1 - "GET /lang/today HTTP/1.1" 200 OK')
+
+def test_copy_to_google_drive_through_rclone(tmp_path, monkeypatch):
+    """The copy to Drive is two rclone calls: copy the new file, then delete that remote's backups past their days."""
+    calls = []
+    monkeypatch.setattr(backup.subprocess, "run", lambda args, **kw: calls.append(args))
+    monkeypatch.setenv("RCLONE_CONFIG", "/home/javid/.config/rclone/rclone.conf")
+    f = tmp_path / "javid-2026-11-07_0330.tar.gz"; f.write_bytes(b"x")
+    backup.to_rclone(f, "javid-drive:", 30)
+    assert calls[0] == ["rclone", "--config", "/home/javid/.config/rclone/rclone.conf", "copy", str(f), "javid-drive:"]
+    assert calls[1][3:] == ["delete", "javid-drive:", "--min-age", "30d", "--include", "javid-*.tar.gz"]
