@@ -18,7 +18,7 @@ import access
 from jalali import to_jalali, MONTHS
 
 router = APIRouter(prefix="/access")
-SERVICES = os.getenv("HEALTH_SERVICES", "javid nginx postgresql named").split()
+SERVICES = os.getenv("HEALTH_SERVICES", "javid nginx named").split()   # PostgreSQL left with alefbaft (2026-11-08)
 HOSTS = os.getenv("HEALTH_HOSTS", "agent.pudineh.com pudineh.com eco.pudineh.com hotel.pudineh.com").split()
 PROC = Path(os.getenv("HEALTH_PROC", "/proc"))
 JAVID_BACKUP = Path(os.getenv("BACKUP_DIR", "/var/backups/javid"))

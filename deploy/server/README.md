@@ -1,8 +1,8 @@
 # The whole server's backup
 
-Every project on this server (javid, the portfolio and its admin, alefbaft's sites, the DNS zones, nginx and the
-certificates) goes to Google Drive every night at 04:15 Tehran time: restic encrypts it before it leaves and, after the
-first night, sends only what changed. PostgreSQL is dumped first (`before.d/postgres`); javid makes its own safe copies
+Every project on this server (javid, the portfolio and its admin, the DNS zones, nginx and the certificates) goes to Google Drive every night at 04:15 Tehran time: restic encrypts it before it leaves and, after the
+first night, sends only what changed. When PostgreSQL is in use it is dumped first (`before.d/postgres`;
+not installed since 2026-11-08, when alefbaft, its only user, was removed from the server); javid makes its own safe copies
 at 03:30 (`deploy/backup.py`). 14 daily, 8 weekly and 12 monthly snapshots are kept; on Sundays part of what is on Drive
 is read back to be sure it can be restored. A failed night sends an email, and javid's watcher also says when there has
 been no backup for a day.
@@ -24,7 +24,7 @@ rclone lsd gdrive:                                   # no error = connected
 
 # 3. the script, the PostgreSQL step, the exclude list and the timer
 install -m 755 /opt/javid/deploy/server/server-backup.py /usr/local/sbin/server-backup
-install -m 755 /opt/javid/deploy/server/before.d/postgres /etc/server-backup/before.d/postgres
+install -m 755 /opt/javid/deploy/server/before.d/postgres /etc/server-backup/before.d/postgres   # only with PostgreSQL in use
 install -m 644 /opt/javid/deploy/server/excludes /etc/server-backup/excludes
 cp /opt/javid/deploy/server/server-backup.service /opt/javid/deploy/server/server-backup.timer /etc/systemd/system/
 
