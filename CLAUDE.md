@@ -46,6 +46,8 @@ Live at https://agent.pudineh.com (server in Iran: PyPI through a domestic mirro
 
 ## Layout
 
+To carry on without the people or tools that built this (the server, every backup, outside services, open work): `HANDOFF.md`.
+
 Architecture and the reasons behind it, for explaining it to anyone: `ARCHITECTURE.md` (the whole application), `ARCHITECTURE-school.md`, and an `ARCHITECTURE.md` in each assistant's folder. A change to an assistant's design updates its document in the same commit. Where each piece of data comes from in a real business, and what each computed number is made of, is in `sources.py` (one catalog per assistant), shown only to the permanent account: «منبع» next to each home page's four number cards and «کارهای امروز» (`components/SourceTip.vue`, keys `stat.0`..`stat.3` and `alerts`, by the card's order), and «نقشه‌ی داده» under each card on the assistants page (`components/DataMap.vue`, printable). A new assistant, or a new number card, gets its entries there in the same commit; `tests/test_sources.py` checks every assistant has a whole map.
 
 
