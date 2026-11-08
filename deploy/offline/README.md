@@ -48,9 +48,16 @@ installed, through the mirror, into `/opt/<app>/wheelhouse`, and points pip ther
 
 `bash /opt/javid/deploy/offline/renew-certs.sh` once, right before a known cut. Not on a timer.
 
-## Still to do (needs the server's facts first)
+## 4. Time and DNS (done on 2026-11-08)
 
-- Time: point the server's time sync (timesyncd or chrony, whichever runs) at the hosting company's NTP server or a
-  domestic one; check with `timedatectl`. Not done yet: which servers are reliable must be checked, not guessed.
-- DNS: the server's own lookups of other names (`resolvectl status`) should go through domestic resolvers.
+- Time: systemd-timesyncd, set in `/etc/systemd/timesyncd.conf.d/iran.conf`:
+  `NTP=194.225.150.25 62.60.248.134 0.ir.pool.ntp.org 1.ir.pool.ntp.org`, `FallbackNTP=ntp.ubuntu.com`. The two
+  addresses are the NTP Pool's Iran servers that answered from the server (offset under a second); they are given as
+  addresses too because the pool's names are resolved by servers abroad. The hosting company's 172.16.15.2 has no
+  NTP. Check: `timedatectl timesync-status`.
+- DNS: `/etc/resolv.conf` already uses domestic resolvers (172.16.15.2, the hosting company's, and 217.218.127.127);
+  nothing to change. BIND only serves pudineh.com.
+
+## Still to do
+
 - A local copy of the installed Ubuntu packages (only needed to rebuild the server during a cut).
