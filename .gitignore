@@ -56,3 +56,6 @@ lodge_files/
 # The language institute set up on this machine (see lang/institute.py)
 lang.db
 lang.json
+
+# Code graph for Claude Code (graphify), rebuilt in each session with `graphify update .`
+graphify-out/

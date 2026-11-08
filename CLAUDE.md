@@ -181,3 +181,14 @@ The code is written fast by a model and nobody else reviews it, so these keep it
 - Any new model-written text shown to a parent goes through `checks.unsafe_for_parent` and `checks.only_known_numbers`, with a code-built fallback.
 - Don't commit `.env`, `school.db`, `db/` or model files.
 - Run tests only when Hassan asks. Don't run the full suite (`pytest` plus `pnpm test:e2e`) on every change or before merging: it takes his time. When a change needs a check, run only the tests for that part (e.g. `pytest -k manager`).
+
+## graphify
+
+This project has a knowledge graph at graphify-out/ with god nodes, community structure, and cross-file relationships.
+
+Rules:
+- When graphify-out/graph.json exists, run `graphify query "<question>"` before your first grep, search or source-file read for a codebase question, and put this rule in every subagent prompt that explores code. Read raw files only for lines the graph or an earlier read already located. Use `graphify path "<A>" "<B>"` for relationships and `graphify explain "<concept>"` for focused concepts. These return a scoped subgraph, usually much smaller than GRAPH_REPORT.md or raw grep output.
+- If graphify-out/wiki/index.md exists, use it for broad navigation instead of raw source browsing.
+- Read graphify-out/GRAPH_REPORT.md only for broad architecture review or when query/path/explain do not surface enough context.
+- After modifying code, run `GRAPHIFY_BACKEND=none graphify update .` to keep the graph current (AST-only, no API cost).
+- graphify-out/ is not committed (13 MB, rewritten on every build). In a session where `graphify` is missing, install it once with `pip install graphifyy==0.9.104`, then `GRAPHIFY_BACKEND=none graphify update .` (code only, about 15 s, no model, nothing leaves the machine). The hooks in `.claude/settings.json` do nothing while it is not installed.
