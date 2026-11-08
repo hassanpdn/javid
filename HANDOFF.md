@@ -83,11 +83,19 @@ task (`.claude/skills/product-manager`); it stops with the Claude account.
 
 ## Open work
 
-- Preparing for an international internet cut (agreed order, not started): (1) a bare git repository on the server
-  with a post-receive deploy, so deploys work without GitHub; (2) a local wheelhouse of every Python dependency on the
-  server; (3) chrony with domestic NTP servers and BIND resolving through domestic resolvers; (4) a local apt
-  repository of the installed packages; (5) one command to renew every certificate right before a cut (Let's Encrypt
-  cannot renew during one; a private CA does not help public visitors).
+- Preparing for an international internet cut: `deploy/offline/README.md` (deploy without GitHub through the
+  server's own git repositories, a wheelhouse of every Python library, renewing every certificate before a known cut;
+  each script ends with PASS or FAIL). Written on 2026-11-08, not yet run on the server. Still open there: time sync
+  and DNS resolvers through domestic servers (needs the server's facts), a local copy of the Ubuntu packages, pinning
+  `requirements.txt` to the versions the server runs.
+- Renaming «javid»: the name of the school demo became the name of the whole system (repository, server user,
+  `/opt/javid`, the services `javid`, `javid-backup`, `javid-watch`, `javid-deploy`, `/var/backups/javid`,
+  `HEALTH_SERVICES`). Proposed name `pudineh-agents`. Postponed on purpose: half a rename silently breaks backups,
+  the watcher or deploys. Plan: (1) in the code, read every such name from settings with today's as the default, and
+  rename the GitHub repository (GitHub redirects the old address); (2) on the server in one sitting, after a backup:
+  new user and folder, units, sudoers, deploy key, backup folder, watcher state, `HEALTH_SERVICES`, then remove the old.
+- The review team in `.claude/agents/` (security, QA, performance, product design): read only; run the ones a change
+  touches before pushing. In hamsayedar the pipeline runs them through Gemini.
 - Javid: assistants still to build are listed in `CLAUDE.md` («Assistants still to build»), each with its spec agreed
   with Hassan first.
 - Hamsayedar: phase 2 (money) and after, see its `HANDOFF.md`.
