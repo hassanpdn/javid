@@ -1,7 +1,10 @@
-openai
-chromadb
-python-dotenv
-fastapi
-uvicorn
-openpyxl
-pillow
+# Pinned to what runs on the server (pip freeze, 2026-11-08), so a deploy never pulls a different version from the
+# mirror and the wheelhouse (deploy/offline/wheelhouse.sh) holds exactly these. Change a version on purpose, test it,
+# then run wheelhouse.sh again on the server.
+openai==3.38.0
+chromadb==1.5.9
+python-dotenv==1.2.4
+fastapi==0.162.0
+uvicorn==0.54.0
+openpyxl==3.1.5
+pillow==13.0.0

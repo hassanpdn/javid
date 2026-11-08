@@ -86,8 +86,8 @@ task (`.claude/skills/product-manager`); it stops with the Claude account.
 - Preparing for an international internet cut: `deploy/offline/README.md` (deploy without GitHub through the
   server's own git repositories, a wheelhouse of every Python library, renewing every certificate before a known cut;
   each script ends with PASS or FAIL). Written on 2026-11-08, not yet run on the server. Still open there: time sync
-  and DNS resolvers through domestic servers (needs the server's facts), a local copy of the Ubuntu packages, pinning
-  `requirements.txt` to the versions the server runs.
+  and DNS resolvers through domestic servers (needs the server's facts), a local copy of the Ubuntu packages. `requirements.txt` is pinned to
+  what the server ran on 2026-11-08 (both repositories).
 - Renaming «javid»: the name of the school demo became the name of the whole system (repository, server user,
   `/opt/javid`, the services `javid`, `javid-backup`, `javid-watch`, `javid-deploy`, `/var/backups/javid`,
   `HEALTH_SERVICES`). Proposed name `pudineh-agents`. Postponed on purpose: half a rename silently breaks backups,
