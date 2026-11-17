@@ -168,7 +168,21 @@ The code is written fast by a model and nobody else reviews it, so these keep it
 - On phones, check every new list at 360px: no text squeezed beside a tag or running into another line.
 - Dropdowns get their arrow from `main.css` (12px in from the edge); don't put back the browser's own.
 - Keep the site light: endless animations are CSS keyframes on translate/scale/rotate/opacity, never GSAP; a dialog, drawer or page shown only after a click is `defineAsyncComponent`. When the site feels slow, or a change adds animation, a page or a library, use the `perf-check` skill (`.claude/skills/perf-check`: scripts that measure, and `reference.md` with what was learned).
-- Reviews go to the review team in `.claude/agents/`, each read only (it reports findings with file, line, why and a proposed fix, and changes nothing): `security-reviewer` (before a release and after a change to logins, uploads, the API or deployment), `qa-reviewer` (tests for new behaviour, roles and model output), `performance-reviewer` (bundle, animation, queries; measures with `perf-check`) and `product-designer` (Persian wording, 360px, the kit, guides). Run the ones a change touches before pushing: a push is a release. Beside them, `.claude/agents/developer.md` writes the code: the session that talks to Hassan plans, agrees the spec and delegates each change to it, then runs the reviewers on its work.
+- Reviews go to the review team in `.claude/agents/`, each read only (it reports findings with file, line, why and a proposed fix, and changes nothing): `security-reviewer` (before a release and after a change to logins, uploads, the API or deployment), `qa-reviewer` (tests for new behaviour, roles and model output), `performance-reviewer` (bundle, animation, queries; measures with `perf-check`) and `product-designer` (Persian wording, 360px, the kit, guides). Beside them, `.claude/agents/developer.md` writes the code: the session that talks to Hassan plans, agrees the spec and delegates each change to it.
+- The review loop. Hassan agrees the spec; after that the loop runs without him.
+  1. `developer` builds and commits, and does not push.
+  2. The session runs, in parallel, only the reviewers the change touches: `qa-reviewer` always (except a wording-only
+     change); `security-reviewer` for logins, sessions, access, uploads, the API or deployment; `product-designer` for
+     `frontend/` or any text shown on screen; `performance-reviewer` for a new page, dialog, animation, library or a
+     heavy query. A wording-only change gets `product-designer` alone.
+  3. Each reviewer sets its own severity. Blocking findings go back to the same `developer` (SendMessage, so it keeps
+     its context), which fixes them in a new commit; then only the reviewers that blocked look again. Still blocking
+     after two rounds: stop and ask Hassan. Suggestions are not built; they wait for Hassan in the work log.
+  4. The session pushes, then adds one row to the work log «گزارش کارها» (https://claude.ai/artifact/Nx4nYYHFuruMU7x62mEVAf, collection `work`, with the
+     ArtifactData tool): `date`, `fa_date`, `repo`, `title` (Persian), `status` (done / you / stopped), `link`,
+     `reviews` [{role: qa|security|performance|designer|gemini, verdict: pass|fixed|suggest|blocked, notes}],
+     `decisions`, `fixed`, `open`, `tests`, and `ask` when something waits for Hassan.
+  Hassan is asked only for a spec, a new dependency, a blocker after two rounds, or a decision only he can make.
 - The product manager (`.claude/skills/product-manager`) runs every morning as a scheduled task: one topic a day (a new assistant worth building, or what an existing one lacks for its trade), a Persian PDF with sourced proposals, a weekly ranking on Saturdays, each published as a private Artifact with the PDF attached (comments there are its memory). It only proposes; nothing is built until Hassan picks a proposal and its spec is agreed.
 
 - Role and identity come from the logged-in user (`require_role`, `user["ref_id"]`), never from the request body or the question.

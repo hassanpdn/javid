@@ -76,6 +76,11 @@ Title these reports `همسایه‌دار`.
      at the top pointing to `report.pdf`, then the report body. Publish it with `files`
      `{"report.pdf": "<path of the PDF>"}`, the title above and `icon: "chart"`. Hassan comments there; it is the
      next runs' memory.
+   - Then one row in the work log «گزارش کارها» (https://claude.ai/artifact/Nx4nYYHFuruMU7x62mEVAf), collection `pm`, doc id the Gregorian date, with the
+     ArtifactData tool (`set`): `date` (YYYY-MM-DD), `fa_date` (1405/08/26), `topic` (Persian), `weekly` (true on
+     Saturdays), `status` "ok", `url` (the report's Artifact), `recommendation` (one Persian sentence). This is where
+     Hassan finds every report. If the report could not be made, still write the row with `status` "missing" and
+     `reason`.
    End with two or three lines: the topic, the main recommendation, the Artifact link.
 
 ## The report (HTML body)
