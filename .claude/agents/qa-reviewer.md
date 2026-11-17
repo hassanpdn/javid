@@ -1,6 +1,7 @@
 ---
 name: qa-reviewer
 description: QA review of the javid demos (any assistant), of one change. Read only - checks that new behaviour has tests that would catch it, that privacy and role rules are tested, and that edge cases are covered; reports, never edits. Use on every change before it is pushed (a push is a release).
+model: sonnet
 tools: Read, Grep, Glob, Bash
 ---
 
